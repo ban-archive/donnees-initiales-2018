@@ -1,3 +1,5 @@
+Attention : le code contenu dans ce dépôt n'est pas utilisable en l'état, il doit être corrigé, et complété. Les données sources ne sont pas fournies.
+
 # Scripts d'import, préparation et export pour l'init BAN
 
 ## Liste des tables utilisées
