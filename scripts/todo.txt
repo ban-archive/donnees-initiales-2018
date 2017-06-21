@@ -1,0 +1,21 @@
+- Le chargement d'abbrev.sql n'est pas dans le readme
+- passer par le dictionnaire IGN pour les abbreviations ?
+- Voir comment on gère les fusions de communes récentes (notamment faut-il mettre les anciens noms de commune dans les groupes secondaires ? Comment traiter les noms homonymes sauf une commune fusionnée ? Attention les fantoirs sont surement non à jour, cad qu'ils sont sur les anciens insee ? Utiliser les données IGN !
+- supprimer tous les champs sources car ce champ ne sera pas maintenu en phase de mise à jour
+- à l'import dans la BAN, mettre la source sur la session (insee pour le COG, la poste pour le PostCode ...)
+- quand on prend une position BANO à la place de la position IGN : faut-il reporter l'id IGN sur la position retenue ?
+- import complement d'adressage non La Poste
+- mettre les anciens noms de communes suite aux fusions dans les groupes secondaires
+
+
+fantoir : 
+- Comment on sait que cette url correspond au fantoir ? https://www.data.gouv.fr/api/1/datasets/53699580a3a729239d204738/
+- Utiliser le dico pour remplir correctement le nature_voie et libelle
+
+dgfip/bano : - Comment recupérer une nouvelle de ces données plus recentes
+la poste :
+- Comment recupérer une nouvelle de ces données plus recentes (cp, group et hn)
+
+ign : 
+- supprimer les detruits
+- type de localisation "interpolee" -> kind "Unknown"
