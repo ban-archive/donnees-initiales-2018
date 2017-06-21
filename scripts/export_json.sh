@@ -205,7 +205,7 @@ echo "DELETE FROM housenumber_ign${dep} WHERE type_de_localisation like '%commun
 # Suppression des doublons parfaits (même numero, indice de repetition, code post, code insee, id voie, lon , lat ...)
 #etape 1 :  creation des piles de doublons parfaits
 echo "DROP TABLE IF EXISTS doublon_parfait_ign_${dep};"  >> commandeTemp.sql
-echo "CREATE TABLE doublon_parfait_ign_${dep} AS SELECT numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,kind,pos,count(*) FROM housenumber_ign${dep} GROUP BY (numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,kind,pos) having count(*) > 1;" >> commandeTemp.sql
+echo "CREATE TABLE doublon_parfait_ign_${dep} AS SELECT numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,count(*) FROM housenumber_ign${dep} GROUP BY (numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode) having count(*) > 1;" >> commandeTemp.sql
 echo "DROP SEQUENCE IF EXISTS seq_doublons_parfaits_ign_${dep};" >> commandeTemp.sql
 echo "CREATE SEQUENCE seq_doublons_parfaits_ign_${dep};" >> commandeTemp.sql
 echo "ALTER TABLE doublon_parfait_ign_${dep} ADD no_pile_doublon_parfait integer;" >> commandeTemp.sql
@@ -221,31 +221,37 @@ echo "UPDATE housenumber_ign${dep} AS hn SET no_pile_doublon_parfait = d.no_pile
 	 hn.code_post = d.code_post and
 	 hn.code_insee = d.code_insee and
 	 hn.id_pseudo_fpb = d.id_pseudo_fpb and
-	 hn.kind = d.kind and
-	 hn.pos = d.pos);" >> commandeTemp.sql
+	 hn.type_de_localisation = d.type_de_localisation and
+	 hn.indice_de_positionnement = d.indice_de_positionnement and
+	 hn.methode = d.methode);" >> commandeTemp.sql
 
-#etape 2 : on ne garde qu'un hn par piles de doublons parfaits
+#etape 3 : on ne garde qu'un hn par piles de doublons parfaits
 echo "DROP TABLE IF EXISTS doublon_parfait_ign_selection_${dep};" >> commandeTemp.sql
 echo "CREATE TABLE doublon_parfait_ign_selection_${dep} AS SELECT max(id),no_pile_doublon_parfait FROM housenumber_ign${dep} WHERE no_pile_doublon_parfait IS NOT null GROUP BY no_pile_doublon_parfait;" >> commandeTemp.sql
 echo "DELETE FROM housenumber_ign${dep} WHERE no_pile_doublon_parfait IS NOT null AND id NOT IN (SELECT max FROM doublon_parfait_ign_selection_${dep});" >> commandeTemp.sql
-
-# Marquage des doublons (meme numero et indice de repetition
+ 
+#Marquage des doublons (meme numero et indice de repetition)
 # etape1 : creation des piles de doublons sémantiques
 echo "DROP TABLE IF EXISTS doublon_ign_${dep};" >> commandeTemp.sql
-echo "CREATE TABLE doublon_ign_${dep} AS SELECT numero,rep,code_post,code_insee,id_pseudo_fpb,count(*) FROM housenumber_ign33 GROUP BY (numero,rep,code_post,code_insee,id_pseudo_fpb) HAVING COUNT(*) > 1;" >> commandeTemp.sql
+echo "CREATE TABLE doublon_ign_${dep} AS SELECT numero,rep,code_post,code_insee,id_pseudo_fpb,count(*) FROM housenumber_ign${dep} GROUP BY (numero,rep,code_post,code_insee,id_pseudo_fpb) HAVING COUNT(*) > 1;" >> commandeTemp.sql
 echo "DROP SEQUENCE IF EXISTS seq_doublons_ign_${dep};" >> commandeTemp.sql
 echo "CREATE SEQUENCE seq_doublons_ign_${dep};" >> commandeTemp.sql
 echo "ALTER TABLE doublon_ign_${dep} ADD no_pile_doublon integer;" >> commandeTemp.sql
-echo "UPDATE doublon_ign_${dep} SET no_pile_doublon = nextval('seq_doublons_ign_33');" >> commandeTemp.sql
+echo "UPDATE doublon_ign_${dep} SET no_pile_doublon = nextval('seq_doublons_ign_${dep}');" >> commandeTemp.sql
 
 # etape 2 : marquage du numéro de piles doublons sémantiques sur les hns ign
 echo "ALTER TABLE housenumber_ign${dep} ADD no_pile_doublon integer;" >> commandeTemp.sql
-echo "UPDATE housenumber_ign${dep} AS hn SET no_pile_doublon = d.no_pile_doublon FROM doublon_ign_33 AS d WHERE 
+echo "UPDATE housenumber_ign${dep} AS hn SET no_pile_doublon = d.no_pile_doublon FROM doublon_ign_${dep} AS d WHERE 
 	(hn.numero = d.numero and 
 	 hn.rep = d.rep and 
 	 hn.code_post = d.code_post and
 	 hn.code_insee = d.code_insee and
 	 hn.id_pseudo_fpb = d.id_pseudo_fpb);" >> commandeTemp.sql
+
+# etape 3 : on marque le hn à garder (le maddx id de chaque pile)
+echo "DROP TABLE IF EXISTS doublon_ign_selection_${dep};" >> commandeTemp.sql
+echo "CREATE TABLE doublon_ign_selection_${dep} AS SELECT max(id),no_pile_doublon FROM housenumber_ign${dep} WHERE no_pile_doublon IS NOT null GROUP BY no_pile_doublon;" >> commandeTemp.sql
+#echo "DELETE FROM housenumber_ign${dep} WHERE no_pile_doublon_parfait IS NOT null AND id NOT IN (SELECT max FROM doublon_parfait_ign_selection_${dep});" >> commandeTemp.sql
 
 # Creation de la colonne fantoir
 echo "ALTER TABLE  housenumber_ign${dep} ADD COLUMN fantoir varchar;" >> commandeTemp.sql
@@ -259,8 +265,8 @@ echo "update housenumber${dep} h set ign=i.id from housenumber_ign${dep} i where
 # Insertion dans la table housenumber${dep}
 # Jointure avec les housenumber${dep} pour voir ceux non presents dans la table et insertion
 echo "INSERT INTO housenumber${dep} (ign, group_fantoir, group_ign, number, ordinal)
-SELECT i.id, i.fantoir, i.id_pseudo_fpb, i.numero, i.rep from housenumber_ign${dep} i
-left join housenumber${dep} h on (h.group_fantoir=i.fantoir and i.numero=h.number and i.rep=h.ordinal) where h.number is null;" >> commandeTemp.sql
+SELECT max(i.id), i.fantoir, i.id_pseudo_fpb, i.numero, i.rep from housenumber_ign${dep} i
+left join housenumber${dep} h on (h.group_fantoir=i.fantoir and i.numero=h.number and i.rep=h.ordinal) where h.number is null group by i.fantoir, i.id_pseudo_fpb, i.numero, i.rep;" >> commandeTemp.sql
 
 
 #########################################
@@ -268,7 +274,7 @@ left join housenumber${dep} h on (h.group_fantoir=i.fantoir and i.numero=h.numbe
 # Ajoute dans la ban les housenumbers absents du cadastre dont seul le parent ign existe
 # Insertion dans la table housenumber${dep}
 echo "INSERT INTO housenumber${dep} (ign, group_ign, number, ordinal)
-SELECT id, id_pseudo_fpb, numero, rep from housenumber_ign${dep} where fantoir is null;" >> commandeTemp.sql
+SELECT max(id), id_pseudo_fpb, numero, rep from housenumber_ign${dep} where fantoir is null group by id_pseudo_fpb, numero, rep;" >> commandeTemp.sql
 
 ######################################
 # HOUSENUMBER VIDE DE GROUP IGN POUR AJOUTER LE CEA
@@ -310,7 +316,7 @@ echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"source\"
 ####################################################################################################
 # POSITIONS
 echo "DROP TABLE IF EXISTS position${dep};" >> commandeTemp.sql
-echo "CREATE TABLE position${dep} (name varchar, lon varchar, lat varchar, housenumber_cia varchar, housenumber_ign varchar, housenumber_laposte varchar, kind varchar, positioning varchar, ign varchar, laposte varchar);" >> commandeTemp.sql
+echo "CREATE TABLE position${dep} (name varchar, lon varchar, lat varchar, housenumber_cia varchar, housenumber_ign varchar, housenumber_laposte varchar, kind varchar, positioning varchar, ign varchar, laposte varchar,no_pile_doublon integer);" >> commandeTemp.sql
 
 
 #########################################
@@ -320,12 +326,15 @@ echo "UPDATE housenumber_ign${dep} SET cia=format('%s_%s_%s_%s',left(fantoir,5),
 # Creation de la colonne kind et positioning
 echo "ALTER TABLE housenumber_ign${dep} ADD kind text;" >> commandeTemp.sql
 echo "ALTER TABLE housenumber_ign${dep} ADD pos text;" >> commandeTemp.sql
-echo "UPDATE housenumber_ign${dep} SET kind = CASE WHEN indice_de_positionnement = '5' THEN 'area' WHEN type_de_localisation = 'A la plaque' THEN 'entrance' WHEN type_de_localisation = 'Projetée du centre parcelle' THEN 'segment' WHEN type_de_localisation LIKE 'A la zone%' THEN 'area' ELSE 'unknown' END;" >> commandeTemp.sql
+echo "UPDATE housenumber_ign${dep} SET kind = CASE WHEN indice_de_positionnement = '5' THEN 'area' WHEN type_de_localisation = 'A la plaque' THEN 'entrance' WHEN type_de_localisation = 'Projetée du centre parcelle' THEN 'segment' WHEN type_de_localisation LIKE 'A la zone%' THEN 'area' WHEN type_de_localisation = 'Interpolée' THEN 'segment' ELSE 'unknown' END;" >> commandeTemp.sql
 echo "UPDATE housenumber_ign${dep} SET pos = CASE WHEN type_de_localisation = 'Projetée du centre parcelle' THEN 'projection' WHEN type_de_localisation = 'Interpolée' THEN 'interpolation' ELSE 'unknown' END;" >> commandeTemp.sql
 # Insertion dans la table des kind entrance
-echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, kind, positioning)
-SELECT i.cia, lon, lat, i.id, i.kind, i.pos FROM housenumber_ign${dep} i, housenumber${dep} h where i.id=h.ign and i.kind not like 'segment';" >> commandeTemp.sql
-
+# 	Passe 1 : on ajoute une position par hn (donc pour les piles un par pile)
+echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, kind, positioning, ign, no_pile_doublon)
+SELECT i.cia, lon, lat, i.id, i.kind, i.pos ,i.id, i.no_pile_doublon FROM housenumber_ign${dep} i, housenumber${dep} h where i.id=h.ign and i.kind not like 'segment';" >> commandeTemp.sql
+#	Passe 2 : on complete avec tous les autres de la pile
+echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, kind, positioning, ign, no_pile_doublon)
+SELECT i.cia, lon, lat, p.id, i.kind, i.pos ,i.id FROM housenumber_ign${dep} i, position${dep} p  where no_pile_doublon is not null and i.no_pile_doublon = p.no_pile_doublon and i.kind not like 'segment' and i.id not in (select ign from position${dep});" >> commandeTemp.sql
 
 ##########################################
 # POSITION DGFIP
