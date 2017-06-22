@@ -124,7 +124,7 @@ echo "UPDATE group_ign${dep} SET fantoir_9=code_insee||id_fantoir;" >> commandeT
 echo "ALTER TABLE  group_ign${dep} ADD COLUMN addressing varchar;" >> commandeTemp.sql
 echo "UPDATE group_ign${dep} SET addressing=case when type_d_adressage='Classique' then 'classical' when type_d_adressage='Mixte' then 'mixed' when type_d_adressage='Linéaire' then 'linear' when type_d_adressage='Anarchique' then 'anarchical' when type_d_adressage='Métrique' then 'metric' else '' end;" >> commandeTemp.sql
 # Mise a jour de la table group${dep}
-echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias from group_ign${dep} g where g.fantoir_9=fantoir;" >> commandeTemp.sql
+echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte = g.id_poste from group_ign${dep} g where g.fantoir_9=fantoir;" >> commandeTemp.sql
 
 #########################################
 # GROUP IGN NON RETROUVE DANS FANTOIR (avec l'id fantoir) : ajoute ces groups dans la ban
@@ -136,32 +136,56 @@ echo "UPDATE group_ign${dep} SET kind='area' where kind is null;" >> commandeTem
 echo "INSERT INTO group${dep} (kind, ign, name, municipality_insee, addressing, alias, laposte, nom_norm) 
 SELECT g.kind, g.id_pseudo_fpb, g.nom, g.code_insee, g.addressing, g.alias, g.id_poste, g.nom_norm from group_ign${dep} g where id_fantoir is null;" >> commandeTemp.sql
 
-#########################################
-# GROUP LAPOSTE RETOUVES
+
+#######################################
+# GROUP LAPOSTE : preparation
 # Extraction du departement
 echo "DROP TABLE IF EXISTS group_ran${dep};" >> commandeTemp.sql
 echo "CREATE TABLE group_ran${dep} AS SELECT * FROM ran_group WHERE co_insee like '${dep}%';" >> commandeTemp.sql
 # Creation de la colonne laposte
 echo "ALTER TABLE  group_ran${dep} ADD COLUMN laposte varchar;" >> commandeTemp.sql
 echo "UPDATE group_ran${dep} SET laposte=right('0000000'||co_voie,8);" >> commandeTemp.sql
-# Mise a jour de la table group${dep}
-echo "UPDATE group${dep} SET laposte=r.laposte from group_ran${dep} r 
-WHERE municipality_insee=r.co_insee and r.lb_voie=nom_norm;" >> commandeTemp.sql
-# Mise ajour de la table group_ran${dep}
-echo "ALTER TABLE  group_ran${dep} ADD COLUMN ign varchar;" >> commandeTemp.sql
-echo "UPDATE group_ran${dep} SET ign=g.ign from group${dep} g where g.municipality_insee=co_insee and lb_voie=g.nom_norm;" >> commandeTemp.sql
-echo "ALTER TABLE  group_ran${dep} ADD COLUMN fantoir varchar;" >> commandeTemp.sql
-echo "UPDATE group_ran${dep} SET fantoir=g.fantoir from group${dep} g where g.municipality_insee=co_insee and lb_voie=g.nom_norm;" >> commandeTemp.sql
-
-#######################################
-# GROUP LAPOSTE NON RETROUVES
 # Creation de la colonne kind
 echo "ALTER TABLE group_ran${dep} ADD COLUMN kind varchar;" >> commandeTemp.sql
 echo "UPDATE group_ran${dep} SET kind=abbrev.kind from abbrev where lb_voie like nom_long||' %';" >> commandeTemp.sql
 echo "UPDATE group_ran${dep} SET kind='area' WHERE kind is null;" >> commandeTemp.sql
-# Insertion dans la table group${dep}
+
+# AJOUT DES GROUPES LAPOSTE NON RETROUVES 
 echo "INSERT INTO group${dep} (kind, name, municipality_insee, laposte, nom_norm)
-SELECT g.kind, g.lb_voie, g.co_insee, g.laposte, g.lb_voie from group_ran${dep} g where (g.fantoir is null and g.ign is null);" >> commandeTemp.sql
+SELECT g.kind, g.lb_voie, g.co_insee, g.laposte, g.lb_voie from group_ran${dep} g left join group${dep} on g.laposte = group${dep}.laposte where municipality_insee is null; " >> commandeTemp.sql
+
+echo "\COPY (select format('{\"source\": \"\", \"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s}',kind,municipality_insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' else '' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' else '' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' else '' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' else '' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' else '' end) from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
+
+psql -e -f commandeTemp.sql
+
+exit
+
+#########################################
+# GROUP LAPOSTE RETOUVES
+# Extraction du departement
+#echo "DROP TABLE IF EXISTS group_ran${dep};" >> commandeTemp.sql
+#echo "CREATE TABLE group_ran${dep} AS SELECT * FROM ran_group WHERE co_insee like '${dep}%';" >> commandeTemp.sql
+# Creation de la colonne laposte
+#echo "ALTER TABLE  group_ran${dep} ADD COLUMN laposte varchar;" >> commandeTemp.sql
+#echo "UPDATE group_ran${dep} SET laposte=right('0000000'||co_voie,8);" >> commandeTemp.sql
+# Mise a jour de la table group${dep}
+#echo "UPDATE group${dep} SET laposte=r.laposte from group_ran${dep} r 
+#WHERE municipality_insee=r.co_insee and r.lb_voie=nom_norm;" >> commandeTemp.sql
+# Mise ajour de la table group_ran${dep}
+#echo "ALTER TABLE  group_ran${dep} ADD COLUMN ign varchar;" >> commandeTemp.sql
+#echo "UPDATE group_ran${dep} SET ign=g.ign from group${dep} g where g.municipality_insee=co_insee and lb_voie=g.nom_norm;" >> commandeTemp.sql
+#echo "ALTER TABLE  group_ran${dep} ADD COLUMN fantoir varchar;" >> commandeTemp.sql
+#echo "UPDATE group_ran${dep} SET fantoir=g.fantoir from group${dep} g where g.municipality_insee=co_insee and lb_voie=g.nom_norm;" >> commandeTemp.sql
+
+#######################################
+# GROUP LAPOSTE NON RETROUVES
+# Creation de la colonne kind
+#echo "ALTER TABLE group_ran${dep} ADD COLUMN kind varchar;" >> commandeTemp.sql
+#echo "UPDATE group_ran${dep} SET kind=abbrev.kind from abbrev where lb_voie like nom_long||' %';" >> commandeTemp.sql
+#echo "UPDATE group_ran${dep} SET kind='area' WHERE kind is null;" >> commandeTemp.sql
+# Insertion dans la table group${dep}
+#echo "INSERT INTO group${dep} (kind, name, municipality_insee, laposte, nom_norm)
+#SELECT g.kind, g.lb_voie, g.co_insee, g.laposte, g.lb_voie from group_ran${dep} g where laposte not in ( select laposte from group${dep});" >> commandeTemp.sql
 
 
 echo "\COPY (select format('{\"source\": \"\", \"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s}',kind,municipality_insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' else '' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' else '' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' else '' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' else '' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' else '' end) from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
@@ -194,42 +218,12 @@ SELECT fantoir_hn, number, ordinal from housenumber_bano${dep} h, group${dep} g 
 ########################################
 # HOUSENUMBER IGN GROUP RAPPROCHES
 # Crée dans la ban les housenumbers non existant dans la dgfip (pas de numero) dont les groups parents dgfip et ign sont rapprochés
-# Extraction du departement
+# Extraction du departement / suppression des doublons parfaits / suppression des detruits
 echo "DROP TABLE IF EXISTS housenumber_ign${dep};" >> commandeTemp.sql
-echo "CREATE TABLE housenumber_ign${dep} AS SELECT * FROM ign_housenumber WHERE code_insee like '${dep}%';" >> commandeTemp.sql
-# Suppression des detruits
-echo "DELETE FROM housenumber_ign${dep} WHERE detruit is not null;" >> commandeTemp.sql
+echo "CREATE TABLE housenumber_ign${dep} AS SELECT max(id) as id,numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,id_poste FROM ign_housenumber WHERE code_insee like '${dep}%' and detruit is null group by (numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,id_poste);" >> commandeTemp.sql
 # Suppression des centres commune
-echo "DELETE FROM housenumber_ign${dep} WHERE type_de_localisation like '%commune%';" >> commandeTemp.sql
+#echo "DELETE FROM housenumber_ign${dep} WHERE type_de_localisation like '%commune%';" >> commandeTemp.sql
 
-# Suppression des doublons parfaits (même numero, indice de repetition, code post, code insee, id voie, lon , lat ...)
-#etape 1 :  creation des piles de doublons parfaits
-echo "DROP TABLE IF EXISTS doublon_parfait_ign_${dep};"  >> commandeTemp.sql
-echo "CREATE TABLE doublon_parfait_ign_${dep} AS SELECT numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,count(*) FROM housenumber_ign${dep} GROUP BY (numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode) having count(*) > 1;" >> commandeTemp.sql
-echo "DROP SEQUENCE IF EXISTS seq_doublons_parfaits_ign_${dep};" >> commandeTemp.sql
-echo "CREATE SEQUENCE seq_doublons_parfaits_ign_${dep};" >> commandeTemp.sql
-echo "ALTER TABLE doublon_parfait_ign_${dep} ADD no_pile_doublon_parfait integer;" >> commandeTemp.sql
-echo "UPDATE doublon_parfait_ign_${dep} SET no_pile_doublon_parfait = nextval('seq_doublons_parfaits_ign_${dep}');" >> commandeTemp.sql
-
-#etape 2 :  marquage du numéro de piles doublons parfaits sur les hns ign
-echo "ALTER TABLE housenumber_ign${dep} ADD no_pile_doublon_parfait integer;" >> commandeTemp.sql
-echo "UPDATE housenumber_ign${dep} AS hn SET no_pile_doublon_parfait = d.no_pile_doublon_parfait FROM doublon_parfait_ign_${dep} AS d WHERE 
-	(hn.numero = d.numero and 
-	 hn.rep = d.rep and 
-	 hn.lon = d.lon and
-	 hn.lat = d.lat and
-	 hn.code_post = d.code_post and
-	 hn.code_insee = d.code_insee and
-	 hn.id_pseudo_fpb = d.id_pseudo_fpb and
-	 hn.type_de_localisation = d.type_de_localisation and
-	 hn.indice_de_positionnement = d.indice_de_positionnement and
-	 hn.methode = d.methode);" >> commandeTemp.sql
-
-#etape 3 : on ne garde qu'un hn par piles de doublons parfaits
-echo "DROP TABLE IF EXISTS doublon_parfait_ign_selection_${dep};" >> commandeTemp.sql
-echo "CREATE TABLE doublon_parfait_ign_selection_${dep} AS SELECT max(id),no_pile_doublon_parfait FROM housenumber_ign${dep} WHERE no_pile_doublon_parfait IS NOT null GROUP BY no_pile_doublon_parfait;" >> commandeTemp.sql
-echo "DELETE FROM housenumber_ign${dep} WHERE no_pile_doublon_parfait IS NOT null AND id NOT IN (SELECT max FROM doublon_parfait_ign_selection_${dep});" >> commandeTemp.sql
- 
 #Marquage des doublons (meme numero et indice de repetition)
 # etape1 : creation des piles de doublons sémantiques
 echo "DROP TABLE IF EXISTS doublon_ign_${dep};" >> commandeTemp.sql
@@ -331,10 +325,10 @@ echo "UPDATE housenumber_ign${dep} SET pos = CASE WHEN type_de_localisation = 'P
 # Insertion dans la table des kind entrance
 # 	Passe 1 : on ajoute une position par hn (donc pour les piles un par pile)
 echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, kind, positioning, ign, no_pile_doublon)
-SELECT i.cia, lon, lat, i.id, i.kind, i.pos ,i.id, i.no_pile_doublon FROM housenumber_ign${dep} i, housenumber${dep} h where i.id=h.ign and i.kind not like 'segment';" >> commandeTemp.sql
+SELECT i.cia, lon, lat, i.id, i.kind, i.pos ,i.id, i.no_pile_doublon FROM housenumber_ign${dep} i, housenumber${dep} h where i.id=h.ign and (i.kind not like 'segment' and i.kind not like 'unknown');" >> commandeTemp.sql
 #	Passe 2 : on complete avec tous les autres de la pile
-echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, kind, positioning, ign, no_pile_doublon)
-SELECT i.cia, lon, lat, p.id, i.kind, i.pos ,i.id FROM housenumber_ign${dep} i, position${dep} p  where no_pile_doublon is not null and i.no_pile_doublon = p.no_pile_doublon and i.kind not like 'segment' and i.id not in (select ign from position${dep});" >> commandeTemp.sql
+echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, kind, positioning, ign)
+SELECT i.cia, i.lon, i.lat, p.ign, i.kind, i.pos ,i.id FROM housenumber_ign${dep} i, position${dep} p  where i.no_pile_doublon is not null and i.no_pile_doublon = p.no_pile_doublon and (i.kind not like 'segment' and i.kind not like 'unknown') and i.id not in (select ign from position${dep});" >> commandeTemp.sql
 
 ##########################################
 # POSITION DGFIP
@@ -347,18 +341,18 @@ echo "ALTER TABLE  housenumber_bano${dep} ADD COLUMN x varchar;" >> commandeTemp
 echo "UPDATE housenumber_bano${dep} SET x=round(lon::numeric,7)::text;" >> commandeTemp.sql
 echo "ALTER TABLE  housenumber_bano${dep} ADD COLUMN y varchar;" >> commandeTemp.sql
 echo "UPDATE housenumber_bano${dep} SET y=round(lat::numeric,7)::text;" >> commandeTemp.sql
-# Insertion dans la table position
-echo "INSERT INTO position${dep} (housenumber_cia, lon, lat)
-SELECT b.cia, b.x, b.y FROM housenumber_bano${dep} b join housenumber_ign${dep} h on (b.cia=h.cia) where h.kind not like 'entrance';" >> commandeTemp.sql
-echo "UPDATE position${dep} SET kind='entrance' where kind is null;" >> commandeTemp.sql
-echo "INSERT INTO position${dep} (housenumber_cia, lon, lat)
-SELECT b.cia, b.x, b.y FROM housenumber_bano${dep} b join housenumber_ign${dep} h on (b.cia=h.cia) where h.kind like 'entrance' and st_distance(st_geomfromtext('POINT('||h.lon||' '||h.lat||')'),st_geomfromtext('POINT('||b.x||' '||b.y||')'))>5;" >> commandeTemp.sql
+# Insertion dans la table position des positions bano pour les hn qui n'ont pas de positions ou pas de positions entrance 
+echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, kind)
+SELECT b.cia, b.x, b.y, 'entrance' FROM housenumber_bano${dep} b join (select cia from housenumber${dep} h left join position${dep} p on (p.housenumber_ign = h.ign) where p.kind not like 'entrance' or p.kind is null) as j on b.cia = j.cia;" >> commandeTemp.sql
+# Insertion dans la table position des positions bano si elles sont eloignees de plus de 5 m des positions déjà existantes
+echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, kind)
+SELECT b.cia, b.x, b.y, 'entrance' FROM housenumber_bano${dep} b join position${dep} p on (b.cia=p.housenumber_cia) where st_distance(ST_GeographyFromText('POINT('||p.lon||' '||p.lat||')'),ST_GeographyFromText('POINT('||b.x||' '||b.y||')'))>5;" >> commandeTemp.sql
 
 ##########################################
 # POSITION IGN
-# Insertion dans la table des autres kind
+# Insertion dans la table des positions des positions ign "segment" si il n'y a pas de position entrance dejà présente
 echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, kind, positioning)
-SELECT i.cia, i.lon, i.lat, i.id, i.kind, i.pos FROM housenumber_ign${dep} i join position${dep} p on i.id=p.housenumber_ign where i.kind like 'segment' and p.kind not like 'entrance';" >> commandeTemp.sql
+SELECT i.cia, i.lon, i.lat, i.id, i.kind, i.pos FROM housenumber_ign${dep} i join (select h.ign from housenumber${dep} h left join position${dep} p on (p.housenumber_ign = h.ign) where p.kind not like 'entrance' or p.kind is null) as j on i.id=j.ign where i.kind like 'segment';" >> commandeTemp.sql
 
 echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\", \"source\":\"\", \"housenumber:cia\": \"%s\", \"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]}}',kind, housenumber_cia,lon, lat) from position${dep} where housenumber_cia is not null) to '${data_path}/${dep}/07_positions.json';" >> commandeTemp.sql 
 echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\", \"source\":\"\", \"housenumber:ign\": \"%s\", \"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]}}', kind, housenumber_ign, lon, lat) from position${dep} where housenumber_cia is null and housenumber_ign is not null) to '${data_path}/${dep}/08_positions.json';" >> commandeTemp.sql

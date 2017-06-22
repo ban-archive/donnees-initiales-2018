@@ -6,7 +6,9 @@
 - quand on prend une position BANO à la place de la position IGN : faut-il reporter l'id IGN sur la position retenue ?
 - import complement d'adressage non La Poste
 - mettre les anciens noms de communes suite aux fusions dans les groupes secondaires
-
+- laisser les hn IGN de localisation centre commune par contre ne pas mettre leur position
+- voir le message a l'import des postcodes -> already exists
+- faire l'appariement de nom sur les groupes pour diminuer les doublons
 
 fantoir : 
 - Comment on sait que cette url correspond au fantoir ? https://www.data.gouv.fr/api/1/datasets/53699580a3a729239d204738/
