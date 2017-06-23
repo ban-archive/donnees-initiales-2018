@@ -7,7 +7,7 @@
 - export en json
 - import des json dans la ban
 
-## Données en entrée (à récupérer)
+## Données en entrée 
 
 - COG : les données sont téléchargées par le programme sur le site de l'INSEE 
 - FANTOIR : les données sont téléchargées par le programme sur www.data.gouv.fr
@@ -23,6 +23,9 @@
   - fichier ban.postcode<dep> des codes postaux
   - fichier ban.group<dep> des voies/lieux-dits
   - fichier ban.house_number<dep> des points adresses (housenumber + position)
+- Divers :
+ - le fichier abbre.csv avec le dictionnaire (abbréviation, type de groupes ...)
+ - le fichier fusion_commune.sql avec les fusions de commune (insee_new , insee_old ...)
 
 ## Création de la base temporaire
 Créer la base temporaire <base_temp>
@@ -37,7 +40,9 @@ Exporter les variables d'environnement :
 
 Si besoin exporter, les variables d'environnement PGUSER, PGPORT, PGPASSWORD ...
 
-Lancer le script, import_abbrev.sh : il importe le fichier des abbréviations dans une table abbrev 
+Lancer le script, preparation_base_temp.sh : il importe :
+- le fichier des abbréviations dans la table abbrev 
+- le fichier des fusions de communes dans la table fusion_commune
  
 ## Importation des données
 Les données sont importées dans la base PostgreSQL <basetemp> --> Bien initialiser les variables d'environnement

@@ -19,7 +19,7 @@ SET default_with_oids = false;
 -- Name: modification_insee; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
-CREATE TABLE modification_insee (
+CREATE TABLE fusion_commune (
     insee_old character varying,
     insee_new character varying,
     nom_new character varying(255),
@@ -32,7 +32,7 @@ CREATE TABLE modification_insee (
 -- Data for Name: modification_insee; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY modification_insee (insee_old, insee_new, nom_new, date, nom_old) FROM stdin;
+COPY fusion_commune (insee_old, insee_new, nom_new, date, nom_old) FROM stdin;
 14543	14543	Rots	2015	Rots
 50095	50095	Canisy	2017	Canisy
 44004	44163	Vair-sur-Loire	2015	Anetz (rattachée à 44163)

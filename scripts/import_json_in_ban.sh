@@ -1,8 +1,8 @@
 json_path=$1
 
 if [ $# -ne 1 ]; then
-        echo "Usage : export_json.sh <outPath> <dep>"
-        exit 1
+        echo "Usage : export_json.sh <JsonPath>"
+	exit 1
 fi
 
 ban import:init ${json_path}/01_municipalities.json
