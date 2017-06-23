@@ -260,8 +260,6 @@ echo "UPDATE housenumber_ign${dep} SET fantoir=g.fantoir_9 FROM group_ign${dep} 
 # HOUSENUMBER IGN GROUP RAPPROCHES
 # Mise a jour du champ group_ign de housenumber${dep}
 echo "update housenumber${dep} h set group_ign=i.id_pseudo_fpb from housenumber_ign${dep} i where h.group_fantoir=i.fantoir;" >> commandeTemp.sql
-# Mise a jour du champ group_laposte de housenumber${dep}
-echo "update housenumber${dep} h set group_laposte=g.id_poste from group_ign${dep} g where h.group_ign=g.id_pseudo_fpb;" >> commandeTemp.sql
 # Mise a jour du champ ign de housenumber${dep}
 echo "update housenumber${dep} h set ign=i.id from housenumber_ign${dep} i where h.group_ign=i.id_pseudo_fpb and h.number=i.numero and h.ordinal=i.rep;" >> commandeTemp.sql
 
@@ -274,6 +272,17 @@ left join housenumber${dep} h on (h.group_fantoir=i.fantoir and i.numero=h.numbe
 # Ajout dans la ban les housenumbers ign dont le fantoir est nul
 echo "INSERT INTO housenumber${dep} (ign, group_ign, number, ordinal, insee)
 SELECT max(id), id_pseudo_fpb, numero, rep, code_insee from housenumber_ign${dep} where fantoir is null group by id_pseudo_fpb, numero, rep, code_insee;" >> commandeTemp.sql
+
+########################################
+# Mise à jour des champs la poste avec les données IGN
+# Mise a jour du champ group_laposte de housenumber${dep}
+echo "update housenumber${dep} h set group_laposte=g.id_poste from group_ign${dep} g where h.group_ign=g.id_pseudo_fpb ;" >> commandeTemp.sql
+# Mise a jour du champ laposte de housenumber${dep}
+echo "update housenumber${dep} h set laposte=i.id_poste from housenumber_ign${dep} i where h.ign=i.id;" >> commandeTemp.sql
+
+##################################################
+# Mise à jour du code postal avec les adresses IGN
+echo "update housenumber${dep} h set postcode_code=i.code_post from housenumber_ign${dep} i where h.ign=i.id and i.code_post in (select co_postal from postcode${dep});" >> commandeTemp.sql
 
 ######################################
 # Creation d'un housenumber null pour chaque group laposte, pour stoker le cea de la voie poste
@@ -290,6 +299,9 @@ echo "CREATE TABLE housenumber_ran${dep} AS SELECT * FROM ran_housenumber WHERE 
 # Creation de la colonne group_laposte
 echo "ALTER TABLE  housenumber_ran${dep} ADD COLUMN group_laposte varchar;" >> commandeTemp.sql
 echo "UPDATE housenumber_ran${dep} SET group_laposte=right('0000000'||co_voie,8);" >> commandeTemp.sql
+# Passage à vide de l'indice de répétition pour être conforme aux autres sources
+echo "UPDATE housenumber_ran${dep} SET lb_ext='' where lb_ext is null;" >> commandeTemp.sql
+
 
 #####################################
 # Mise a jour de laposte dans la table housenumber${dep}
@@ -297,11 +309,12 @@ echo "UPDATE housenumber${dep} h SET laposte=r.co_cea FROM housenumber_ran${dep}
 # Mise a jour des postcodes null dans la table housenumber${dep}
 echo "UPDATE housenumber${dep} h SET postcode_code=r.co_postal FROM housenumber_ran${dep} r WHERE r.co_cea=h.laposte and h.postcode_code is null;" >> commandeTemp.sql
 
+
 #####################################
 # HOUSENUMBERS LAPOSTE NON RAPPROCHES
 # Insertion dans la table housenumber${dep}
-echo "INSERT INTO housenumber${dep} (group_laposte, number, ordinal, postcode_code, insee)
-SELECT r.group_laposte, r.no_voie, r.lb_ext, r.co_postal, r.co_insee FROM housenumber_ran${dep} r join housenumber${dep} h on (r.co_cea=h.laposte)  WHERE h.insee is null;" >> commandeTemp.sql
+echo "INSERT INTO housenumber${dep} (group_laposte, number, ordinal, postcode_code, insee, laposte)
+SELECT r.group_laposte, r.no_voie, r.lb_ext, r.co_postal, r.co_insee, co_cea FROM housenumber_ran${dep} r left join housenumber${dep} h on (r.co_cea=h.laposte)  WHERE h.insee is null;" >> commandeTemp.sql
 
 # Colonne CIA
 echo "update housenumber${dep} set cia=upper(format('%s_%s_%s_%s',left(group_fantoir,5),right(group_fantoir,4),number, coalesce(ordinal,''))) where group_fantoir is not null;" >> commandeTemp.sql

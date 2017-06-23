@@ -4,21 +4,18 @@
 - import complement d'adressage non La Poste
 - mettre les anciens noms de communes suite aux fusions dans les groupes secondaires
 - laisser les hn IGN de localisation centre commune par contre ne pas mettre leur position
-- voir le message a l'import des hn -> already exists
 - s'assurer que tous les hn ign poste fantoir sont dans la ban
-- voir le message a l'import des hn -> DB error
 - faire l'appariement de nom sur les groupes pour diminuer les doublons
+- voir les 4920 hn du dep 90 pour lesquels il n'y a pas d'id ign
 - postcode_id vide sur hn
 - pas d’id poste sur hn (6% seulement)
+- gestion de la non-unicité du couple (insee, code postal) sur les codes postaux (introduction de la ligne 5). Voir comment on gere le même hn attaché à 2 ces objets : pour la poste il y a 2 hn, mais dans la ban ce n'est pas possible actuellement d'avoir 2 mêmes numéros sur le même groupe, avec le même code postal ? -> A tester. A l'import, ça a l'air de planter.
 
-fantoir : 
-- Comment on sait que cette url correspond au fantoir ? https://www.data.gouv.fr/api/1/datasets/53699580a3a729239d204738/
-- Utiliser le dico pour remplir correctement le nature_voie et libelle
+dgfip/bano : 
+- Comment recupérer une nouvelle version de ces données plus recentes
 
-dgfip/bano : - Comment recupérer une nouvelle de ces données plus recentes
 la poste :
-- Comment recupérer une nouvelle de ces données plus recentes (cp, group et hn)
+- Comment recupérer une nouvelle version de ces données plus recentes (cp, group et hn)
 
 ign : 
-- supprimer les detruits
-- type de localisation "interpolee" -> kind "Unknown"
+- type de localisation "interpolee" -> kind "Unknown" 
