@@ -92,6 +92,8 @@ echo "update group_fantoir${dep} set libelle_voie=regexp_replace(libelle_voie,E'
 # Pour eviter les RUE RUE VICTOR HUGO
 echo "update group_fantoir${dep} set nature_voie=nom_long, libelle_voie=substr(libelle_voie,length(nom_long)+1) from abbrev where libelle_voie like nom_long||' %';" >> commandeTemp.sql
 echo "update group_fantoir${dep} set nature_voie=nom_long, libelle_voie=substr(libelle_voie,length(nom_court)+1) from abbrev where libelle_voie like nom_court||' %';" >> commandeTemp.sql
+# Désabréviation de la nature_voie
+echo "update group_fantoir${dep} set nature_voie=nom_long from abbrev where nature_voie=nom_court and code like '2';" >> commandeTemp.sql
 # Creation de la colonne kind
 echo "ALTER TABLE group_fantoir${dep} ADD COLUMN kind varchar;" >> commandeTemp.sql
 echo "UPDATE group_fantoir${dep} SET kind=abbrev.kind from abbrev where nature_voie like nom_long;" >> commandeTemp.sql
