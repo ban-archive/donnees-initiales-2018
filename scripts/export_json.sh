@@ -235,7 +235,7 @@ SELECT fantoir_hn, number, ordinal, insee_com from housenumber_bano${dep} h, gro
 # PREPARATION HOUSENUMBER IGN
 # Extraction du departement / suppression des doublons parfaits / suppression des detruits
 echo "DROP TABLE IF EXISTS housenumber_ign${dep};" >> commandeTemp.sql
-echo "CREATE TABLE housenumber_ign${dep} AS SELECT max(id) as id,numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,id_poste FROM ign_housenumber WHERE code_insee like '${dep}%' and detruit is null group by (numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,id_poste);" >> commandeTemp.sql
+echo "CREATE TABLE housenumber_ign${dep} AS SELECT max(id) as id, max(id_poste) as id_poste, numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode FROM ign_housenumber WHERE code_insee like '${dep}%' and detruit is null group by (numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode);" >> commandeTemp.sql
 # Passage en majuscule du rep
 echo "UPDATE housenumber_ign${dep} SET rep = upper(rep);" >> commandeTemp.sql
 #Marquage des doublons (meme numero et indice de repetition)
@@ -374,13 +374,29 @@ SELECT b.cia, b.x, b.y, 'entrance', 'other' FROM housenumber_bano${dep} b join (
 echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, kind, positioning)
 SELECT b.cia, b.x, b.y, 'entrance', 'other' FROM housenumber_bano${dep} b join position${dep} p on (b.cia=p.housenumber_cia) where st_distance(ST_GeographyFromText('POINT('||p.lon||' '||p.lat||')'),ST_GeographyFromText('POINT('||b.x||' '||b.y||')'))>5;" >> commandeTemp.sql
 
+
 ##########################################
 # POSITION IGN
 # Insertion dans la table des positions ign "segment" si il n'y a pas de position entrance dejà présente (en 2 passes sans pile puis pile)
+# on commence par faire une table temporaire avec les housenumbers qui n'ont pas de position entrance
+echo "DROP TABLE IF EXISTS housenumber_without_entrance${dep};" >> commandeTemp.sql
+echo "CREATE TABLE housenumber_without_entrance${dep} AS SELECT * FROM housenumber${dep};" >> commandeTemp.sql
+echo "DELETE FROM housenumber_without_entrance${dep} WHERE ign IN (SELECT housenumber_ign FROM position${dep} where kind like 'entrance' );" >>  commandeTemp.sql
+echo "DELETE FROM housenumber_without_entrance${dep} WHERE cia in (select housenumber_cia from position${dep} where kind like 'entrance' );" >> commandeTemp.sql
+echo "DELETE  FROM housenumber_without_entrance${dep} WHERE no_pile_doublon is not null;" >>  commandeTemp.sql
+
 echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, kind, positioning, ign)
-SELECT i.cia, i.lon, i.lat, i.id, i.kind, i.pos, i.id FROM housenumber_ign${dep} i join (select h.ign from housenumber${dep} h left join position${dep} p on (p.housenumber_ign = h.ign) where (p.kind not like 'entrance' or p.kind is null) and h.no_pile_doublon is null) as j on i.id=j.ign where i.kind like 'segment' and i.no_pile_doublon is null;" >> commandeTemp.sql
+SELECT i.cia, i.lon, i.lat, i.id, i.kind, i.pos, i.id FROM housenumber_ign${dep} i join housenumber_without_entrance${dep} as j on i.id=j.ign where i.kind like 'segment' and i.no_pile_doublon is null;" >> commandeTemp.sql
+
+# Rebelote avec les piles
+echo "DROP TABLE IF EXISTS housenumber_without_entrance${dep};" >> commandeTemp.sql
+echo "CREATE TABLE housenumber_without_entrance${dep} AS SELECT * FROM housenumber${dep};" >> commandeTemp.sql
+echo "DELETE FROM housenumber_without_entrance${dep} WHERE ign IN (SELECT housenumber_ign FROM position${dep} where kind like 'entrance' );" >>  commandeTemp.sql
+echo "DELETE FROM housenumber_without_entrance${dep} WHERE cia in (select housenumber_cia from position${dep} where kind like 'entrance' );" >> commandeTemp.sql
+echo "DELETE  FROM housenumber_without_entrance${dep} WHERE no_pile_doublon is null;" >>  commandeTemp.sql
+
 echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, kind, positioning, ign)
-SELECT i.cia, i.lon, i.lat, j.ign, i.kind, i.pos, i.id FROM housenumber_ign${dep} i join (select h.ign, h.no_pile_doublon from housenumber${dep} h left join position${dep} p on (p.housenumber_ign = h.ign) where (p.kind not like 'entrance' or p.kind is null) and  h.no_pile_doublon is not null) as j on (i.no_pile_doublon=j.no_pile_doublon) where i.kind like 'segment' and i.no_pile_doublon is not null;" >> commandeTemp.sql
+SELECT i.cia, i.lon, i.lat, j.ign, i.kind, i.pos, i.id FROM housenumber_ign${dep} i join housenumber_without_entrance${dep} as j on (i.no_pile_doublon=j.no_pile_doublon) where i.kind like 'segment' and i.no_pile_doublon is not null;" >> commandeTemp.sql
 
 
 echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\", \"positioning\":\"%s\", \"source\":\"\", \"housenumber:cia\": \"%s\", \"ign\": \"%s\",\"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]}}',kind, positioning, housenumber_cia, ign, lon, lat) from position${dep} where housenumber_cia is not null) to '${data_path}/${dep}/07_positions.json';" >> commandeTemp.sql 
