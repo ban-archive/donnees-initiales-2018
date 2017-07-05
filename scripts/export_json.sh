@@ -104,7 +104,7 @@ echo "UPDATE group_fantoir${dep} SET fantoir_9=left(replace(fantoir,'_',''),9);"
 # Creation de la colonne name
 echo "ALTER TABLE group_fantoir${dep} ADD COLUMN name varchar;" >> commandeTemp.sql
 echo "UPDATE group_fantoir${dep} SET name=trim(replace(format('%s %s',nature_voie,libelle_voie),'\"',' '));" >> commandeTemp.sql
-
+echo "UPDATE group_fantoir${dep} SET name=libelle_voie from abbrev a, abbrev b where a.nom_long=libelle_voie and  b.nom_long=nature_voie and a.nom_court=b.nom_court;" >> commandeTemp.sql 
 
 ########################
 # Integration dans la table group${dep}
@@ -200,7 +200,7 @@ echo "\COPY (select format('{\"source\": \"\", \"type\":\"group\",\"group\":\"%s
 #########################################
 # NOMS CADASTRES
 echo "UPDATE group${dep} g SET name=voie_cadastre FROM dgfip_noms_cadastre c WHERE left(c.fantoir,9)=g.fantoir;" >> commandeTemp.sql
-echo "UPDATE group${dep} SET name=regexp_replace(name,'\"','','g')"" >> commandeTemp.sql
+echo "UPDATE group${dep} SET name=regexp_replace(name,'\"','','g');" >> commandeTemp.sql
 
 echo "\COPY (select format('{\"source\": \"\", \"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s}',kind,municipality_insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' else '' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' else '' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' else '' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' else '' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' else '' end) from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
 

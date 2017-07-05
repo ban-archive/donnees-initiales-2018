@@ -265,7 +265,7 @@ ESCALIER;escalier;ESC;way;2
 ESPACE;espace;ESPA;way;2
 ESPLANADE;esplanade;ESP;way;2
 GRAND ENSEMBLE;grand ensemble;GDEN;way;2
-GRAND-RUE;grand-rue;GR;way;2
+GRAND RUE;grand rue;GR;way;2
 GRIMPETTE;grimpette;GRIM;way;2
 VAL;val;VAL;area;0
 VALLON;vallon;VAL;area;0
@@ -368,3 +368,4 @@ PETITES ALLEES;petites all�es;PTA;way;1
 PETITS DEGRES;petits degr�s;PDEG;way;1
 PONTS;ponts;PONT;way;1
 VOIES;voies;VOI;way;1
+GDE RUE;gde rue;GR;0
