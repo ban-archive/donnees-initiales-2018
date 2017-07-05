@@ -90,8 +90,8 @@ echo "update group_fantoir${dep} set libelle_voie=upper(unaccent(libelle_voie));
 # Nettoyage doubles espaces, apostrophes, trait d'union
 echo "update group_fantoir${dep} set libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)',' ','g') WHERE libelle_voie ~ E'([\'-]|  )';" >> commandeTemp.sql
 # Pour eviter les RUE RUE VICTOR HUGO
-echo "update group_fantoir${dep} set nature_voie=nom_long, libelle_voie=substr(libelle_voie,length(nom_long)+1) from abbrev where libelle_voie like nom_long||' %';" >> commandeTemp.sql
-echo "update group_fantoir${dep} set nature_voie=nom_long, libelle_voie=substr(libelle_voie,length(nom_court)+1) from abbrev where libelle_voie like nom_court||' %';" >> commandeTemp.sql
+echo "update group_fantoir${dep} set nature_voie=trim(nom_long), libelle_voie=trim(substr(libelle_voie,length(nom_long)+1)) from abbrev where libelle_voie like nom_long||' %';" >> commandeTemp.sql
+echo "update group_fantoir${dep} set nature_voie=trim(nom_long), libelle_voie=trim(substr(libelle_voie,length(nom_court)+1)) from abbrev where libelle_voie like nom_court||' %';" >> commandeTemp.sql
 # Désabréviation de la nature_voie
 echo "update group_fantoir${dep} set nature_voie=nom_long from abbrev where nature_voie=nom_court and code like '2';" >> commandeTemp.sql
 # Creation de la colonne kind
@@ -197,6 +197,10 @@ echo "\COPY (select format('{\"source\": \"\", \"type\":\"group\",\"group\":\"%s
 #echo "INSERT INTO group${dep} (kind, name, municipality_insee, laposte, nom_norm)
 #SELECT g.kind, g.lb_voie, g.co_insee, g.laposte, g.lb_voie from group_ran${dep} g where laposte not in ( select laposte from group${dep});" >> commandeTemp.sql
 
+#########################################
+# NOMS CADASTRES
+echo "UPDATE group${dep} g SET name=voie_cadastre FROM dgfip_noms_cadastre c WHERE left(c.fantoir,9)=g.fantoir;" >> commandeTemp.sql
+echo "UPDATE group${dep} SET name=regexp_replace(name,'\"','','g')"" >> commandeTemp.sql
 
 echo "\COPY (select format('{\"source\": \"\", \"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s}',kind,municipality_insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' else '' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' else '' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' else '' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' else '' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' else '' end) from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
 
