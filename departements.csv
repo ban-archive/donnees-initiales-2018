@@ -1,10 +1,11 @@
-code_departement,nom_departement
-06,Alpes-Maritimes
-14, Calvados
-33,Gironde
-35, Ile-et-Villaine
-56,Morbihan
-76,Seine-Maritime
-85,Vendée
-90,Territoire de Belfort
-91,Essonne
+code_departement,nom_departement,export BANv0?
+06,Alpes-Maritimes,
+27, Eure,
+14, Calvados,
+33,Gironde,
+35, Ile-et-Villaine,
+56,Morbihan,
+76,Seine-Maritime,
+85,Vendée,
+90,Territoire de Belfort,
+91,Essonne,
