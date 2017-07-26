@@ -35,7 +35,7 @@ echo "CREATE TABLE ign_municipality (code_insee varchar, nom_commune varchar);" 
 echo "DROP TABLE IF EXISTS ign_postcode;" >> commandeTemp.sql
 echo "CREATE TABLE ign_postcode (code_post varchar, libelle varchar, code_insee varchar);" >> commandeTemp.sql
 echo "DROP TABLE IF EXISTS ign_group;">> commandeTemp.sql
-echo "CREATE TABLE ign_group (id_pseudo_fpb varchar, nom varchar, alias varchar, type_d_adressage varchar, id_poste varchar, nom_afnor varchar,id_postes varchar,id_fantoir varchar,id_fantoirs varchar, code_insee varchar,source varchar, detruit boolean);" >> commandeTemp.sql
+echo "CREATE TABLE ign_group (id_pseudo_fpb varchar, nom varchar, alias varchar, type_d_adressage varchar, id_poste varchar, nom_afnor varchar,id_postes varchar,id_fantoir varchar,id_fantoirs varchar, code_insee varchar, insee_obs varchar, source varchar, detruit boolean);" >> commandeTemp.sql
 echo "DROP TABLE IF EXISTS ign_housenumber;">> commandeTemp.sql
 echo "CREATE TABLE ign_housenumber (id varchar,numero varchar,rep varchar,designation_de_l_entree varchar,type_de_localisation varchar,indice_de_positionnement varchar,methode varchar,lon double precision,lat double precision,code_post varchar,code_insee varchar, id_pseudo_fpb varchar,id_poste varchar, id_postes varchar, source varchar, source_geom varchar, detruit boolean);">> commandeTemp.sql
 
