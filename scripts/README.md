@@ -12,10 +12,10 @@
   - fichier ran_group.csv des voies/lieux-dits
   - fichier ran_housenumber.csv des adresses
 - IGN : (avec <dep> de 01 à 976 = département)
-  - fichier ban.municipality<dep>  des communes
-  - fichier ban.postcode<dep> des codes postaux
-  - fichier ban.group<dep> des voies/lieux-dits
-  - fichier ban.house_number<dep> des points adresses (housenumber + position)
+  - fichier ban.municipality<dep>.csv  des communes
+  - fichier ban.postcode<dep>.csv des codes postaux
+  - fichier ban.group<dep>.csv des voies/lieux-dits
+  - fichier ban.house_number<dep>.csv des points adresses (housenumber + position)
 - Divers :
  - le fichier abbre.csv avec le dictionnaire (abbréviation, type de groupes ...)
  - le fichier fusion_commune.sql avec les fusions de commune (insee_new , insee_old ...)
@@ -26,22 +26,22 @@
 
 ### Municipality et Postcode
 
-Ces classes proviennent d'une seule source chacune: le COG pour Municipality et le ran_postcode pour Postcode.
+Ces classes proviennent d'une seule source chacune: le COG pour Municipality et le ran_postcode.csv pour Postcode.
 Les fusions de communes sont actualisés grâce au fichier fusion_commune.sql.
 
 ### Group
 
-Pour Group, nous utilisons les fichiers noms_cadatre.csv de la DGFiP, ran_group.csv de La Poste et ban.group de l'IGN.
+Pour Group, nous utilisons les fichiers noms_cadatre.csv de la DGFiP, ran_group.csv de La Poste et ban.group<Dep>.csv de l'IGN.
 
 Le fichier abbre.csv permet de désabbrévier les types de voies.
 
 ### Housenumber
 
-Pour Housenumber, nous utilisons cadastre.csv de la DGFiP, ran_housenumber.csv de La Poste et ban.house_number de l'IGN.
+Pour Housenumber, nous utilisons cadastre.csv de la DGFiP, ran_housenumber.csv de La Poste et ban.house_number<Dep>.csv de l'IGN.
 
 ### Position
 
-Pour Poition, nous utilisons ban.house_number de l'IGN.
+Pour Poition, nous utilisons ban.house_number<Dep>.csv de l'IGN.
 
 ## Comment initialiser la BAN
 
