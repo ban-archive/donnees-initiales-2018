@@ -15,9 +15,9 @@ Les producteurs de données nous fournissent des données en entrée, les plus r
   - fichier ran_postcode.csv des codes postaux
   - fichier ran_group.csv des voies/lieux-dits
   - fichier ran_housenumber.csv des adresses
-- IGN : (avec <dep> de 01 à 976 = département)
-  - fichier ban.group<dep>.csv des voies/lieux-dits
-  - fichier ban.house_number<dep>.csv des points adresses (housenumber + position)
+- IGN : (découpage par départements)
+  - fichier ban.group.csv des voies/lieux-dits
+  - fichier ban.house_number.csv des points adresses (housenumber + position)
 - Divers :
  - le fichier abbre.csv avec le dictionnaire (abbréviation, type de groupes ...)
  - le fichier fusion_commune.sql avec les fusions de commune (insee_new , insee_old ...)
@@ -40,11 +40,11 @@ Les premières étapes de l'initialisation sont les suivantes :
 - chargement de tous les groupes du FANTOIR
 - ajout des groupes IGN non trouvés (en utilisant l'identifiant FANTOIR)
 - ajout des groupes Poste non trouvés (en utilisant l'identifiant Poste contenu dans les données IGN)
-- Remplacement des noms de groupes par les noms DGFIP/BANO (clé d'appariement = identifiant FANTOIR) (fait sur certains départements mais tous)
+- Remplacement des noms de groupes par les noms DGFIP/BANO (clé d'appariement = identifiant FANTOIR) (fait sur certains départements mais pas tous)
 
 A ce stade, les noms des groupes sont issus majoritairement du fantoir et sont donc en majuscules sans accent.
 Les groupes provenant uniquement de l'IGN sont souvent en minuscules accentuées.
-Les groupes appariés avec les données DGFIP/BANO sont en minuscules accentuées capitaliseés (fait sur certains départements mais tous)
+Les groupes appariés avec les données DGFIP/BANO sont en minuscules accentuées capitaliseés (fait sur certains départements mais pas tous)
 
 Dans une seconde étape, on calcule le kind des groupes (way ou area). Pour cela, on utilise le fichier abbre.csv qui donne le types des groupes en fonction du premier mot du groupe.  
 Exemples: RUE, BOULEVARD, AVENUE ont un kind="way"; LOTISSEMENT, ZONE COMMERCIALE, CENTRE ont un kind="area"
@@ -77,7 +77,7 @@ La première étape de l'inialisation consiste à sélectionner ou non les posit
 - Les positions IGN "Au centre commune" ne sont pas retenues.
 - Les positions IGN "à la plaque" sont systèmatiquement retenues.
 - Les positions IGN "projetée du centre parcelle", "interpolée" et "A la zone d'adressage" sont retenues pour un housenumber uniquement si il n'y a pas de positions DFIPG/BANO pour ce housenumber. 
-- Les positions DFIPG/BANO sont donc retenues pour un housenumber s'il n'y a pas de position IGN "à la plaque" pour ce housenumber ou celle-ci est située à plus de 5 mètres.
+- Les positions DFIPG/BANO sont donc retenues pour un housenumber s'il n'y a pas de position IGN "à la plaque" pour ce housenumber ou si la position IGN "à la plaque" est située à plus de 5 mètres.
 
 Un housenumber peut donc avoir 0, 1 ou n positions si l'on se réfère à ces règles.
 
@@ -86,15 +86,11 @@ Par exemple :
 - une position si une seule source référence ce hn ou si la position IGN "à la plaque" et DGFIP/BANO sont distances de moins de 5 mètres ...
 - plusieurs positions si c'est aussi le cas dans les 2 sources ou si la position IGN "à la plaque" et DGFIP/BANO sont distances de plus de 5 mètres ...
 
-Les positions provenant de DGFIP/BANO sont toutes complétées avec kind "entrance", tandis pour les positions provenant de l'IGN, les règles suivantes sont appliquées : 
-- les types de localisation des adresses IGN = "à la plaque" deviennent des kind = "entrance"
-- les types de localisation des adresses IGN = "projetée du centre parcelle" deviennent des kind = "segment" avec positioning = "projection"
-- les types de localisation des adresses IGN = "interpolée" deviennent des kind = "segment" avec positioning = "interpolation"
-- les types de localisation des adresses IGN = "A la zone d'adressage" deviennent des kind = "area"
-
-Concernant le positioning, il est toujours à positioning="other" sauf normalement (point en cours de correction):
-- les types de localisation des adresses IGN = "projetée du centre parcelle" deviennent positioning = "projection"
-- les types de localisation des adresses IGN = "interpolée" deviennent  positioning = "interpolation"
+Pour les positions provenant de DGFIP/BANO, le kind est mis à "entrance", tandis pour les positions provenant de l'IGN, les règles suivantes sont appliquées : 
+- les positions IGN "à la plaque" deviennent des kind = "entrance"
+- les positions IGN "projetée du centre parcelle" deviennent des kind = "segment" avec positioning = "projection"
+- les positions IGN = "interpolée" deviennent des kind = "segment" avec positioning = "interpolation"
+- les positions IGN = "A la zone d'adressage" deviennent des kind = "area"
 
 
 ### Note sur les fusions de communes
