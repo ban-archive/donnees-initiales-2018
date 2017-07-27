@@ -4,6 +4,8 @@ Les programmes contenus dans ce répertoire "scripts" permettent d'initialiser l
 
 ## Données en entrée 
 
+Les producteurs de données nous fournissent des données en entrée, les plus récentes possibles:
+
 - COG (INSEE): les données sont téléchargées par le programme sur le site de l'INSEE 
 - FANTOIR (DGFiP): les données sont téléchargées par le programme sur www.data.gouv.fr
 - DGFiP/BANO : 
@@ -20,6 +22,9 @@ Les programmes contenus dans ce répertoire "scripts" permettent d'initialiser l
  - le fichier abbre.csv avec le dictionnaire (abbréviation, type de groupes ...)
  - le fichier fusion_commune.sql avec les fusions de commune (insee_new , insee_old ...)
 
+Ces données sont déjà formatées en fonction du modèle de données BAN. 
+
+Voir avec les producteurs de données pour plus de détail sur ces données.
 
 
 ## Règles d'import
@@ -48,19 +53,39 @@ Des housenumber null sont créés pour stocker les group de La Poste qui ne port
 ### Position
 
 Cette classe est géométrique. Il faut donc des sources localisant les adresses. Seules 2 sources sont donc utilisées: cadastre.csv de la DGFiP/BANO et ban.house_number<Dep>.csv de l'IGN, extraits par départements.
+
+On calcule d'abord les attributs des positions, notamment le kind, de chacune des sources.
+On estime que les positions BANO sont toutes de kind "entrance", tandis que les kind des positions IGN sont fournis:
+- les types de localisation des adresses IGN = "à la plaque" deviennent des kind = "entrance"
+- les types de localisation des adresses IGN = "projetée du centre parcelle" deviennent des kind = "segment" avec positioning = "projection"
+- les types de localisation des adresses IGN = "interpolée" deviennent des kind = "segment" avec positioning = "interpolation"
+- les types de localisation des adresses IGN = "A la zone d'adressage" deviennent des kind = "area"
+Notez qu'il n'y a pas de position en cas de types de localisation des adresses IGN = "A la commune".
+(voir les spécifications des données IGN)
+
+Concernant le positioning, il est toujours à positioning="other" sauf:
+- les types de localisation des adresses IGN = "projetée du centre parcelle" deviennent positioning = "projection"
+- les types de localisation des adresses IGN = "interpolée" deviennent  positioning = "interpolation"
+
+Ensuite, avant de comparer les positions des deux sources, on supprime les doublons de positions de l'IGN.
+
+La comparaison des positions des sources consiste à rapprocher ou non les sources.
+Il y a 0, 1 ou 2 positions par housenumber.
+
 On conserve les 2 positions sur une adresse:
 - si elles existent toutes les deux
 - sinon si elles sont toutes les deux au même endroit et de même kind (= type d'entrée)
 - sinon si elles sont distantes de plus de 5 mètres
+
 On ne garde qu'une seule adresse:
 - si d'après les sources, il n'existe qu'une seule position sur l'adresse
 - si une des deux positions est de kind Entrance, et l'autre d'un autre kind (Segment, Interpolated...), ce qui est considéré comme moins précis => on ne garde que la position de kind Entrance
 - si elles sont de même type et à moins de 5 mètres.
 Donc il existe un ordre dans les kind de position: Entrance > autres types.
-On estime que les positions BANO sont toutes de kind Entrance.
-Les kind des positions IGN sont fournies:
-- les types de localisation des adresses IGN = "à la plaque" deviennent des kind = "Entrance"
-- 
+
+Il n'y a aucune position si le housenumber ne provient ni de la DGFiP/BANO, ni de l'IGN.
+
+
 
 ## Comment initialiser la BAN
 
