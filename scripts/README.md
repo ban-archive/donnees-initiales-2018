@@ -38,8 +38,8 @@ Pour Group, nous utilisons 4 sources: les fichiers fantoir de la DGFiP, noms_cad
 
 Les premières étapes de l'initialisation sont les suivantes :
 - chargement de tous les groupes du FANTOIR
-- ajout des groupes IGN non trouvés (en utilisant l'identifiant FANTOIR)
-- ajout des groupes Poste non trouvés (en utilisant l'identifiant Poste contenu dans les données IGN)
+- ajout des groupes IGN manquants (en utilisant l'identifiant FANTOIR contenu dans les données IGN)
+- ajout des groupes Poste manquants (en utilisant l'identifiant Poste contenu dans les données IGN)
 - Remplacement des noms de groupes par les noms DGFIP/BANO (clé d'appariement = identifiant FANTOIR) (fait sur certains départements mais pas tous)
 
 A ce stade, les noms des groupes sont issus majoritairement du fantoir et sont donc en majuscules sans accent.
@@ -76,8 +76,8 @@ Au préalable, on notera que les positions provenant de l'IGN ont un champ indiq
 La première étape de l'inialisation consiste à sélectionner ou non les positions des différentes sources. Les règles sont les suivantes :
 - Les positions IGN "Au centre commune" ne sont pas retenues.
 - Les positions IGN "à la plaque" sont systèmatiquement retenues.
-- Les positions IGN "projetée du centre parcelle", "interpolée" et "A la zone d'adressage" sont retenues pour un housenumber uniquement si il n'y a pas de positions DFIPG/BANO pour ce housenumber. 
-- Les positions DFIPG/BANO sont donc retenues pour un housenumber s'il n'y a pas de position IGN "à la plaque" pour ce housenumber ou si la position IGN "à la plaque" est située à plus de 5 mètres.
+- Les positions IGN "projetée du centre parcelle", "interpolée" et "A la zone d'adressage" sont retenues pour un housenumber uniquement si il n'y a pas de positions DGFIP/BANO pour ce housenumber. 
+- Les positions DGFIP/BANO sont donc retenues pour un housenumber s'il n'y a pas de position IGN "à la plaque" pour ce housenumber ou si la position IGN "à la plaque" est située à plus de 5 mètres.
 
 Un housenumber peut donc avoir 0, 1 ou n positions si l'on se réfère à ces règles.
 
@@ -102,10 +102,10 @@ Dans l'initialisation de fin juin 2017, le programme n'a pas tenu compte de cett
 Dans la future initialisation, le script prendra en compte cette hétérogéniété notamment en utilisant la liste des fusions de commune et la correspondance entre les anciens codes insee et les nouveaux. Il conservera aussi le nom des anciennes communes dans les groupes secondaires.
 
 
-## Comment faire fonctionner les programmes d'inialisation
+## Comment faire fonctionner les programmes d'initialisation
 
 ### Généralité sur le processus d'initialisation 
-Le processus d'initialisation se compose de 5 étapes:
+Le processus d'initialisation comprend les étapes suivantes:
 - récupération des données utiles (COG, FANTOIR, Codes postaux, DGFIP-BANO, IGN, RAN)
 - préparation de l'environnement de travail
 - importation de ces données dans l'environnement de travail
