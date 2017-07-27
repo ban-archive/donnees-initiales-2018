@@ -6,7 +6,7 @@
 - FANTOIR : les données sont téléchargées par le programme sur www.data.gouv.fr
 - DGFIP/BANO : 
   - fichier noms_cadastre.csv des noms de voies/lieux-dits 
-  - fichier cadastre.csv des adresses 
+  - fichier cadastre.csv des adresses (housenumber + position)
 - La Poste :  
   - fichier ran_postcode.csv des codes postaux
   - fichier ran_group.csv des voies/lieux-dits
@@ -41,7 +41,7 @@ Pour Housenumber, nous utilisons cadastre.csv de la DGFiP, ran_housenumber.csv d
 
 ### Position
 
-Pour Poition, nous utilisons ban.house_number<Dep>.csv de l'IGN.
+Pour Poition, nous utilisons cadastre.csv de la DGFiP et ban.house_number<Dep>.csv de l'IGN.
 
 ## Comment initialiser la BAN
 
