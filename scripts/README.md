@@ -1,12 +1,5 @@
 # Les programmes contenus dans ce répertoire permettent d'initialiser de la BAN.
 
-## Le principe est le suivant :
-- récupération des données utiles (COG, FANTOIR, Codes postaux, DGFIP-BANO, IGN, RAN)
-- importation de ces données dans une base temporaire
-- préparation sql de ces données 
-- export en json
-- import des json dans la ban
-
 ## Données en entrée 
 
 - COG : les données sont téléchargées par le programme sur le site de l'INSEE 
@@ -27,7 +20,20 @@
  - le fichier abbre.csv avec le dictionnaire (abbréviation, type de groupes ...)
  - le fichier fusion_commune.sql avec les fusions de commune (insee_new , insee_old ...)
 
-## Création de la base temporaire
+
+
+## Règles d'import
+
+## Comment initialiser la BAN
+
+### Le processus d'import est le suivant :
+- récupération des données utiles (COG, FANTOIR, Codes postaux, DGFIP-BANO, IGN, RAN)
+- importation de ces données dans une base temporaire
+- préparation sql de ces données 
+- export en json
+- import des json dans la ban
+
+### Création de la base temporaire
 Créer la base temporaire <base_temp>
 
 Dans <base_temp> :
@@ -44,7 +50,7 @@ Lancer le script, preparation_base_temp.sh : il importe :
 - le fichier des abbréviations dans la table abbrev 
 - le fichier des fusions de communes dans la table fusion_commune
  
-## Importation des données
+### Importation des données
 Les données sont importées dans la base PostgreSQL <basetemp> --> Bien initialiser les variables d'environnement
 Lancer les shells :
 - import_cog.sh : importe les communes du COG dans la table insee_cog
@@ -53,8 +59,8 @@ Lancer les shells :
 - import_ign.sh : importe les données IGN dans les tables ign_municipality, ign_group, ign_housenumber
 - import_la_poste.sh : importe les données La Poste dans les tables poste_cp, ran_group, ran_housenumber
 
-## Préparation des données et export en json
+### Préparation des données et export en json
 Lancer le shell export_json.sh
 
-## Intégration des jsons dans la ban
+### Intégration des jsons dans la ban
 Dans un répertoire qui a accès aux commandes de l'API (avec le banenv activé), lancer le shell import_json_in_ban.sh
