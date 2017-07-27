@@ -11,9 +11,9 @@
   - fichier ran_postcode.csv des codes postaux
   - fichier ran_group.csv des voies/lieux-dits
   - fichier ran_housenumber.csv des adresses
-- IGN : (avec "<Dep>" de 01 à 976 = département)
-  - fichier ban.group"<Dep>".csv des voies/lieux-dits
-  - fichier ban.house_number"<dep>".csv des points adresses (housenumber + position)
+- IGN : (avec <dep> de 01 à 976 = département)
+  - fichier ban.group<dep>.csv des voies/lieux-dits
+  - fichier ban.house_number<dep>.csv des points adresses (housenumber + position)
 - Divers :
  - le fichier abbre.csv avec le dictionnaire (abbréviation, type de groupes ...)
  - le fichier fusion_commune.sql avec les fusions de commune (insee_new , insee_old ...)
@@ -24,22 +24,28 @@
 
 ### Municipality et Postcode
 
-Ces classes proviennent d'une seule source chacune: le COG pour Municipality et le ran_postcode.csv pour Postcode.
+Ces classes proviennent d'une seule source chacune: le COG pour Municipality et le ran_postcode.csv pour Postcode, extraits par départements.
 Les fusions de communes sont actualisés grâce au fichier fusion_commune.sql.
 
 ### Group
 
-Pour Group, nous utilisons les fichiers noms_cadatre.csv de la DGFiP, ran_group.csv de La Poste et ban.group<Dep>.csv de l'IGN.
+Pour Group, nous utilisons 4 sources: les fichiers fantoir de la DGFiP, noms_cadatre.csv de la DGFiP/BANO, ran_group.csv de La Poste et ban.group<Dep>.csv de l'IGN, extraits par départements.
+On utilise l'appariement de l'IGN entre les group, en utilisant l'identifiant fantoir. Si les group ne sont pas retrouvés dans les groups IGN, on les ajoute.
+Les noms conservés sont ceux du fantoir.
+Les anciens groups issus d'une fusion de communes sont intégrés dans un group secondaire
 
-Le fichier abbre.csv permet de désabbrévier les types de voies.
+Le fichier abbre.csv permet enfin de désabbrévier les types de voies.
 
 ### Housenumber
 
-Pour Housenumber, nous utilisons cadastre.csv de la DGFiP, ran_housenumber.csv de La Poste et ban.house_number<Dep>.csv de l'IGN.
+Pour Housenumber, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_housenumber.csv de La Poste et ban.house_number<Dep>.csv de l'IGN, extraits par départements.
+Les housenumbers sont appariés en utilisant les codes CIA des adresses et après suppression des doublons (cas des piles d'adresses IGN). Si les housenumber ne sont pas retrouvés, on les ajoute. 
+Des housenumber null sont créés pour stocker les group de La Poste qui ne portent pas d'adresses.
+
 
 ### Position
 
-Pour Poition, nous utilisons cadastre.csv de la DGFiP et ban.house_number<Dep>.csv de l'IGN.
+Cette classe est géométrique. Il faut donc des sources localisant les adresses. Seules 2 sources sont donc utilisées: cadastre.csv de la DGFiP/BANO et ban.house_number<Dep>.csv de l'IGN, extraits par départements.
 
 ## Comment initialiser la BAN
 
