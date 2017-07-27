@@ -32,21 +32,26 @@ Voir avec les producteurs de données pour plus de détail sur ces données.
 ### Municipality et Postcode
 
 Ces classes proviennent d'une seule source chacune: le COG pour Municipality et le ran_postcode.csv pour Postcode, extraits par départements.
-Les fusions de communes sont actualisés grâce au fichier fusion_commune.sql.
+
+Les fusions de communes sont actualisées grâce au fichier fusion_commune.sql.
 
 ### Group
 
 Pour Group, nous utilisons 4 sources: les fichiers fantoir de la DGFiP, noms_cadatre.csv de la DGFiP/BANO, ran_group.csv de La Poste et ban.group<Dep>.csv de l'IGN, extraits par départements.
-On utilise l'appariement de l'IGN entre les group, en utilisant l'identifiant fantoir. Si les group ne sont pas retrouvés dans les groups IGN, on les ajoute.
-Les noms conservés sont ceux du fantoir.
-Les anciens groups issus d'une fusion de communes sont intégrés dans un group secondaire
+
+On utilise l'appariement de l'IGN entre les group, en utilisant l'identifiant fantoir. Si les group ne sont pas retrouvés dans les groups IGN, on les ajoute. Les noms conservés sont ceux du fantoir.
+
+Les anciens groups issus d'une fusion de communes sont intégrés dans un group secondaire.
 
 Le fichier abbre.csv permet enfin de désabbrévier les types de voies.
+
 
 ### Housenumber
 
 Pour Housenumber, la classe sémantique d'adresses, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_housenumber.csv de La Poste et ban.house_number<Dep>.csv de l'IGN, extraits par départements.
-Les housenumbers sont appariés en utilisant les codes CIA des adresses et après suppression des doublons (cas des piles d'adresses IGN). Si les housenumber ne sont pas retrouvés, on les ajoute. 
+
+Les housenumbers sont appariés en utilisant les codes CIA des adresses et après suppression des doublons (cas des piles d'adresses IGN). Si les housenumber ne sont pas retrouvés, on les ajoute.
+
 Des housenumber null sont créés pour stocker les group de La Poste qui ne portent pas d'adresses.
 
 
@@ -61,6 +66,7 @@ On estime que les positions BANO sont toutes de kind "entrance", tandis que les 
 - les types de localisation des adresses IGN = "interpolée" deviennent des kind = "segment" avec positioning = "interpolation"
 - les types de localisation des adresses IGN = "A la zone d'adressage" deviennent des kind = "area"
 Notez qu'il n'y a pas de position en cas de types de localisation des adresses IGN = "A la commune".
+
 (voir les spécifications des données IGN)
 
 Concernant le positioning, il est toujours à positioning="other" sauf:
@@ -70,6 +76,7 @@ Concernant le positioning, il est toujours à positioning="other" sauf:
 Ensuite, avant de comparer les positions des deux sources, on supprime les doublons de positions de l'IGN.
 
 La comparaison des positions des sources consiste à rapprocher ou non les sources.
+
 Il y a 0, 1 ou 2 positions par housenumber.
 
 On conserve les 2 positions sur une adresse:
@@ -79,8 +86,8 @@ On conserve les 2 positions sur une adresse:
 
 On ne garde qu'une seule adresse:
 - si d'après les sources, il n'existe qu'une seule position sur l'adresse
-- si une des deux positions est de kind Entrance, et l'autre d'un autre kind (Segment, Interpolated...), ce qui est considéré comme moins précis => on ne garde que la position de kind Entrance
-- si elles sont de même type et à moins de 5 mètres.
+- sinon si une des deux positions est de kind Entrance, et l'autre d'un autre kind (Segment, Interpolated...), ce qui est considéré comme moins précis => on ne garde que la position de kind Entrance
+- sinon si elles sont de même type et à moins de 5 mètres.
 Donc il existe un ordre dans les kind de position: Entrance > autres types.
 
 Il n'y a aucune position si le housenumber ne provient ni de la DGFiP/BANO, ni de l'IGN.
@@ -90,7 +97,7 @@ Il n'y a aucune position si le housenumber ne provient ni de la DGFiP/BANO, ni d
 ## Comment initialiser la BAN
 
 ### Processus d'import 
-Il se compose de 5 étapes:
+Le processus d'import de données se compose de 5 étapes:
 - récupération des données utiles (COG, FANTOIR, Codes postaux, DGFIP-BANO, IGN, RAN)
 - importation de ces données dans une base temporaire
 - préparation sql de ces données 
@@ -114,7 +121,7 @@ Lancer le script, preparation_base_temp.sh : il importe :
 - le fichier des abbréviations dans la table abbrev 
 - le fichier des fusions de communes dans la table fusion_commune
  
-### Importation des données
+### Import des données dans des tables PG
 Les données sont importées dans la base PostgreSQL <basetemp> --> Bien initialiser les variables d'environnement
 Lancer les shells :
 - import_cog.sh : importe les communes du COG dans la table insee_cog
