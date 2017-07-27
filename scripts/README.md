@@ -31,28 +31,31 @@ Voir avec les producteurs de données pour plus de détail sur ces données.
 
 ### Municipality et Postcode
 
-Ces classes proviennent d'une seule source chacune: le COG pour Municipality et le ran_postcode.csv pour Postcode, extraits par départements.
+Ces classes proviennent d'une seule source chacune: le COG pour Municipality et le postocode de La Postepour Postcode, extraits par départements.
 
-Les fusions de communes sont actualisées grâce au fichier fusion_commune.sql.
 
 ### Group
 
-Pour Group, nous utilisons 4 sources: les fichiers fantoir de la DGFiP, noms_cadatre.csv de la DGFiP/BANO, ran_group.csv de La Poste et ban.group<Dep>.csv de l'IGN, extraits par départements.
+Pour Group, nous utilisons 4 sources: les fichiers fantoir de la DGFiP, noms_cadatre.csv de la DGFiP/BANO, ran_group.csv de La Poste et ban.group<dep>.csv de l'IGN, extraits par départements.
 
-On utilise l'appariement de l'IGN entre les group, en utilisant l'identifiant fantoir. Si les group ne sont pas retrouvés dans les groups IGN, on les ajoute. Les noms conservés sont ceux du fantoir.
+En entrée, on prend tous les groups du fantoir qu'on compare avec
+1 - les groups de la DGFiP/BANO par l'identifiant fantoir. S'il y a appariement, le nom du group est celui de la DGFiP/BANO: minuscule, accentué et capitalisé. Sinon, on ajoute le group DGFiP/BANO manquant et le group fantoir conserve son nom en majuscule.
 
-Les anciens groups issus d'une fusion de communes sont intégrés dans un group secondaire.
+2 - les groups IGN et La Poste par le lien d'appariement de group issu de l'IGN. Les groups manquants sont ajoutés. On conserve de toute façon le nom du group fantoir et/ou l'IGN/La Poste en majuscule.
 
-Le fichier abbre.csv permet enfin de désabbrévier les types de voies.
+Dans une seconde étape, on calcule le kind des groups (type de group, soit way, soit area). Pour cela, on utilise le fichier abbre.csv donne le types de voies et le type de regroupements. Ce fichier permet également de désabbrévier les types de groupes
+
+Exemples: RUE, BOULEVARD, AVENUE ont un kind="way"; LOTISSEMENT, ZONE COMMERCIALE, CENTRE ont un kind="area"
+
 
 
 ### Housenumber
 
 Pour Housenumber, la classe sémantique d'adresses, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_housenumber.csv de La Poste et ban.house_number<Dep>.csv de l'IGN, extraits par départements.
 
-Les housenumbers sont appariés en utilisant les codes CIA des adresses et après suppression des doublons (cas des piles d'adresses IGN). Si les housenumber ne sont pas retrouvés, on les ajoute.
+Ici, la source principale est IGN. Nous conservons donc tous les housenumbers IGN, dont on étudie l'appariement avec les données DGFiP/BANO et La Poste par les codes CIA et les identifiants de La Poste (lien d'appariement de l'IGN). Si les housenumber ne sont pas retrouvés, on les ajoute.
 
-Des housenumber null sont créés pour stocker les group de La Poste qui ne portent pas d'adresses.
+Des housenumber null sont créés pour stocker les groups de La Poste qui ne portent pas d'adresses.
 
 
 ### Position
@@ -65,7 +68,7 @@ On estime que les positions BANO sont toutes de kind "entrance", tandis que les 
 - les types de localisation des adresses IGN = "projetée du centre parcelle" deviennent des kind = "segment" avec positioning = "projection"
 - les types de localisation des adresses IGN = "interpolée" deviennent des kind = "segment" avec positioning = "interpolation"
 - les types de localisation des adresses IGN = "A la zone d'adressage" deviennent des kind = "area"
-Notez qu'il n'y a pas de position en cas de types de localisation des adresses IGN = "A la commune".
+Notez qu'il n'y a pas de position en cas de types de localisation des adresses IGN = "Au centre commune". Dans ce cas, il y a seulement des Housenumbers.
 
 (voir les spécifications des données IGN)
 
@@ -73,9 +76,8 @@ Concernant le positioning, il est toujours à positioning="other" sauf:
 - les types de localisation des adresses IGN = "projetée du centre parcelle" deviennent positioning = "projection"
 - les types de localisation des adresses IGN = "interpolée" deviennent  positioning = "interpolation"
 
-Ensuite, avant de comparer les positions des deux sources, on supprime les doublons de positions de l'IGN.
 
-La comparaison des positions des sources consiste à rapprocher ou non les sources.
+La comparaison des positions des sources consiste ensuite à rapprocher ou non les sources.
 
 Il y a 0, 1 ou 2 positions par housenumber.
 
@@ -92,6 +94,11 @@ Donc il existe un ordre dans les kind de position: Entrance > autres types.
 
 Il n'y a aucune position si le housenumber ne provient ni de la DGFiP/BANO, ni de l'IGN.
 
+### Cas des fusions de communes
+
+Dans l'initialisation de fin juin 2017, nous n'avons pas réalisé de fusion de communes.
+
+Dans la future initialisation, le script consistera à conserver le nom des anciennes communes dans des groupes secondaires.
 
 
 ## Comment initialiser la BAN
