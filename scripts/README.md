@@ -1,6 +1,6 @@
 # Initialisation de la BAN
 
-Les programmes contenus dans ce répertoire "scripts" permettent d'initialiser la BAN. Avant de le faire, expliquons le principe de l'initialisation.
+Les programmes contenus dans ce répertoire "scripts" permettent d'initialiser la BAN. Ce readme décrit les données utilisées, puis les grands principes/règles de l'initilisation et enfin comment faire fonctionner les programmes d'initialisation.
 
 ## Données en entrée 
 
@@ -102,18 +102,18 @@ Dans l'initialisation de fin juin 2017, le programme n'a pas tenu compte de cett
 Dans la future initialisation, le script prendra en compte cette hétérogéniété notamment en utilisant la liste des fusions de commune et la correspondance entre les anciens codes insee et les nouveaux. Il conservera aussi le nom des anciennes communes dans les groupes secondaires.
 
 
-## Comment utiliser les programmes d'inialisation de la BAN
+## Comment faire fonctionner les programmes d'inialisation
 
-### Généralité sur le processus d'import 
-Le processus d'import de données se compose de 5 étapes:
+### Généralité sur le processus d'initialisation 
+Le processus d'initialisation se compose de 5 étapes:
 - récupération des données utiles (COG, FANTOIR, Codes postaux, DGFIP-BANO, IGN, RAN)
-- préparation de l'environnement
-- importation de ces données dans une base temporaire
+- préparation de l'environnement de travail
+- importation de ces données dans l'environnement de travail
 - préparation sql de ces données 
 - export en json
 - import des json dans la ban
 
-### Préparation de l'environnement
+### Préparation de l'environnement de travail
 Créer la base temporaire <base_temp>
 
 Dans <base_temp> :
@@ -130,7 +130,7 @@ Lancer le script, preparation_base_temp.sh : il importe :
 - le fichier des abbréviations dans la table abbrev 
 - le fichier des fusions de communes dans la table fusion_commune
  
-### Importation des données dans la base temporaire
+### Importation des données dans l'environnement de travail
 Les données sont importées dans la base PostgreSQL <basetemp> --> Bien initialiser les variables d'environnement
 Lancer les shells :
 - import_cog.sh : importe les communes du COG dans la table insee_cog
