@@ -11,9 +11,9 @@
   - fichier ran_postcode.csv des codes postaux
   - fichier ran_group.csv des voies/lieux-dits
   - fichier ran_housenumber.csv des adresses
-- IGN : (avec <<Dep>> de 01 à 976 = département)
-  - fichier ban.group<Dep>.csv des voies/lieux-dits
-  - fichier ban.house_number<dep>.csv des points adresses (housenumber + position)
+- IGN : (avec "<Dep>" de 01 à 976 = département)
+  - fichier ban.group"<Dep>".csv des voies/lieux-dits
+  - fichier ban.house_number"<dep>".csv des points adresses (housenumber + position)
 - Divers :
  - le fichier abbre.csv avec le dictionnaire (abbréviation, type de groupes ...)
  - le fichier fusion_commune.sql avec les fusions de commune (insee_new , insee_old ...)
