@@ -1,4 +1,6 @@
-# Les programmes contenus dans ce répertoire permettent d'initialiser de la BAN.
+# Initialisation de la BAN
+
+Les programmes contenus dans ce répertoire "scrits" permettent d'initialiser la BAN. Avant de le faire, expliquons le principe de l'initialisation.
 
 ## Données en entrée 
 
