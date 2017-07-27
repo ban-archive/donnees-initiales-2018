@@ -12,8 +12,6 @@
   - fichier ran_group.csv des voies/lieux-dits
   - fichier ran_housenumber.csv des adresses
 - IGN : (avec <dep> de 01 à 976 = département)
-  - fichier ban.municipality<dep>.csv  des communes
-  - fichier ban.postcode<dep>.csv des codes postaux
   - fichier ban.group<dep>.csv des voies/lieux-dits
   - fichier ban.house_number<dep>.csv des points adresses (housenumber + position)
 - Divers :
