@@ -24,9 +24,29 @@
 
 ## Règles d'import
 
+### Municipality et Postcode
+
+Ces classes proviennent d'une seule source chacune: le COG pour Municipality et le ran_postcode pour Postcode.
+Les fusions de communes sont actualisés grâce au fichier fusion_commune.sql.
+
+### Group
+
+Pour Group, nous utilisons les fichiers noms_cadatre.csv de la DGFiP, ran_group.csv de La Poste et ban.group de l'IGN.
+
+Le fichier abbre.csv permet de désabbrévier les types de voies.
+
+### Housenumber
+
+Pour Housenumber, nous utilisons cadastre.csv de la DGFiP, ran_housenumber.csv de La Poste et ban.house_number de l'IGN.
+
+### Position
+
+Pour Poition, nous utilisons ban.house_number de l'IGN.
+
 ## Comment initialiser la BAN
 
-### Le processus d'import est le suivant :
+### Processus d'import 
+Il se compose de 5 étapes:
 - récupération des données utiles (COG, FANTOIR, Codes postaux, DGFIP-BANO, IGN, RAN)
 - importation de ces données dans une base temporaire
 - préparation sql de ces données 
