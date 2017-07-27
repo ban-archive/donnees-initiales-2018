@@ -1,12 +1,12 @@
 # Initialisation de la BAN
 
-Les programmes contenus dans ce répertoire "scrits" permettent d'initialiser la BAN. Avant de le faire, expliquons le principe de l'initialisation.
+Les programmes contenus dans ce répertoire "scripts" permettent d'initialiser la BAN. Avant de le faire, expliquons le principe de l'initialisation.
 
 ## Données en entrée 
 
-- COG : les données sont téléchargées par le programme sur le site de l'INSEE 
-- FANTOIR : les données sont téléchargées par le programme sur www.data.gouv.fr
-- DGFIP/BANO : 
+- COG (INSEE): les données sont téléchargées par le programme sur le site de l'INSEE 
+- FANTOIR (DGFiP): les données sont téléchargées par le programme sur www.data.gouv.fr
+- DGFiP/BANO : 
   - fichier noms_cadastre.csv des noms de voies/lieux-dits 
   - fichier cadastre.csv des adresses (housenumber + position)
 - La Poste :  
@@ -40,7 +40,7 @@ Le fichier abbre.csv permet enfin de désabbrévier les types de voies.
 
 ### Housenumber
 
-Pour Housenumber, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_housenumber.csv de La Poste et ban.house_number<Dep>.csv de l'IGN, extraits par départements.
+Pour Housenumber, la classe sémantique d'adresses, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_housenumber.csv de La Poste et ban.house_number<Dep>.csv de l'IGN, extraits par départements.
 Les housenumbers sont appariés en utilisant les codes CIA des adresses et après suppression des doublons (cas des piles d'adresses IGN). Si les housenumber ne sont pas retrouvés, on les ajoute. 
 Des housenumber null sont créés pour stocker les group de La Poste qui ne portent pas d'adresses.
 
@@ -48,6 +48,19 @@ Des housenumber null sont créés pour stocker les group de La Poste qui ne port
 ### Position
 
 Cette classe est géométrique. Il faut donc des sources localisant les adresses. Seules 2 sources sont donc utilisées: cadastre.csv de la DGFiP/BANO et ban.house_number<Dep>.csv de l'IGN, extraits par départements.
+On conserve les 2 positions sur une adresse:
+- si elles existent toutes les deux
+- sinon si elles sont toutes les deux au même endroit et de même kind (= type d'entrée)
+- sinon si elles sont distantes de plus de 5 mètres
+On ne garde qu'une seule adresse:
+- si d'après les sources, il n'existe qu'une seule position sur l'adresse
+- si une des deux positions est de kind Entrance, et l'autre d'un autre kind (Segment, Interpolated...), ce qui est considéré comme moins précis => on ne garde que la position de kind Entrance
+- si elles sont de même type et à moins de 5 mètres.
+Donc il existe un ordre dans les kind de position: Entrance > autres types.
+On estime que les positions BANO sont toutes de kind Entrance.
+Les kind des positions IGN sont fournies:
+- les types de localisation des adresses IGN = "à la plaque" deviennent des kind = "Entrance"
+- 
 
 ## Comment initialiser la BAN
 
