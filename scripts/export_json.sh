@@ -380,6 +380,8 @@ echo "UPDATE housenumber_bano${dep} SET x=round(lon::numeric,7)::text;" >> comma
 echo "ALTER TABLE  housenumber_bano${dep} ADD COLUMN y varchar;" >> commandeTemp.sql
 echo "UPDATE housenumber_bano${dep} SET y=round(lat::numeric,7)::text;" >> commandeTemp.sql
 # Insertion dans la table position des positions bano pour les hn qui n'ont pas de positions ou pas de positions entrance 
+echo "DROP INDEX IF EXISTS idx_housenumber_ign_position${dep};" >> commandeTemp.sql
+echo "CREATE INDEX idx_housenumber_ign_position${dep} ON position${dep}(housenumber_ign);" >> commandeTemp.sql
 echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, kind, positioning)
 SELECT b.cia, b.x, b.y, 'entrance', 'other' FROM housenumber_bano${dep} b join (select cia from housenumber${dep} h left join position${dep} p on (p.housenumber_ign = h.ign) where p.kind not like 'entrance' or p.kind is null) as j on b.cia = j.cia;" >> commandeTemp.sql
 # Insertion dans la table position des positions bano si elles sont eloignees de plus de 5 m des positions déjà existantes
