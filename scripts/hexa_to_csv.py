@@ -74,8 +74,8 @@ if __name__ == "__main__":
 
     # Decodage des codes postaux (localités) dans le fichier hexavia
     print('Decodage des localités du fichier hexavia');
-    numLines = sum(1 for line in codecs.open(hexaviaFile,"r",encoding=encoding))
-    bar = progressbar.ProgressBar(numLines)
+    numLinesHexavia = sum(1 for line in codecs.open(hexaviaFile,"r",encoding=encoding))
+    bar = progressbar.ProgressBar(numLinesHexavia)
     bar.start()
     count = 0
     with codecs.open(hexaviaFile,"r",encoding=encoding) as f:
@@ -103,8 +103,7 @@ if __name__ == "__main__":
 
     # Stockage du lien entre matricule voie et commune/code postal
     print('Recherche du lien entre matricule voie et commune/code postal');
-    numLines = sum(1 for line in codecs.open(hexaviaFile,"r",encoding=encoding))
-    bar = progressbar.ProgressBar(numLines)
+    bar = progressbar.ProgressBar(numLinesHexavia)
     bar.start()
     count = 0
     with codecs.open(hexaviaFile,"r",encoding=encoding) as f:
@@ -159,8 +158,7 @@ if __name__ == "__main__":
 
     # Decodage du fichier des voies (on le casse en 3 fichiers groupes, voies synonymes et localites)
     print('Decodage des voies du fichier hexavia');
-    numLines = sum(1 for line in codecs.open(hexaviaFile,"r",encoding=encoding))
-    bar = progressbar.ProgressBar(numLines)
+    bar = progressbar.ProgressBar(numLinesHexavia)
     bar.start()
     count = 0
     with codecs.open(hexaviaFile,"r",encoding=encoding) as f:
@@ -189,7 +187,7 @@ if __name__ == "__main__":
                     # libellé voie
                     line[60:92].strip(),
                     # cea
-                    ceaVoie.get(line[12:20].strip()),'',
+                    ceaVoie.get(line[12:20].strip()),
                     # libellé ligne 5
                     locality['lb_l5_nn'],
                     # ancien code insee ligne 5
