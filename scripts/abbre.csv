@@ -98,7 +98,7 @@ HLM;hlm;HLM;area;2
 ILE;�le;ILE;area;2
 IMMEUBLE;immeuble;IMM;area;2
 JARDIN;jardin;JARD;area;2
-LIEU-DIT;lieu-dit;LD;area;2
+LIEU DIT;lieu dit;LD;area;2
 ESCAILLERE;escaillere;ESCAILLERE;way;2
 ESCALADOU;escaladou;ESCALADOU;way;2
 ESCALANETTE;escalanette;ESCALANETTE;way;2
@@ -191,7 +191,7 @@ PRE;pr�;PRE;area;2
 PRESQU'ILE;presqu'�le;PRQ;area;2
 QUARTIER;quartier;QUA;area;2
 RESIDENCE;r�sidence;RES;area;2
-ROND-POINT;rond-point;RPT;area;2
+RONDPOINT;rond point;RPT;area;2
 ROQUET;roquet;ROQT;area;2
 ROTONDE;rotonde;RTD;area;2
 SQUARE;square;SQ;area;2
@@ -199,7 +199,7 @@ STADE;stade;STDE;area;2
 STATION;station;STA;area;2
 TERRAIN;terrain;TRN;area;2
 TERRASSE;terrasse;TSSE;area;2
-TERRE-PLEIN;terre-plein;TPL;area;2
+TERRE PLEIN;terre plein;TPL;area;2
 TERTRE;tertre;TRT;area;2
 TOUR;tour;TOUR;area;2
 VALLEE;vall�e;VAL;area;2
