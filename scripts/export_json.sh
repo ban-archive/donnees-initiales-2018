@@ -203,9 +203,40 @@ echo "drop table if exists group_fantoir_doublon${dep};" >> commandeTemp.sql
 echo "create table group_fantoir_doublon${dep} as (select count(*), nom_comp, municipality_insee from group${dep} group by nom_comp, municipality_insee);" >> commandeTemp.sql
 echo "update group${dep} g1 set doublon_nom_norm=count from group_fantoir_doublon${dep} g2 where g1.nom_comp=g2.nom_comp and g2.municipality_insee=g1.municipality_insee;" >> commandeTemp.sql
 echo "update group_ign${dep} g1 set doublon_nom_norm=count from group_ign_doublon${dep} g2 where g1.nom_comp=g2.nom_comp and g2.code_insee=g1.code_insee;" >> commandeTemp.sql
-echo "update group${dep} g1 set ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte=g.id_poste from group_ign${dep} g where g1.ign is null and g.fantoir_9 is null and g1.laposte is null and g1.nom_comp=g.nom_comp and g.doublon_nom_norm=1 and g1.doublon_nom_norm=1;" >> commandeTemp.sql
+echo "update group${dep} g1 set ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte=g.id_poste from group_ign${dep} g where g1.ign is null and g.fantoir_9 is null and g1.laposte is null and g1.nom_comp=g.nom_comp and g.doublon_nom_norm=1 and g1.doublon_nom_norm=1 and g1.municipality_insee=g.code_insee;" >> commandeTemp.sql
 
 
+#######################################
+# 3E PASSE AVEC APPARIEMENT FLOU
+# On crée une table d'appariement de nom et on calcule la distance de levenshtein, la similarite et un indice de confiance (une note sur 20)
+echo "drop table if exists doublon_flou${dep};" >> commandeTemp.sql
+echo "create table doublon_flou${dep} as (select g1.nom_norm as nom_1, g2.nom_norm as nom_2, g1.id_pseudo_fpb as ign_1, g2.ign as ign_2, g1.fantoir_9 as fantoir_1, g2.fantoir as fantoir_2, cast(levenshtein(g1.nom_comp, g2.nom_comp,1,1,2) as float), g2.municipality_insee, similarity(g1.nom_norm,g2.nom_norm) from group_ign${dep} g1, group${dep} g2 where dmetaphone(g1.nom_norm)=dmetaphone(g2.nom_norm) and dmetaphone_alt(g1.nom_norm)=dmetaphone_alt(g2.nom_norm) and g1.code_insee=g2.municipality_insee);" >> commandeTemp.sql
+echo "delete from doublon_flou${dep} d where exists (select * from group${dep} g where d.ign_1=g.ign);" >> commandeTemp.sql
+echo "delete from doublon_flou${dep} where similarity<0.5;" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column levenshtein_1 float;" >> commandeTemp.sql
+echo "update doublon_flou${dep} set levenshtein_1=levenshtein/length(nom_1);" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column levenshtein_2 float;" >> commandeTemp.sql
+echo "update doublon_flou${dep} set levenshtein_2=levenshtein/length(nom_2);" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column indice_1 float;" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column indice_2 float;" >> commandeTemp.sql
+echo "update doublon_flou${dep} set indice_1=10*similarity+10*(1-levenshtein_1);" >> commandeTemp.sql
+echo "update doublon_flou${dep} set indice_2=10*similarity+10*(1-levenshtein_2);" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column indice float;" >> commandeTemp.sql
+echo "update doublon_flou${dep} set indice=(indice_1+indice_2)/2;" >> commandeTemp.sql
+# On selectionne les appariements avec un indice de confiance >15
+echo "drop table if exists doublon_flou_sup${dep};" >> commandeTemp.sql
+echo "create table doublon_flou_sup${dep} as (select * from doublon_flou${dep} where indice>15);" >> commandeTemp.sql
+# On calcule le nombre d'appariement par group ign et par group fantoir
+echo "alter table doublon_flou_sup${dep} add column group_by_1 float;" >> commandeTemp.sql
+echo "alter table doublon_flou_sup${dep} add column group_by_2 float;" >> commandeTemp.sql
+echo "update doublon_flou_sup${dep} d1 set group_by_1=(select count(*) from doublon_flou_sup${dep} d2 where d1.nom_1=d2.nom_1 and d1.municipality_insee=d2.municipality_insee);" >> commandeTemp.sql
+echo "update doublon_flou_sup${dep} d1 set group_by_2=(select count(*) from doublon_flou_sup${dep} d2 where d1.nom_2=d2.nom_2 and d1.municipality_insee=d2.municipality_insee);" >> commandeTemp.sql
+# On exporte en fichier txt les groups ign avec un mauvais fantoir
+echo "\COPY (select ign_1, fantoir_1, fantoir_2, nom_1, nom_2 from doublon_flou_sup${dep} where fantoir_1 is not null) to '${data_path}/group_mauvais_fantoir${dep}.txt';" >> commandeTemp.sql
+echo "delete from doublon_flou_sup${dep} where ign_2 is not null or fantoir_1 is not null;" >> commandeTemp.sql
+
+# On fait l'appariement sur les liens 1-1
+echo "update group${dep} g1 set ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte=g.id_poste from group_ign${dep} g , doublon_flou_sup${dep} d where g.id_pseudo_fpb=d.ign_1 and g1.fantoir=d.fantoir_2 and d.group_by_1=1 and d.group_by_2=1;" >> commandeTemp.sql
 
 #########################################
 # GROUP IGN NON RETROUVE DANS FANTOIR (avec l'id fantoir ou nom normalise) : ajoute ces groups dans la ban
@@ -251,7 +282,7 @@ echo "create table group_fantoir_ign_doublon${dep} as (select count(*), nom_norm
 echo "update group${dep} g1 set doublon_nom_norm=count from group_fantoir_ign_doublon${dep} g2 where g1.nom_norm=g2.nom_norm and g2.municipality_insee=g1.municipality_insee;" >> commandeTemp.sql
 echo "alter table group_ran${dep} add column doublon_nom_norm integer;" >> commandeTemp.sql
 echo "update group_ran${dep} g1 set doublon_nom_norm=count from group_ran_doublon${dep} g2 where g1.nom_norm=g2.nom_norm and g2.co_insee=g1.co_insee;" >> commandeTemp.sql
-echo "update group${dep} g1 set laposte=g.laposte from group_ran${dep} g where g1.laposte is null and g1.nom_norm=g.nom_norm and g1.municipality_insee=g.co_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1;" >> commandeTemp.sql
+echo "update group${dep} g1 set laposte=g.laposte from group_ran${dep} g where g1.laposte is null and g1.nom_norm=g.nom_norm and g1.municipality_insee=g.co_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1 and not exists (select laposte from group${dep} g2 where g2.laposte=g.laposte);" >> commandeTemp.sql
 
 ###################################
 # 2E PASSE AVEC LE NOM SANS ESPACES
@@ -265,7 +296,38 @@ echo "drop table if exists group_fantoir_ign_doublon${dep};" >> commandeTemp.sql
 echo "create table group_fantoir_ign_doublon${dep} as (select count(*), nom_comp, municipality_insee from group${dep} group by nom_comp, municipality_insee);" >> commandeTemp.sql
 echo "update group${dep} g1 set doublon_nom_norm=count from group_fantoir_ign_doublon${dep} g2 where g1.nom_comp=g2.nom_comp and g2.municipality_insee=g1.municipality_insee;" >> commandeTemp.sql
 echo "update group_ran${dep} g1 set doublon_nom_norm=count from group_ran_doublon${dep} g2 where g1.nom_comp=g2.nom_comp and g2.co_insee=g1.co_insee;" >> commandeTemp.sql
-echo "update group${dep} g1 set laposte=g.laposte from group_ran${dep} g where g1.laposte is null and g1.nom_comp=g.nom_comp and g1.municipality_insee=g.co_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1;" >> commandeTemp.sql
+echo "update group${dep} g1 set laposte=g.laposte from group_ran${dep} g where g1.laposte is null and g1.nom_comp=g.nom_comp and g1.municipality_insee=g.co_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1 and not exists (select laposte from group${dep} g2 where g2.laposte=g.laposte);" >> commandeTemp.sql
+
+#######################################
+# 3E PASSE AVEC APPARIEMENT FLOU
+# On crée une table d'appariement de nom et on calcule la distance de levenshtein, la similarite et un indice de confiance (une note sur 20)
+echo "drop table if exists doublon_flou${dep};" >> commandeTemp.sql
+echo "create table doublon_flou${dep} as (select g1.nom_norm as nom_1, g2.nom_norm as nom_2, g1.laposte as laposte_1, g2.laposte as laposte_2, cast(levenshtein(g1.nom_comp, g2.nom_comp,1,1,2) as float), g2.municipality_insee, similarity(g1.nom_norm,g2.nom_norm) from group_ran${dep} g1, group${dep} g2 where dmetaphone(g1.nom_norm)=dmetaphone(g2.nom_norm) and dmetaphone_alt(g1.nom_norm)=dmetaphone_alt(g2.nom_norm) and g1.co_insee=g2.municipality_insee);" >> commandeTemp.sql
+echo "delete from doublon_flou${dep} d where exists (select * from group${dep} g where d.laposte_1=g.laposte);" >> commandeTemp.sql
+echo "delete from doublon_flou${dep} where similarity<0.5;" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column levenshtein_1 float;" >> commandeTemp.sql
+echo "update doublon_flou${dep} set levenshtein_1=levenshtein/length(nom_1);" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column levenshtein_2 float;" >> commandeTemp.sql
+echo "update doublon_flou${dep} set levenshtein_2=levenshtein/length(nom_2);" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column indice_1 float;" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column indice_2 float;" >> commandeTemp.sql
+echo "update doublon_flou${dep} set indice_1=10*similarity+10*(1-levenshtein_1);" >> commandeTemp.sql
+echo "update doublon_flou${dep} set indice_2=10*similarity+10*(1-levenshtein_2);" >> commandeTemp.sql
+echo "alter table doublon_flou${dep} add column indice float;" >> commandeTemp.sql
+echo "update doublon_flou${dep} set indice=(indice_1+indice_2)/2;" >> commandeTemp.sql
+# On selectionne les appariements avec un indice de confiance >15
+echo "drop table if exists doublon_flou_sup${dep};" >> commandeTemp.sql
+echo "create table doublon_flou_sup${dep} as (select * from doublon_flou${dep} where indice>15);" >> commandeTemp.sql
+# On calcule le nombre d'appariement par group ign et par group fantoir
+echo "alter table doublon_flou_sup${dep} add column group_by_1 float;" >> commandeTemp.sql
+echo "alter table doublon_flou_sup${dep} add column group_by_2 float;" >> commandeTemp.sql
+echo "update doublon_flou_sup${dep} d1 set group_by_1=(select count(*) from doublon_flou_sup${dep} d2 where d1.nom_1=d2.nom_1 and d1.municipality_insee=d2.municipality_insee);" >> commandeTemp.sql
+echo "update doublon_flou_sup${dep} d1 set group_by_2=(select count(*) from doublon_flou_sup${dep} d2 where d1.nom_2=d2.nom_2 and d1.municipality_insee=d2.municipality_insee);" >> commandeTemp.sql
+# On exporte en fichier txt les groups ign avec un mauvais fantoir
+echo "delete from doublon_flou_sup${dep} where laposte_2 is not null;" >> commandeTemp.sql
+
+# On fait l'appariement sur les liens 1-1
+echo "update group${dep} g1 set laposte=g.laposte from group_ran${dep} g , doublon_flou_sup${dep} d where g1.laposte is null and g.laposte=d.laposte_1 and g1.nom_norm=d.nom_2 and d.group_by_1=1 and d.group_by_2=1 and g1.municipality_insee=d.municipality_insee;" >> commandeTemp.sql
 
 
 #####################################
@@ -400,7 +462,7 @@ echo "UPDATE housenumber_ran${dep} SET lb_ext='' where lb_ext is null;" >> comma
 
 #####################################
 # Mise a jour de laposte dans la table housenumber${dep}
-echo "UPDATE housenumber${dep} h SET laposte=r.co_cea FROM housenumber_ran${dep} r WHERE r.group_laposte=h.group_laposte and h.number=r.no_voie and h.ordinal=r.lb_ext and h.laposte is null;" >> commandeTemp.sql
+echo "UPDATE housenumber${dep} h SET laposte=r.co_cea FROM housenumber_ran${dep} r WHERE r.group_laposte=h.group_laposte and h.number=r.no_voie and h.ordinal=r.lb_ext and h.laposte is null and not exists (select laposte from housenumber${dep} where laposte=r.co_cea);" >> commandeTemp.sql
 
 
 # Mise a jour des postcodes null dans la table housenumber${dep}
