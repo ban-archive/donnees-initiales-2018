@@ -76,10 +76,7 @@ echo "\COPY (select format('{\"type\":\"postcode\",\"postcode\":\"%s\",\"name\":
 #####################################################################################
 # GROUP
 # Creation de la table group${dep}
-echo "DROP INDEX IF EXISTS idx_group_nom_norm${dep};" >> commandeTemp.sql
-echo "DROP INDEX IF EXISTS idx_group_municipality_insee${dep};" >> commandeTemp.sql
-echo "DROP INDEX IF EXISTS idx_group_nom_comp${dep};" >> commandeTemp.sql
-echo "DROP TABLE IF EXISTS group${dep};" >> commandeTemp.sql
+echo "drop table if exists group${dep};" >> commandeTemp.sql
 echo "CREATE TABLE group${dep}(
 name character varying(200) NOT NULL,
 alias character varying(255),
@@ -91,7 +88,10 @@ ign character varying(24),
 municipality_insee varchar NOT NULL,
 nom_norm varchar,
 old_insee varchar,
-nom_comp varchar);" >> commandeTemp.sql
+nom_comp varchar,
+nom_fantoir varchar,
+nom_ign varchar,
+nom_laposte varchar);" >> commandeTemp.sql
 echo "CREATE INDEX idx_group_nom_norm${dep} ON group${dep}(nom_norm);" >> commandeTemp.sql
 echo "CREATE INDEX idx_group_municipality_insee${dep} ON group${dep}(municipality_insee);" >> commandeTemp.sql
 echo "CREATE INDEX idx_group_nom_comp${dep} ON group${dep}(nom_comp);" >> commandeTemp.sql
@@ -130,16 +130,13 @@ echo "UPDATE group_fantoir${dep} SET code_insee=insee_new from fusion_commune wh
 echo "UPDATE group_fantoir${dep} SET code_old_insee=null where code_old_insee=code_insee;" >> commandeTemp.sql
 ########################
 # Integration dans la table group${dep}
-echo "INSERT INTO group${dep} (kind, municipality_insee, fantoir, name, nom_norm, old_insee) 
-SELECT kind, code_insee, fantoir_9, f.name , f.name, f.code_old_insee from group_fantoir${dep} f, insee_cog${dep} where insee=code_insee;" >> commandeTemp.sql
+echo "INSERT INTO group${dep} (kind, municipality_insee, fantoir, name, nom_norm, nom_fantoir, old_insee) 
+SELECT kind, code_insee, fantoir_9, f.name , f.name, f.name, f.code_old_insee from group_fantoir${dep} f, insee_cog${dep} where insee=code_insee;" >> commandeTemp.sql
 
 
 #################################
 # Preparation de la table group_ign
 # Extraction du departement
-echo "DROP INDEX IF EXISTS idx_group_ign_nom_norm${dep};" >> commandeTemp.sql
-echo "DROP INDEX IF EXISTS idx_group_ign_code_insee${dep};" >> commandeTemp.sql
-echo "DROP INDEX IF EXISTS idx_group_ign_nom_comp${dep};" >> commandeTemp.sql
 echo "DROP TABLE IF EXISTS group_ign${dep};" >> commandeTemp.sql
 echo "CREATE TABLE group_ign${dep} AS SELECT * FROM ign_group WHERE code_insee like '${dep}%';" >> commandeTemp.sql
 echo "CREATE INDEX idx_group_ign_code_insee${dep} ON group_ign${dep}(code_insee);" >> commandeTemp.sql
@@ -173,7 +170,7 @@ echo "UPDATE group_ign${dep} SET fantoir_9=old_insee||id_fantoir from fusion_com
 # complete les groups deja dans la ban ayant un id fantoir avec les infos des groups ign avec le meme id fantoir
 # les infos ajoutées sont : ign, alias et addressing
 # Mise a jour de la table group${dep}
-echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte = g.id_poste from group_ign${dep} g where g.fantoir_9=fantoir;" >> commandeTemp.sql
+echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte = g.id_poste, nom_ign=g.nom_norm from group_ign${dep} g where g.fantoir_9=fantoir;" >> commandeTemp.sql
 
 #########################################
 # GROUP IGN NON RETROUVE DANS FANTOIR (avec l'id fantoir): appariement par le nom normalise
@@ -188,7 +185,7 @@ echo "update group${dep} g1 set doublon_nom_norm=count from group_fantoir_doublo
 echo "alter table group_ign${dep} add column doublon_nom_norm integer;" >> commandeTemp.sql
 echo "update group_ign${dep} g1 set doublon_nom_norm=count from group_ign_doublon${dep} g2 where g1.nom_norm=g2.nom_norm and g2.code_insee=g1.code_insee;" >> commandeTemp.sql
 # On met a jour l'id ign dans la table group pour les elements appareilles dont les tailles de piles sont egales a 1
-echo "UPDATE group${dep} g1 SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte=g.id_poste from group_ign${dep} g where g1.ign is null and g.fantoir_9 is null and g1.laposte is null and g1.nom_norm=g.nom_norm and g.code_insee=g1.municipality_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1;" >> commandeTemp.sql
+echo "UPDATE group${dep} g1 SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte=g.id_poste, nom_ign=g.nom_norm from group_ign${dep} g where g1.ign is null and g.fantoir_9 is null and g1.laposte is null and g1.nom_norm=g.nom_norm and g.code_insee=g1.municipality_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1;" >> commandeTemp.sql
 
 #########################################
 # 2E PASSE AVEC LE NOM SANS ESPACES
@@ -203,7 +200,7 @@ echo "drop table if exists group_fantoir_doublon${dep};" >> commandeTemp.sql
 echo "create table group_fantoir_doublon${dep} as (select count(*), nom_comp, municipality_insee from group${dep} group by nom_comp, municipality_insee);" >> commandeTemp.sql
 echo "update group${dep} g1 set doublon_nom_norm=count from group_fantoir_doublon${dep} g2 where g1.nom_comp=g2.nom_comp and g2.municipality_insee=g1.municipality_insee;" >> commandeTemp.sql
 echo "update group_ign${dep} g1 set doublon_nom_norm=count from group_ign_doublon${dep} g2 where g1.nom_comp=g2.nom_comp and g2.code_insee=g1.code_insee;" >> commandeTemp.sql
-echo "update group${dep} g1 set ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte=g.id_poste from group_ign${dep} g where g1.ign is null and g.fantoir_9 is null and g1.laposte is null and g1.nom_comp=g.nom_comp and g.doublon_nom_norm=1 and g1.doublon_nom_norm=1 and g1.municipality_insee=g.code_insee;" >> commandeTemp.sql
+echo "update group${dep} g1 set ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte=g.id_poste , nom_ign=g.nom_norm from group_ign${dep} g where g1.ign is null and g.fantoir_9 is null and g1.laposte is null and g1.nom_comp=g.nom_comp and g.doublon_nom_norm=1 and g1.doublon_nom_norm=1 and g1.municipality_insee=g.code_insee;" >> commandeTemp.sql
 
 
 #######################################
@@ -236,21 +233,18 @@ echo "\COPY (select ign_1, fantoir_1, fantoir_2, nom_1, nom_2 from doublon_flou_
 echo "delete from doublon_flou_sup${dep} where ign_2 is not null or fantoir_1 is not null;" >> commandeTemp.sql
 
 # On fait l'appariement sur les liens 1-1
-echo "update group${dep} g1 set ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte=g.id_poste from group_ign${dep} g , doublon_flou_sup${dep} d where g.id_pseudo_fpb=d.ign_1 and g1.fantoir=d.fantoir_2 and d.group_by_1=1 and d.group_by_2=1;" >> commandeTemp.sql
+echo "update group${dep} g1 set ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte=g.id_poste, nom_ign=g.nom_norm from group_ign${dep} g , doublon_flou_sup${dep} d where g.id_pseudo_fpb=d.ign_1 and g1.fantoir=d.fantoir_2 and d.group_by_1=1 and d.group_by_2=1;" >> commandeTemp.sql
 
 #########################################
 # GROUP IGN NON RETROUVE DANS FANTOIR (avec l'id fantoir ou nom normalise) : ajoute ces groups dans la ban
 # Integration dans la table group${dep}
-echo "INSERT INTO group${dep} (kind, ign, name, municipality_insee, addressing, alias, laposte, nom_norm, old_insee)
-SELECT g.kind, g.id_pseudo_fpb, g.nom, g.code_insee, g.addressing, g.alias, g.id_poste, g.nom_norm, g.old_insee from group_ign${dep} g left join group${dep} i on g.id_pseudo_fpb=i.ign where name is null and id_pseudo_fpb is not null;" >> commandeTemp.sql
+echo "INSERT INTO group${dep} (kind, ign, name, municipality_insee, addressing, alias, laposte, nom_norm, old_insee, nom_ign)
+SELECT g.kind, g.id_pseudo_fpb, g.nom, g.code_insee, g.addressing, g.alias, g.id_poste, g.nom_norm, g.old_insee, g.nom_norm from group_ign${dep} g left join group${dep} i on g.id_pseudo_fpb=i.ign where name is null and id_pseudo_fpb is not null;" >> commandeTemp.sql
 
 
 #######################################
 # GROUP LAPOSTE : preparation
 # Extraction du departement
-echo "DROP INDEX IF EXISTS idx_group_ran_nom_norm${dep};" >> commandeTemp.sql
-echo "DROP INDEX IF EXISTS idx_group_ran_co_insee${dep};" >> commandeTemp.sql
-echo "DROP INDEX IF EXISTS idx_group_ran_nom_comp${dep};" >> commandeTemp.sql
 echo "DROP TABLE IF EXISTS group_ran${dep};" >> commandeTemp.sql
 echo "CREATE TABLE group_ran${dep} AS SELECT * FROM ran_group WHERE co_insee like '${dep}%';" >> commandeTemp.sql
 echo "CREATE INDEX idx_group_ran_co_insee${dep} ON group_ran${dep}(co_insee);" >> commandeTemp.sql 
@@ -273,6 +267,8 @@ echo "UPDATE group_ran${dep} SET co_old_insee=co_insee;" >> commandeTemp.sql
 echo "UPDATE group_ran${dep} SET co_insee=insee_new from fusion_commune where co_insee=insee_old;" >> commandeTemp.sql
 echo "UPDATE group_ran${dep} SET co_old_insee=null where co_old_insee=co_insee;" >> commandeTemp.sql 
 
+echo "UPDATE group${dep} g set name=r.lb_voie, nom_laposte=r.nom_norm from group_ran${dep} r where g.laposte=r.laposte;" >> commandeTemp.sql
+
 ######################################
 # RAPPROCHEMENT PAR LE NOM NORMALISE
 echo "drop table if exists group_ran_doublon${dep};" >> commandeTemp.sql
@@ -282,7 +278,7 @@ echo "create table group_fantoir_ign_doublon${dep} as (select count(*), nom_norm
 echo "update group${dep} g1 set doublon_nom_norm=count from group_fantoir_ign_doublon${dep} g2 where g1.nom_norm=g2.nom_norm and g2.municipality_insee=g1.municipality_insee;" >> commandeTemp.sql
 echo "alter table group_ran${dep} add column doublon_nom_norm integer;" >> commandeTemp.sql
 echo "update group_ran${dep} g1 set doublon_nom_norm=count from group_ran_doublon${dep} g2 where g1.nom_norm=g2.nom_norm and g2.co_insee=g1.co_insee;" >> commandeTemp.sql
-echo "update group${dep} g1 set laposte=g.laposte from group_ran${dep} g where g1.laposte is null and g1.nom_norm=g.nom_norm and g1.municipality_insee=g.co_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1 and not exists (select laposte from group${dep} g2 where g2.laposte=g.laposte);" >> commandeTemp.sql
+echo "update group${dep} g1 set name=g.lb_voie, laposte=g.laposte, nom_laposte=g.nom_norm from group_ran${dep} g where g1.laposte is null and g1.nom_norm=g.nom_norm and g1.municipality_insee=g.co_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1 and not exists (select laposte from group${dep} g2 where g2.laposte=g.laposte);" >> commandeTemp.sql
 
 ###################################
 # 2E PASSE AVEC LE NOM SANS ESPACES
@@ -296,44 +292,44 @@ echo "drop table if exists group_fantoir_ign_doublon${dep};" >> commandeTemp.sql
 echo "create table group_fantoir_ign_doublon${dep} as (select count(*), nom_comp, municipality_insee from group${dep} group by nom_comp, municipality_insee);" >> commandeTemp.sql
 echo "update group${dep} g1 set doublon_nom_norm=count from group_fantoir_ign_doublon${dep} g2 where g1.nom_comp=g2.nom_comp and g2.municipality_insee=g1.municipality_insee;" >> commandeTemp.sql
 echo "update group_ran${dep} g1 set doublon_nom_norm=count from group_ran_doublon${dep} g2 where g1.nom_comp=g2.nom_comp and g2.co_insee=g1.co_insee;" >> commandeTemp.sql
-echo "update group${dep} g1 set laposte=g.laposte from group_ran${dep} g where g1.laposte is null and g1.nom_comp=g.nom_comp and g1.municipality_insee=g.co_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1 and not exists (select laposte from group${dep} g2 where g2.laposte=g.laposte);" >> commandeTemp.sql
+echo "update group${dep} g1 set name=g.lb_voie, laposte=g.laposte , nom_laposte=g.nom_norm from group_ran${dep} g where g1.laposte is null and g1.nom_comp=g.nom_comp and g1.municipality_insee=g.co_insee and g1.doublon_nom_norm=1 and g.doublon_nom_norm=1 and not exists (select laposte from group${dep} g2 where g2.laposte=g.laposte);" >> commandeTemp.sql
 
 #######################################
 # 3E PASSE AVEC APPARIEMENT FLOU
 # On crée une table d'appariement de nom et on calcule la distance de levenshtein, la similarite et un indice de confiance (une note sur 20)
-echo "drop table if exists doublon_flou${dep};" >> commandeTemp.sql
-echo "create table doublon_flou${dep} as (select g1.nom_norm as nom_1, g2.nom_norm as nom_2, g1.laposte as laposte_1, g2.laposte as laposte_2, cast(levenshtein(g1.nom_comp, g2.nom_comp,1,1,2) as float), g2.municipality_insee, similarity(g1.nom_norm,g2.nom_norm) from group_ran${dep} g1, group${dep} g2 where dmetaphone(g1.nom_norm)=dmetaphone(g2.nom_norm) and dmetaphone_alt(g1.nom_norm)=dmetaphone_alt(g2.nom_norm) and g1.co_insee=g2.municipality_insee);" >> commandeTemp.sql
-echo "delete from doublon_flou${dep} d where exists (select * from group${dep} g where d.laposte_1=g.laposte);" >> commandeTemp.sql
-echo "delete from doublon_flou${dep} where similarity<0.5;" >> commandeTemp.sql
-echo "alter table doublon_flou${dep} add column levenshtein_1 float;" >> commandeTemp.sql
-echo "update doublon_flou${dep} set levenshtein_1=levenshtein/length(nom_1);" >> commandeTemp.sql
-echo "alter table doublon_flou${dep} add column levenshtein_2 float;" >> commandeTemp.sql
-echo "update doublon_flou${dep} set levenshtein_2=levenshtein/length(nom_2);" >> commandeTemp.sql
-echo "alter table doublon_flou${dep} add column indice_1 float;" >> commandeTemp.sql
-echo "alter table doublon_flou${dep} add column indice_2 float;" >> commandeTemp.sql
-echo "update doublon_flou${dep} set indice_1=10*similarity+10*(1-levenshtein_1);" >> commandeTemp.sql
-echo "update doublon_flou${dep} set indice_2=10*similarity+10*(1-levenshtein_2);" >> commandeTemp.sql
-echo "alter table doublon_flou${dep} add column indice float;" >> commandeTemp.sql
-echo "update doublon_flou${dep} set indice=(indice_1+indice_2)/2;" >> commandeTemp.sql
+echo "drop table if exists doublon_flou_laposte${dep};" >> commandeTemp.sql
+echo "create table doublon_flou_laposte${dep} as (select g1.nom_norm as nom_1, g2.nom_norm as nom_2, g1.laposte as laposte_1, g2.laposte as laposte_2, cast(levenshtein(g1.nom_comp, g2.nom_comp,1,1,2) as float), g2.municipality_insee, similarity(g1.nom_norm,g2.nom_norm) from group_ran${dep} g1, group${dep} g2 where dmetaphone(g1.nom_norm)=dmetaphone(g2.nom_norm) and dmetaphone_alt(g1.nom_norm)=dmetaphone_alt(g2.nom_norm) and g1.co_insee=g2.municipality_insee);" >> commandeTemp.sql
+echo "delete from doublon_flou_laposte${dep} d where exists (select * from group${dep} g where d.laposte_1=g.laposte);" >> commandeTemp.sql
+echo "delete from doublon_flou_laposte${dep} where similarity<0.5;" >> commandeTemp.sql
+echo "alter table doublon_flou_laposte${dep} add column levenshtein_1 float;" >> commandeTemp.sql
+echo "update doublon_flou_laposte${dep} set levenshtein_1=levenshtein/length(nom_1);" >> commandeTemp.sql
+echo "alter table doublon_flou_laposte${dep} add column levenshtein_2 float;" >> commandeTemp.sql
+echo "update doublon_flou_laposte${dep} set levenshtein_2=levenshtein/length(nom_2);" >> commandeTemp.sql
+echo "alter table doublon_flou_laposte${dep} add column indice_1 float;" >> commandeTemp.sql
+echo "alter table doublon_flou_laposte${dep} add column indice_2 float;" >> commandeTemp.sql
+echo "update doublon_flou_laposte${dep} set indice_1=10*similarity+10*(1-levenshtein_1);" >> commandeTemp.sql
+echo "update doublon_flou_laposte${dep} set indice_2=10*similarity+10*(1-levenshtein_2);" >> commandeTemp.sql
+echo "alter table doublon_flou_laposte${dep} add column indice float;" >> commandeTemp.sql
+echo "update doublon_flou_laposte${dep} set indice=(indice_1+indice_2)/2;" >> commandeTemp.sql
 # On selectionne les appariements avec un indice de confiance >15
-echo "drop table if exists doublon_flou_sup${dep};" >> commandeTemp.sql
-echo "create table doublon_flou_sup${dep} as (select * from doublon_flou${dep} where indice>15);" >> commandeTemp.sql
+echo "drop table if exists doublon_flou_laposte_sup${dep};" >> commandeTemp.sql
+echo "create table doublon_flou_laposte_sup${dep} as (select * from doublon_flou_laposte${dep} where indice>15);" >> commandeTemp.sql
 # On calcule le nombre d'appariement par group ign et par group fantoir
-echo "alter table doublon_flou_sup${dep} add column group_by_1 float;" >> commandeTemp.sql
-echo "alter table doublon_flou_sup${dep} add column group_by_2 float;" >> commandeTemp.sql
-echo "update doublon_flou_sup${dep} d1 set group_by_1=(select count(*) from doublon_flou_sup${dep} d2 where d1.nom_1=d2.nom_1 and d1.municipality_insee=d2.municipality_insee);" >> commandeTemp.sql
-echo "update doublon_flou_sup${dep} d1 set group_by_2=(select count(*) from doublon_flou_sup${dep} d2 where d1.nom_2=d2.nom_2 and d1.municipality_insee=d2.municipality_insee);" >> commandeTemp.sql
+echo "alter table doublon_flou_laposte_sup${dep} add column group_by_1 float;" >> commandeTemp.sql
+echo "alter table doublon_flou_laposte_sup${dep} add column group_by_2 float;" >> commandeTemp.sql
+echo "update doublon_flou_laposte_sup${dep} d1 set group_by_1=(select count(*) from doublon_flou_laposte_sup${dep} d2 where d1.nom_1=d2.nom_1 and d1.municipality_insee=d2.municipality_insee);" >> commandeTemp.sql
+echo "update doublon_flou_laposte_sup${dep} d1 set group_by_2=(select count(*) from doublon_flou_laposte_sup${dep} d2 where d1.nom_2=d2.nom_2 and d1.municipality_insee=d2.municipality_insee);" >> commandeTemp.sql
 # On exporte en fichier txt les groups ign avec un mauvais fantoir
-echo "delete from doublon_flou_sup${dep} where laposte_2 is not null;" >> commandeTemp.sql
+echo "delete from doublon_flou_laposte_sup${dep} where laposte_2 is not null;" >> commandeTemp.sql
 
 # On fait l'appariement sur les liens 1-1
-echo "update group${dep} g1 set laposte=g.laposte from group_ran${dep} g , doublon_flou_sup${dep} d where g1.laposte is null and g.laposte=d.laposte_1 and g1.nom_norm=d.nom_2 and d.group_by_1=1 and d.group_by_2=1 and g1.municipality_insee=d.municipality_insee;" >> commandeTemp.sql
+echo "update group${dep} g1 set name=g.lb_voie, laposte=g.laposte, nom_laposte=g.nom_norm from group_ran${dep} g , doublon_flou_laposte_sup${dep} d where g1.laposte is null and g.laposte=d.laposte_1 and g1.nom_norm=d.nom_2 and d.group_by_1=1 and d.group_by_2=1 and g1.municipality_insee=d.municipality_insee;" >> commandeTemp.sql
 
 
 #####################################
 # AJOUT DES GROUPES LAPOSTE NON RETROUVES 
-echo "INSERT INTO group${dep} (kind, name, municipality_insee, laposte, nom_norm, old_insee)
-SELECT g.kind, g.lb_voie, g.co_insee, g.laposte, g.lb_voie, g.co_old_insee from group_ran${dep} g left join group${dep} on g.laposte = group${dep}.laposte where municipality_insee is null; " >> commandeTemp.sql
+echo "INSERT INTO group${dep} (kind, name, municipality_insee, laposte, nom_norm, old_insee, nom_laposte)
+SELECT g.kind, g.lb_voie, g.co_insee, g.laposte, g.nom_norm, g.co_old_insee , g.nom_norm from group_ran${dep} g left join group${dep} on g.laposte = group${dep}.laposte where municipality_insee is null; " >> commandeTemp.sql
 
 
 ######################################
@@ -343,8 +339,16 @@ SELECT nom_old, 'area', insee_new, insee_old, insee_old||'####' FROM fusion_comm
 
 
 #########################################
+# NOMS IGN QUAND IGN ET FANTOIR IDENTIQUES / IGN ET LAPOSTE IDENTIQUE
+echo "UPDATE group${dep} g set name=i.nom FROM group_ign${dep} i where g.ign=i.id_pseudo_fpb and g.nom_ign=g.nom_fantoir and g.nom_laposte is null;" >> commandeTemp.sql
+echo "UPDATE group${dep} g set name=i.nom FROM group_ign${dep} i where g.ign=i.id_pseudo_fpb and g.nom_ign=g.nom_laposte and g.nom_fantoir is null;" >> commandeTemp.sql
+echo "UPDATE group${dep} g set name=i.nom FROM group_ign${dep} i where g.ign=i.id_pseudo_fpb and g.nom_ign=g.nom_fantoir and g.nom_ign=g.nom_laposte is null;" >> commandeTemp.sql
+
 # NOMS CADASTRES
-echo "UPDATE group${dep} g SET name=voie_cadastre FROM dgfip_noms_cadastre c WHERE left(c.fantoir,9)=g.fantoir;" >> commandeTemp.sql
+echo "UPDATE group${dep} g SET name=voie_cadastre FROM dgfip_noms_cadastre c WHERE left(c.fantoir,9)=g.fantoir and g.nom_fantoir=g.nom_ign and g.nom_fantoir=g.nom_laposte;" >> commandeTemp.sql
+echo "UPDATE group${dep} g SET name=voie_cadastre FROM dgfip_noms_cadastre c WHERE left(c.fantoir,9)=g.fantoir and g.nom_fantoir=g.nom_ign and g.nom_laposte is null;" >> commandeTemp.sql
+echo "UPDATE group${dep} g SET name=voie_cadastre FROM dgfip_noms_cadastre c WHERE left(c.fantoir,9)=g.fantoir and g.nom_ign is null and g.nom_fantoir=g.nom_laposte;" >> commandeTemp.sql
+
 echo "UPDATE group${dep} SET name=regexp_replace(name,'\"','','g');" >> commandeTemp.sql
 
 echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s %s}',kind,municipality_insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end, case when old_insee is not null then ',\"attributes\":{\"insee\":\"'||old_insee||'\"}' end) from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
@@ -376,8 +380,8 @@ echo "UPDATE housenumber_bano${dep} SET cia=upper(format('%s_%s_%s_%s',left(fant
 
 
 # Insertion dans la table housenumber${dep}
-echo "INSERT INTO housenumber${dep} (group_fantoir,number, ordinal)
-SELECT fantoir_hn, number, ordinal from housenumber_bano${dep} h, group${dep} g where fantoir_hn=g.fantoir;" >> commandeTemp.sql
+echo "INSERT INTO housenumber${dep} (group_fantoir, group_ign, group_laposte, number, ordinal, insee, old_insee)
+SELECT g.fantoir, g.ign, g.laposte, h.number, h.ordinal, g.municipality_insee, g.old_insee from housenumber_bano${dep} h, group${dep} g where fantoir_hn=g.fantoir group by g.fantoir, g.ign, g.laposte, h.number, h.ordinal, g.municipality_insee, g.old_insee;" >> commandeTemp.sql
 
 
 ########################################
@@ -407,13 +411,11 @@ echo "UPDATE housenumber_ign${dep} AS hn SET no_pile_doublon = d.no_pile_doublon
 
 # Creation de la colonne fantoir
 echo "ALTER TABLE  housenumber_ign${dep} ADD COLUMN fantoir varchar;" >> commandeTemp.sql
-echo "UPDATE housenumber_ign${dep} SET fantoir=g.fantoir FROM group${dep} g, group_fantoir${dep} f WHERE housenumber_ign${dep}.id_pseudo_fpb=g.ign and g.fantoir=f.fantoir_9;" >> commandeTemp.sql
+echo "UPDATE housenumber_ign${dep} SET fantoir=g.fantoir FROM group${dep} g WHERE housenumber_ign${dep}.id_pseudo_fpb=g.ign;" >> commandeTemp.sql
 
 
 ########################################
 # HOUSENUMBER IGN GROUP RAPPROCHES
-# Mise a jour du champ group_ign de housenumber${dep}
-echo "update housenumber${dep} h set group_ign=i.id_pseudo_fpb from housenumber_ign${dep} i where h.group_fantoir=i.fantoir;" >> commandeTemp.sql
 # Mise a jour du champ ign de housenumber${dep}
 echo "update housenumber${dep} h set ign=i.id from housenumber_ign${dep} i where h.group_ign=i.id_pseudo_fpb and h.number=i.numero and h.ordinal=i.rep;" >> commandeTemp.sql
 # Mise a jour de no_pile_doublon
@@ -422,17 +424,17 @@ echo "update housenumber${dep} h set no_pile_doublon=i.no_pile_doublon from hous
 ###########################################
 # HOUSENUMBER IGN GROUP NON RAPPROCHES
 # Ajout des housenumber_ign non retrouves dans  housenumber${dep} (cles = fantoir, numero, dep) et dont le fantoir n'est pas nul
-echo "INSERT INTO housenumber${dep} (ign, group_fantoir, group_ign, number, ordinal, no_pile_doublon)
-SELECT max(i.id), i.fantoir, i.id_pseudo_fpb, i.numero, i.rep, i.no_pile_doublon from housenumber_ign${dep} i
-left join housenumber${dep} h on (h.group_fantoir=i.fantoir and i.numero=h.number and i.rep=h.ordinal) where h.number is null and i.fantoir is not null group by i.fantoir, i.id_pseudo_fpb, i.numero, i.rep, i.no_pile_doublon;" >> commandeTemp.sql
+echo "INSERT INTO housenumber${dep} (ign, group_fantoir, group_ign, number, ordinal, no_pile_doublon, insee)
+SELECT max(i.id), i.fantoir, i.id_pseudo_fpb, i.numero, i.rep, i.no_pile_doublon, code_insee from housenumber_ign${dep} i
+left join housenumber${dep} h on (h.group_fantoir=i.fantoir and i.numero=h.number and i.rep=h.ordinal) where h.number is null and i.fantoir is not null group by i.fantoir, i.id_pseudo_fpb, i.numero, i.rep, i.no_pile_doublon, i.code_insee;" >> commandeTemp.sql
 # Ajout dans la ban les housenumbers ign dont le fantoir est nul
-echo "INSERT INTO housenumber${dep} (ign, group_ign, number, ordinal, no_pile_doublon)
-SELECT max(id), id_pseudo_fpb, numero, rep, no_pile_doublon from housenumber_ign${dep} where fantoir is null group by id_pseudo_fpb, numero, rep, no_pile_doublon;" >> commandeTemp.sql
+echo "INSERT INTO housenumber${dep} (ign, group_ign, number, ordinal, no_pile_doublon, insee)
+SELECT max(id), id_pseudo_fpb, numero, rep, no_pile_doublon, code_insee from housenumber_ign${dep} where fantoir is null group by id_pseudo_fpb, numero, rep, no_pile_doublon, code_insee;" >> commandeTemp.sql
 
 ########################################
 # Mise à jour des champs la poste avec les données IGN
 # Mise a jour du champ group_laposte de housenumber${dep}
-echo "update housenumber${dep} h set group_laposte=g.id_poste from group_ign${dep} g where h.group_ign=g.id_pseudo_fpb ;" >> commandeTemp.sql
+echo "update housenumber${dep} h set group_laposte=g.laposte from group${dep} g where h.group_ign=g.ign;" >> commandeTemp.sql
 # Mise a jour du champ laposte de housenumber${dep}
 echo "update housenumber${dep} h set laposte=i.id_poste from housenumber_ign${dep} i where h.ign=i.id;" >> commandeTemp.sql
 
@@ -474,21 +476,30 @@ echo "UPDATE housenumber${dep} h SET postcode_code=r.co_postal FROM housenumber_
 # HOUSENUMBERS LAPOSTE NON RAPPROCHES
 # Insertion dans la table housenumber${dep}
 echo "INSERT INTO housenumber${dep} (group_laposte, number, ordinal, postcode_code, laposte)
-SELECT r.group_laposte, r.no_voie, r.lb_ext, r.co_postal, co_cea FROM housenumber_ran${dep} r, housenumber${dep} h where not exists (select laposte from housenumber${dep} h2 where r.co_cea=h2.laposte);" >> commandeTemp.sql
+SELECT r.group_laposte, r.no_voie, r.lb_ext, r.co_postal, co_cea FROM housenumber_ran${dep} r left join housenumber${dep} h  on(r.co_cea=h.laposte) where insee is null;" >> commandeTemp.sql
 
 # Colonne CIA
 echo "update housenumber${dep} set cia=upper(format('%s_%s_%s_%s',left(group_fantoir,5),right(group_fantoir,4),number, coalesce(ordinal,''))) where group_fantoir is not null;" >> commandeTemp.sql
 
 # Fusion de commune
+echo "create index idx_group_fantoir${dep} on group${dep}(fantoir);" >> commandeTemp.sql
+echo "create index idx_group_old_insee${dep} on group${dep}(old_insee);" >> commandeTemp.sql
+echo "create index idx_group_ign${dep} on group${dep}(ign);" >> commandeTemp.sql
+echo "create index idx_group_laposte${dep} on group${dep}(laposte);" >> commandeTemp.sql
+echo "create index idx_housenumber_group_fantoir${dep} on housenumber${dep}(group_fantoir);" >> commandeTemp.sql
+echo "create index idx_housenumber_group_ign${dep} on housenumber${dep}(group_ign);" >> commandeTemp.sql
+echo "create index idx_housenumber_group_laposte${dep} on housenumber${dep}(group_laposte);" >> commandeTemp.sql
 echo "update housenumber${dep} h set ancestor_fantoir=g1.fantoir from group${dep} g1, group${dep} g2 where h.group_fantoir=g2.fantoir and g2.old_insee||'####'=g1.fantoir;" >> commandeTemp.sql 
 echo "update housenumber${dep} h set ancestor_fantoir=g1.fantoir from group${dep} g1, group${dep} g2 where h.group_ign=g2.ign and g2.old_insee||'####'=g1.fantoir;" >> commandeTemp.sql
 echo "update housenumber${dep} h set ancestor_fantoir=g1.fantoir from group${dep} g1, group${dep} g2 where h.group_laposte=g2.laposte and g2.old_insee||'####'=g1.fantoir;" >> commandeTemp.sql 
-echo "update housenumber${dep} h set insee=(select insee from group${dep} g where h.group_fantoir=g.fantoir or h.group_ign=g.ign or h.group_laposte=g.laposte);" >> commandeTemp.sql
-echo "update housenumber${dep} h set old_insee=(select old_insee from group${dep} where h.group_fantoir=g.fantoir or h.group_ign=g.ign or h.group_laposte=g.laposte);" >> commandeTemp.sql
+echo "update housenumber${dep} h set insee=municipality_insee from group${dep} g where h.group_ign=g.ign and h.group_fantoir is null;" >> commandeTemp.sql
+echo "update housenumber${dep} h set insee=municipality_insee from group${dep} g where h.group_laposte=g.laposte and h.group_fantoir is null and h.group_ign is null;" >> commandeTemp.sql
+echo "update housenumber${dep} h set old_insee=g.old_insee from group${dep} g where h.group_ign=g.ign and h.group_fantoir is null;" >> commandeTemp.sql
+echo "update housenumber${dep} h set old_insee=g.old_insee from group${dep} g where h.group_laposte=g.laposte and h.group_fantoir is null and h.group_ign is null;" >> commandeTemp.sql
 # exporte en json
-echo "\COPY (select format('{\"type\":\"housenumber\", \"group:fantoir\":\"%s\", \"cia\":\"%s\" %s %s, \"numero\":\"%s\", \"ordinal\": \"%s\" %s %s}', group_fantoir, cia, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\"' end, case when ancestor_fantoir is not null then ',\"ancestor:fantoir\":\"'||ancestor_fantoir||'\"' end) from housenumber${dep} where group_fantoir is not null) to '${data_path}/${dep}/04_housenumbers.json';" >> commandeTemp.sql
-echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"group:ign\":\"%s\" , \"ign\": \"%s\", \"numero\":\"%s\", \"ordinal\":\"%s\" %s %s}', group_ign, ign, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\"' end, case when ancestor_fantoir is not null then ',\"ancestor:fantoir\":\"'||ancestor_fantoir||'\"' end) from housenumber${dep} where group_ign is not null and group_fantoir is null) to '${data_path}/${dep}/05_housenumbers.json';" >> commandeTemp.sql
-echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"group:laposte\":\"%s\", \"laposte\":\"%s\", \"numero\": \"%s\", \"ordinal\":\"%s\" %s %s}', group_laposte, laposte, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\"' end, case when ancestor_fantoir is not null then ',\"ancestor:fantoir\":\"'||ancestor_fantoir||'\"' end) from housenumber${dep} where group_laposte is not null and group_ign is null and group_fantoir is null) to '${data_path}/${dep}/06_housenumbers.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"housenumber\", \"group:fantoir\":\"%s\", \"cia\":\"%s\" %s %s, \"numero\":\"%s\", \"ordinal\": \"%s\" %s %s}', group_fantoir, cia, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\", \"postcode:complement\":\"'||old_insee||'\"' end ,case when ancestor_fantoir is not null then ',\"ancestor:fantoir\":\"'||ancestor_fantoir||'\"' end) from housenumber${dep} where group_fantoir is not null) to '${data_path}/${dep}/04_housenumbers.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"group:ign\":\"%s\" , \"ign\": \"%s\", \"numero\":\"%s\", \"ordinal\":\"%s\" %s %s}', group_ign, ign, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\", \"postcode:complement\":\"'||old_insee||'\"' end, case when ancestor_fantoir is not null then ',\"ancestor:fantoir\":\"'||ancestor_fantoir||'\"' end) from housenumber${dep} where group_ign is not null and group_fantoir is null) to '${data_path}/${dep}/05_housenumbers.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"group:laposte\":\"%s\", \"laposte\":\"%s\", \"numero\": \"%s\", \"ordinal\":\"%s\" %s %s}', group_laposte, laposte, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\", \"postcode:complement\":\"'||old_insee||'\"' end, case when ancestor_fantoir is not null then ',\"ancestor:fantoir\":\"'||ancestor_fantoir||'\"' end) from housenumber${dep} where group_laposte is not null and group_ign is null and group_fantoir is null) to '${data_path}/${dep}/06_housenumbers.json';" >> commandeTemp.sql
 
 
 ####################################################################################################
@@ -523,7 +534,6 @@ echo "UPDATE housenumber_bano${dep} SET x=round(lon::numeric,7)::text;" >> comma
 echo "ALTER TABLE  housenumber_bano${dep} ADD COLUMN y varchar;" >> commandeTemp.sql
 echo "UPDATE housenumber_bano${dep} SET y=round(lat::numeric,7)::text;" >> commandeTemp.sql
 # Insertion dans la table position des positions bano pour les hn qui n'ont pas de positions ou pas de positions entrance 
-echo "DROP INDEX IF EXISTS idx_housenumber_ign_position${dep};" >> commandeTemp.sql
 echo "CREATE INDEX idx_housenumber_ign_position${dep} ON position${dep}(housenumber_ign);" >> commandeTemp.sql
 echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, kind, positioning)
 SELECT b.cia, b.x, b.y, 'entrance', 'other' FROM housenumber_bano${dep} b join (select cia from housenumber${dep} h left join position${dep} p on (p.housenumber_ign = h.ign) where p.kind not like 'entrance' or p.kind is null) as j on b.cia = j.cia;" >> commandeTemp.sql
