@@ -64,14 +64,16 @@ echo "\COPY (select format('{\"type\":\"municipality\",\"insee\":\"%s\",\"name\"
 # POSTCODE
 # Extraction du departement
 echo "DROP TABLE IF EXISTS postcode${dep};" >> commandeTemp.sql
-echo "CREATE TABLE postcode${dep} AS SELECT co_postal, co_insee, lb_l6 FROM poste_cp WHERE co_insee like '${dep}%' group by co_postal, co_insee, lb_l6;" >> commandeTemp.sql
+echo "CREATE TABLE postcode${dep} AS SELECT co_postal, co_insee, lb_l6, lb_l5_nn FROM poste_cp WHERE co_insee like '${dep}%' group by co_postal, co_insee, lb_l6, lb_l5_nn;" >> commandeTemp.sql
 # Fusion de commune
 echo "ALTER TABLE postcode${dep} ADD COLUMN code_old_insee varchar;" >> commandeTemp.sql
 echo "UPDATE postcode${dep} SET code_old_insee=co_insee;" >> commandeTemp.sql
 echo "UPDATE postcode${dep} SET co_insee=insee_new from fusion_commune where co_insee=insee_old;" >> commandeTemp.sql
 echo "UPDATE postcode${dep} SET code_old_insee=null where code_old_insee=co_insee;" >> commandeTemp.sql
+echo "UPDATE postcode${dep} SET lb_l5_nn = lb_l6 where (lb_l5_nn is null or lb_l5_nn = '') and code_old_insee is not null;" >> commandeTemp.sql
+
 # exporte en json
-echo "\COPY (select format('{\"type\":\"postcode\",\"postcode\":\"%s\",\"name\":\"%s\",\"municipality:insee\":\"%s\" %s}',co_postal,lb_l6,co_insee, case when code_old_insee is not null then ',\"complement\":\"'||code_old_insee||'\"' end) from postcode${dep}) to '${data_path}/${dep}/02_postcodes.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"postcode\",\"postcode\":\"%s\",\"name\":\"%s\",\"municipality:insee\":\"%s\" ,\"complement\":\"%s\"}',co_postal,lb_l6,co_insee, lb_l5_nn) from postcode${dep}) to '${data_path}/${dep}/02_postcodes.json';" >> commandeTemp.sql
 
 #####################################################################################
 # GROUP
@@ -132,7 +134,6 @@ echo "UPDATE group_fantoir${dep} SET code_old_insee=null where code_old_insee=co
 # Integration dans la table group${dep}
 echo "INSERT INTO group${dep} (kind, municipality_insee, fantoir, name, nom_norm, nom_fantoir, old_insee) 
 SELECT kind, code_insee, fantoir_9, f.name , f.name, f.name, f.code_old_insee from group_fantoir${dep} f, insee_cog${dep} where insee=code_insee;" >> commandeTemp.sql
-
 
 #################################
 # Preparation de la table group_ign
@@ -353,6 +354,8 @@ echo "UPDATE group${dep} SET name=regexp_replace(name,'\"','','g');" >> commande
 
 echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s %s}',kind,municipality_insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end, case when old_insee is not null then ',\"attributes\":{\"insee\":\"'||old_insee||'\"}' end) from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
 
+#psql -e -f commandeTemp.sql
+#exit
 
 #################################################################################
 # HOUSENUMBER
