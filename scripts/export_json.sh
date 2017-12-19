@@ -95,7 +95,7 @@ echo "CREATE TABLE group${dep}(
 	insee varchar NOT NULL,
 	insee_old varchar,
 	source_nom varchar,
-	diff_nom varchar);" >> commandeTemp.sql
+	fantoir_name varchar);" >> commandeTemp.sql
 echo "CREATE INDEX idx_group_insee${dep} ON group${dep}(insee);" >> commandeTemp.sql
 
 #########################
@@ -156,7 +156,7 @@ echo "UPDATE group_ign${dep} SET kind='area' where kind is null;" >> commandeTem
 # Le nom et le nom normalisé deviennent celui de l'ign, idem pour le kind
 # On met à jour source_nom avec 'IGN'
 # On sauvegarde le nom fantoir si il est différent du nom ign (comparaison après normalisation
-echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte = g.id_poste, name=g.nom, nom_norm=g.nom_norm, source_nom='IGN', kind=g.kind, insee_old=g.insee_obs, diff_nom = CASE WHEN group${dep}.nom_norm <> g.nom_norm THEN 'fantoir_name=' || group${dep}.nom_norm ELSE null END from group_ign${dep} g where g.id_fantoir=fantoir;" >> commandeTemp.sql
+echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte = g.id_poste, name=g.nom, nom_norm=g.nom_norm, source_nom='IGN', kind=g.kind, insee_old=g.insee_obs, fantoir_name = CASE WHEN group${dep}.nom_norm <> g.nom_norm THEN group${dep}.nom_norm ELSE null END from group_ign${dep} g where g.id_fantoir=fantoir;" >> commandeTemp.sql
 
 #########################################
 # GROUPS IGN NON RETROUVES DANS FANTOIR (avec l'id fantoir)
@@ -188,7 +188,7 @@ echo "UPDATE group_ran${dep} SET kind='area' WHERE kind is null;" >> commandeTem
 # complete les groups deja dans group${dep} ayant un id poste
 # si le nom normalise poste est différent du nom normalise retenu jusqu'à present, on met a jour les infos suivantes :
 # name, nom_norm, kind, source_nom, diff_nom
-echo "UPDATE group${dep} g set name=r.lb_voie, nom_norm=r.nom_norm, kind=r.kind, source_nom='LAPOSTE', diff_nom = CASE WHEN source_nom='FANTOIR' THEN 'fantoir_name=' || g.nom_norm WHEN source_nom='IGN' and diff_nom is not null THEN diff_nom || '|ign_name=' || g.nom_norm WHEN source_nom='IGN' and diff_nom is null THEN 'ign_name=' || g.nom_norm ELSE null END from group_ran${dep} r where g.laposte=r.laposte and g.nom_norm <> r.nom_norm;" >> commandeTemp.sql
+echo "UPDATE group${dep} g set name=r.lb_voie, nom_norm=r.nom_norm, kind=r.kind, source_nom='LAPOSTE', fantoir_name = CASE WHEN source_nom='FANTOIR' THEN g.nom_norm ELSE null END from group_ran${dep} r where g.laposte=r.laposte and g.nom_norm <> r.nom_norm;" >> commandeTemp.sql
 
 #####################################
 # AJOUT DES GROUPES LAPOSTE NON RETROUVES 
@@ -241,11 +241,8 @@ SELECT name, 'area', insee, ign FROM group_secondary${dep};" >> commandeTemp.sql
 echo "UPDATE group${dep} SET name=regexp_replace(name,'\"','','g');" >> commandeTemp.sql
 
 
-echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s %s}',kind,insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end, ',\"attributes\":{\"source_init\":\"'||array_to_string(source_init,'|')||'\",\"source_init_name\":\"'||source_nom||'\",\"diff_name\":\"'||diff_nom||'\"}') from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s,\"attributes\":{\"source_init\":\"%s\",\"source_init_name\":\"%s\" %s} }',kind,insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end, source_init, source_nom, case when fantoir_name is not null then ',\"fantoir_name\":\"'||fantoir_name||'\"' end) from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
 
-psql -e -f commandeTemp.sql
-
-exit
 
 #################################################################################
 # HOUSENUMBER
