@@ -93,22 +93,31 @@ for f in ${csvRep}/ban.house_number*.csv ; do
   fi
 done
 
+# prise en compte des fusions de communes : si un group ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune :
+# alors on met a jour son code insee et on bascule le code insee d'origine dans l'insee old
+#on l'ajoute ici à cause des changements de départements autrement on aurait pu l'ajouter dans export_json.sh
+echo "Mise a jour insee groupe suite au fusion de communes"
+psql -c "
+alter table ign_group add column insee_cog varchar;
+update ign_group set insee_cog = insee_cog.insee FROM insee_cog where insee_cog.insee = ign_group.code_insee;
+update ign_group set code_insee = f.insee_new, insee_obs = f.insee_old from fusion_commune as f where ign_group.code_insee = f.insee_old and ign_group.insee_cog is null;"
+
+# Création des indexes
+echo "Création des indexes"
 psql -e -c '
 -- geométrie des points adresse
 ALTER TABLE ign_housenumber ADD geom geometry;
 -- index pour ign_housenumber
---CREATE UNIQUE INDEX idx_ign_housenumber_id ON ign_housenumber(id);
 CREATE INDEX idx_ign_housenumber_id ON ign_housenumber(id);
-CREATE INDEX idx_ign_housenumber_insee ON ign_housenumber(code_insee);
+CREATE INDEX idx_ign_housenumber_code_insee ON ign_housenumber(code_insee);
 CREATE INDEX idx_ign_housenumber_pseudo_fpb ON ign_housenumber(id_pseudo_fpb);
 CREATE INDEX idx_ign_housenumber_geom ON ign_housenumber USING gist (geom);
 
--- fantoir2 pour ign_group
-ALTER TABLE ign_group ADD fantoir2 text COLLATE "C";
 -- index pour ign_group
-CREATE INDEX idx_ign_group_insee_no_fantoir ON ign_group(code_insee) WHERE (id_fantoir IS NULL);
+CREATE INDEX idx_ign_group_code_insee ON ign_group(code_insee);
 CREATE UNIQUE INDEX idx_ign_group_pseudo_fpb ON ign_group(id_pseudo_fpb);
 '
+
 
 if [ $? -ne 0 ]
 then

@@ -75,8 +75,7 @@ if __name__ == "__main__":
     # Decodage des codes postaux (localités) dans le fichier hexavia
     print('Decodage des localités du fichier hexavia');
     numLinesHexavia = sum(1 for line in codecs.open(hexaviaFile,"r",encoding=encoding))
-    bar = progressbar.ProgressBar(numLinesHexavia)
-    bar.start()
+    bar = progressbar.ProgressBar(maxval=numLinesHexavia).start()
     count = 0
     with codecs.open(hexaviaFile,"r",encoding=encoding) as f:
         next(f)
@@ -103,8 +102,7 @@ if __name__ == "__main__":
 
     # Stockage du lien entre matricule voie et commune/code postal
     print('Recherche du lien entre matricule voie et commune/code postal');
-    bar = progressbar.ProgressBar(numLinesHexavia)
-    bar.start()
+    bar = progressbar.ProgressBar(maxval=numLinesHexavia).start()
     count = 0
     with codecs.open(hexaviaFile,"r",encoding=encoding) as f:
         next(f)
@@ -122,8 +120,7 @@ if __name__ == "__main__":
     # Decodage du fichier hexacle 
     print('Decodage des hn du fichier hexacle');
     numLines = sum(1 for line in codecs.open(hexacleFile,"r",encoding=encoding))
-    bar = progressbar.ProgressBar(numLines)
-    bar.start()
+    bar = progressbar.ProgressBar(maxval=numLines).start()
     count = 0
     with codecs.open(hexacleFile,"r",encoding=encoding) as f:
         next(f)
@@ -158,8 +155,7 @@ if __name__ == "__main__":
 
     # Decodage du fichier des voies (on le casse en 3 fichiers groupes, voies synonymes et localites)
     print('Decodage des voies du fichier hexavia');
-    bar = progressbar.ProgressBar(numLinesHexavia)
-    bar.start()
+    bar = progressbar.ProgressBar(maxval=numLinesHexavia).start()
     count = 0
     with codecs.open(hexaviaFile,"r",encoding=encoding) as f:
         next(f)

@@ -120,6 +120,8 @@ Dans <base_temp> :
 - create extension postgis;
 - create extension hstore;
 - create extension unaccent;
+- create extension fuzzystrmatch;
+- create extension pg_trgm;
 
 Exporter les variables d'environnement :
 - export PGDATABASE=<base_temp>

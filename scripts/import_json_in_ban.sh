@@ -7,7 +7,7 @@ fi
 
 ban import:init ${json_path}/01_municipalities.json
 ban import:init ${json_path}/02_postcodes.json
-ban import:init ${json_path}/03_groups.json
+ban import:init ${json_path}/03_groups.json 
 ban import:init ${json_path}/04_housenumbers.json
 ban import:init ${json_path}/05_housenumbers.json --workers 1
 ban import:init ${json_path}/06_housenumbers.json
