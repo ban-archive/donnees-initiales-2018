@@ -94,7 +94,8 @@ echo "CREATE TABLE group${dep}(
 	ign character varying(24),
 	insee varchar NOT NULL,
 	insee_old varchar,
-	source_nom varchar);" >> commandeTemp.sql
+	source_nom varchar,
+	diff_nom varchar);" >> commandeTemp.sql
 echo "CREATE INDEX idx_group_insee${dep} ON group${dep}(insee);" >> commandeTemp.sql
 
 #########################
@@ -154,7 +155,8 @@ echo "UPDATE group_ign${dep} SET kind='area' where kind is null;" >> commandeTem
 # les infos ajoutées sont : ign, alias, addressing, insee_old
 # Le nom et le nom normalisé deviennent celui de l'ign, idem pour le kind
 # On met à jour source_nom avec 'IGN'
-echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte = g.id_poste, name=g.nom, nom_norm=g.nom_norm, source_nom='IGN', kind=g.kind, insee_old=g.insee_obs from group_ign${dep} g where g.id_fantoir=fantoir;" >> commandeTemp.sql
+# On sauvegarde le nom fantoir si il est différent du nom ign (comparaison après normalisation
+echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte = g.id_poste, name=g.nom, nom_norm=g.nom_norm, source_nom='IGN', kind=g.kind, insee_old=g.insee_obs, diff_nom = CASE WHEN group${dep}.nom_norm <> g.nom_norm THEN 'fantoir_name=' || group${dep}.nom_norm ELSE null END from group_ign${dep} g where g.id_fantoir=fantoir;" >> commandeTemp.sql
 
 #########################################
 # GROUPS IGN NON RETROUVES DANS FANTOIR (avec l'id fantoir)
@@ -184,8 +186,9 @@ echo "UPDATE group_ran${dep} SET kind='area' WHERE kind is null;" >> commandeTem
 #################################
 # GROUPES LA POSTE  RETROUVES DANS group${dep} via les appariements de l'IGN
 # complete les groups deja dans group${dep} ayant un id poste
-# les infos completees sont : name, nom_norm, kind, source_nom
-echo "UPDATE group${dep} g set name=r.lb_voie, nom_norm=r.nom_norm, kind=r.kind, source_nom='LAPOSTE' from group_ran${dep} r where g.laposte=r.laposte;" >> commandeTemp.sql
+# si le nom normalise poste est différent du nom normalise retenu jusqu'à present, on met a jour les infos suivantes :
+# name, nom_norm, kind, source_nom, diff_nom
+echo "UPDATE group${dep} g set name=r.lb_voie, nom_norm=r.nom_norm, kind=r.kind, source_nom='LAPOSTE', diff_nom = CASE WHEN source_nom='FANTOIR' THEN 'fantoir_name=' || g.nom_norm WHEN source_nom='IGN' and diff_nom is not null THEN diff_nom || '|ign_name=' || g.nom_norm WHEN source_nom='IGN' and diff_nom is null THEN 'ign_name=' || g.nom_norm ELSE null END from group_ran${dep} r where g.laposte=r.laposte and g.nom_norm <> r.nom_norm;" >> commandeTemp.sql
 
 #####################################
 # AJOUT DES GROUPES LAPOSTE NON RETROUVES 
@@ -238,9 +241,11 @@ SELECT name, 'area', insee, ign FROM group_secondary${dep};" >> commandeTemp.sql
 echo "UPDATE group${dep} SET name=regexp_replace(name,'\"','','g');" >> commandeTemp.sql
 
 
-echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s %s}',kind,insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end, ',\"attributes\":{\"source_init\":\"'||array_to_string(source_init,'|')||'\",\"source_init_name\":\"'||source_nom||'\"}') from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s %s}',kind,insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end, ',\"attributes\":{\"source_init\":\"'||array_to_string(source_init,'|')||'\",\"source_init_name\":\"'||source_nom||'\",\"diff_name\":\"'||diff_nom||'\"}') from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
 
+psql -e -f commandeTemp.sql
 
+exit
 
 #################################################################################
 # HOUSENUMBER
@@ -394,11 +399,11 @@ echo "UPDATE housenumber${dep} SET source_init = source_init || '{LAPOSTE}' WHER
 
 # EXPORT EN JSON
 # hn lie au group via fantoir
-echo "\COPY (select format('{\"type\":\"housenumber\", \"group:fantoir\":\"%s\", \"cia\":\"%s\" %s %s, \"numero\":\"%s\", \"ordinal\": \"%s\" %s %s}', group_fantoir, cia, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\", \"postcode:complement\":\"'||lb_l5||'\"' end ,case when ancestor_ign is not null then ',\"ancestor:ign\":\"'||ancestor_ign||'\"' end) from housenumber${dep} where group_fantoir is not null) to '${data_path}/${dep}/04_housenumbers.json';" >> commandeTemp.sql
-# hn lie au group via identifiant ign et pas fantoir
-echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"group:ign\":\"%s\" , \"ign\": \"%s\", \"numero\":\"%s\", \"ordinal\":\"%s\" %s %s}', group_ign, ign, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\", \"postcode:complement\":\"'||lb_l5||'\"' end, case when ancestor_ign is not null then ',\"ancestor:ign\":\"'||ancestor_ign||'\"' end) from housenumber${dep} where group_ign is not null and group_fantoir is null) to '${data_path}/${dep}/05_housenumbers.json';" >> commandeTemp.sql
-# hn lie au group via identifiant la poste et pas fantoir/ign
-echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"group:laposte\":\"%s\", \"laposte\":\"%s\", \"numero\": \"%s\", \"ordinal\":\"%s\" %s %s}', group_laposte, laposte, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\", \"postcode:complement\":\"'||lb_l5||'\"' end, case when ancestor_ign is not null then ',\"ancestor:ign\":\"'||ancestor_ign||'\"' end) from housenumber${dep} where group_laposte is not null and group_ign is null and group_fantoir is null) to '${data_path}/${dep}/06_housenumbers.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"housenumber\", \"group:fantoir\":\"%s\", \"cia\":\"%s\" %s %s, \"numero\":\"%s\", \"ordinal\": \"%s\" %s %s %s}', group_fantoir, cia, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\", \"postcode:complement\":\"'||lb_l5||'\"' end ,case when ancestor_ign is not null then ',\"ancestor:ign\":\"'||ancestor_ign||'\"' end, ',\"attributes\":{\"source_init\":\"'||array_to_string(source_init,'|')||'\"}') from housenumber${dep} where group_fantoir is not null) to '${data_path}/${dep}/04_housenumbers.json';" >> commandeTemp.sql
+# hn lie au group via identifiant ign (si fantoir vide)
+echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"group:ign\":\"%s\" , \"ign\": \"%s\", \"numero\":\"%s\", \"ordinal\":\"%s\" %s %s %s}', group_ign, ign, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\", \"postcode:complement\":\"'||lb_l5||'\"' end, case when ancestor_ign is not null then ',\"ancestor:ign\":\"'||ancestor_ign||'\"' end,',\"attributes\":{\"source_init\":\"'||array_to_string(source_init,'|')||'\"}') from housenumber${dep} where group_ign is not null and group_fantoir is null) to '${data_path}/${dep}/05_housenumbers.json';" >> commandeTemp.sql
+# hn lie au group via identifiant la poste et (si fantoir/ign groupe vide)
+echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"group:laposte\":\"%s\", \"laposte\":\"%s\", \"numero\": \"%s\", \"ordinal\":\"%s\" %s %s %s}', group_laposte, laposte, number, ordinal, case when postcode_code is not null then ',\"postcode:code\": \"'||postcode_code||'\", \"municipality:insee\": \"'||insee||'\", \"postcode:complement\":\"'||lb_l5||'\"' end, case when ancestor_ign is not null then ',\"ancestor:ign\":\"'||ancestor_ign||'\"' end,',\"attributes\":{\"source_init\":\"'||array_to_string(source_init,'|')||'\"}') from housenumber${dep} where group_laposte is not null and group_ign is null and group_fantoir is null) to '${data_path}/${dep}/06_housenumbers.json';" >> commandeTemp.sql
 
 
 ####################################################################################################
@@ -469,8 +474,8 @@ echo "INSERT INTO position${dep} (housenumber_cia, lon, lat, housenumber_ign, ki
 SELECT i.cia, i.lon, i.lat, j.ign, i.kind, i.pos, i.id, 'IGN' FROM housenumber_ign${dep} i join housenumber_without_entrance${dep} as j on (i.no_pile_doublon=j.no_pile_doublon) where i.kind like 'segment' and i.no_pile_doublon is not null;" >> commandeTemp.sql
 
 
-echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\" %s, \"positioning\":\"%s\", \"housenumber:cia\": \"%s\", \"ign\": \"%s\",\"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]}}',kind, case when name is not null then ',\"name\":\"'||name||'\"' end, positioning, housenumber_cia, ign, lon, lat) from position${dep} where housenumber_cia is not null) to '${data_path}/${dep}/07_positions.json';" >> commandeTemp.sql 
-echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\" %s, \"positioning\":\"%s\", \"housenumber:ign\": \"%s\", \"ign\": \"%s\",\"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]}}', kind, case when name is not null then ',\"name\":\"'||name||'\"' end, positioning, housenumber_ign, ign, lon, lat, ign) from position${dep} where housenumber_cia is null and housenumber_ign is not null) to '${data_path}/${dep}/08_positions.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\" %s, \"positioning\":\"%s\", \"housenumber:cia\": \"%s\", \"ign\": \"%s\",\"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]} %s}',kind, case when name is not null then ',\"name\":\"'||name||'\"' end, positioning, housenumber_cia, ign, lon, lat,',\"attributes\":{\"source_init\":\"'||source_init||'\"}') from position${dep} where housenumber_cia is not null) to '${data_path}/${dep}/07_positions.json';" >> commandeTemp.sql 
+echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\" %s, \"positioning\":\"%s\", \"housenumber:ign\": \"%s\", \"ign\": \"%s\",\"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]} %s}', kind, case when name is not null then ',\"name\":\"'||name||'\"' end, positioning, housenumber_ign, ign, lon, lat, ',\"attributes\":{\"source_init\":\"'||source_init||'\"}') from position${dep} where housenumber_cia is null and housenumber_ign is not null) to '${data_path}/${dep}/08_positions.json';" >> commandeTemp.sql
 
 psql -e -f commandeTemp.sql
 
