@@ -127,6 +127,8 @@ echo "UPDATE group_fantoir${dep} SET name=libelle_voie from abbrev a, abbrev b w
 # Integration dans la table group${dep}
 echo "INSERT INTO group${dep} (kind, insee, fantoir, name, nom_norm, fantoir_name, source_nom ) 
 SELECT kind, code_insee, fantoir_9, f.name , f.name, f.name, 'FANTOIR' from group_fantoir${dep} f, insee_cog${dep} where f.code_insee=insee_cog${dep}.insee;" >> commandeTemp.sql
+# !!! Export des groupes fantoirs
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"fantoir\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\"}',kind,fantoir,insee, name) from group${dep}) to '${data_path}/${dep}/03_A_groups.json';" >> commandeTemp.sql
 
 
 #################################
@@ -166,6 +168,9 @@ echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias
 echo "INSERT INTO group${dep} (kind, ign, insee, addressing, alias, laposte, nom_norm, name, insee_old, ign_name, source_nom)
 SELECT g.kind, g.id_pseudo_fpb, g.code_insee, g.addressing, g.alias, g.id_poste, g.nom_norm, g.nom, g.insee_obs, g.nom, 'IGN' from group_ign${dep} g left join group${dep} i on g.id_pseudo_fpb=i.ign where name is null and id_pseudo_fpb is not null;" >> commandeTemp.sql
 
+# !!! Export des groupes ign
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"ign\":\"%s\"  %s %s %s}',kind,insee,name,ign, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end) from group${dep} where ign is not null) to '${data_path}/${dep}/03_B_groups.json';" >> commandeTemp.sql
+
 #######################################
 # GROUP LAPOSTE : preparation
 # Extraction du departement
@@ -199,6 +204,10 @@ echo "UPDATE group${dep} g set laposte_name=r.lb_voie from group_ran${dep} r whe
 echo "INSERT INTO group${dep} (kind, name, insee, laposte, nom_norm, insee_old, laposte_name, source_nom)
 SELECT g.kind, g.lb_voie, g.co_insee, g.laposte, g.nom_norm, g.co_insee_l5, g.lb_voie, 'LAPOSTE'  from group_ran${dep} g left join group${dep} on g.laposte = group${dep}.laposte where insee is null; " >> commandeTemp.sql
 
+# !!! Export des groupes La Poste
+echo "\COPY (select format('{\"type\":\"group\",\"municipality:insee\":\"%s\" %s %s,\"laposte\":\"%s\" %s }',insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, laposte, case when source_nom = 'LAPOSTE' then ',\"name\": \"'||name||'\",\"group\": \"'||kind||'\"' end) from group${dep} where laposte is not null) to '${data_path}/${dep}/03_C_groups.json';" >> commandeTemp.sql
+
+
 ########################################
 # NOMS CADASTRE PREPARATION
 # Extraction du departement
@@ -214,6 +223,13 @@ echo "CREATE INDEX idx_dgfip_noms_cadastre${dep}_fantoir ON dgfip_noms_cadastre$
 #######################################
 # On retient les noms cadastre complet si le nom cadastre normalisé est egal au nom normalisé retenu jusqu'à présent
 echo "UPDATE group${dep} g set name=v.voie_cadastre, source_nom='CADASTRE' from dgfip_noms_cadastre${dep} v where left(v.fantoir,9)=g.fantoir and v.fantoir is not null and v.nom_norm = g.nom_norm;" >> commandeTemp.sql
+
+# !!! Export des groupes dont les noms ont été modifiés par le cadastre
+echo "\COPY (select format('{\"type\":\"group\",\"fantoir\":\"%s\",\"name\":\"%s\"}',fantoir, name) from group${dep} WHERE source_nom='CADASTRE') to '${data_path}/${dep}/03_D_groups.json';" >> commandeTemp.sql
+
+psql -e -f commandeTemp.sql
+
+exit
 
 #####################################
 # Ajout du champ source init
