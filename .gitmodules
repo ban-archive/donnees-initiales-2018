@@ -1,0 +1,3 @@
+[submodule "post_init/geohisto"]
+	path = post_init/geohisto
+	url = https://github.com/etalab/geohisto.git
