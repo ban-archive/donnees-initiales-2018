@@ -42,7 +42,7 @@ Les premières étapes de l'initialisation sont les suivantes :
 - chargement de tous les groupes du FANTOIR
 - ajout des groupes IGN manquants (en utilisant l'identifiant FANTOIR contenu dans les données IGN)
 - ajout des groupes Poste manquants (en utilisant l'identifiant Poste contenu dans les données IGN)
-- Remplacement des noms de groupes par les noms DGFIP/BANO (clé d'appariement = identifiant FANTOIR) (fait sur certains départements mais pas tous)
+
 
 Le nom conservé sur les groupes est par ordre de priorité :
 - le libellé de La Poste
