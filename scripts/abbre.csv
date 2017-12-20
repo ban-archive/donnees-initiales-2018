@@ -1,20 +1,20 @@
 AIRES;aires;AIRE;area;1
-BARRIERES;barri�res;BRE;area;1
-BEGUINAGES;b�guinages;BEGI;area;1
-CARRIERES;carri�res;CARE;area;1
-ALLEES;all�es;ALL;way;1
-ANCIENNES MONTEES;anciennes mont�es;AMT;way;1
+BARRIERES;barrières;BRE;area;1
+BEGUINAGES;béguinages;BEGI;area;1
+CARRIERES;carrières;CARE;area;1
+ALLEES;allées;ALL;way;1
+ANCIENNES MONTEES;anciennes montées;AMT;way;1
 ANCIENNES ROUTES;anciennes routes;ART;way;1
 ANCIENS CHEMINS;anciens chemins;ACH;way;1
 ARCADES;arcades;ARC;way;1
 BERGES;berges;BER;way;1
-AGGLOMERATION;agglom�ration;AGL;area;2
+AGGLOMERATION;agglomération;AGL;area;2
 AIRE;aire;AIRE;area;2
 ANSE;anse;ANSE;area;2
-BARRIERE;barri�re;BRE;area;2
+BARRIERE;barrière;BRE;area;2
 BASTIDE;bastide;BSTD;area;2
 BASTION;bastion;BAST;area;2
-BEGUINAGE;b�guinage;BEGI;area;2
+BEGUINAGE;béguinage;BEGI;area;2
 BOIS;bois;BOIS;area;2
 BOURG;bourg;BRG;area;2
 BUTTE;butte;BUT;area;2
@@ -22,15 +22,15 @@ CAMP;camp;CAMP;area;2
 CAMPAGNE;campagne;CGNE;area;2
 CAMPING;camping;CPG;area;2
 CARREFOUR;carrefour;CAR;area;2
-CARRIERE;carri�re;CARE;area;2
+CARRIERE;carrière;CARE;area;2
 CASTEL;castel;CST;area;2
 CENTRE COMMERCIAL;centre commercial;CCAL;area;2
 CHALET;chalet;CHL;area;2
 CHAPELLE;chapelle;CHP;area;2
-CHATEAU;ch�teau;CHT;area;2
-ALLEE;all�e;ALL;way;2
+CHATEAU;château;CHT;area;2
+ALLEE;allée;ALL;way;2
 ANCIEN CHEMIN;ancien chemin;ACH;way;2
-ANCIENNE MONTEE;ancienne mont�e;AMT;way;2
+ANCIENNE MONTEE;ancienne montée;AMT;way;2
 ANCIENNE ROUTE;ancienne route;ART;way;2
 ARCADE;arcade;ARC;way;2
 AUTOROUTE;autoroute;AUT;way;2
@@ -46,16 +46,16 @@ BIDEKURUTZE;bidekurutze;BIDEKURUTZE;way;2
 BIDEXKA;bidexka;BIDEXKA;way;2
 BOUCLE;boucle;BCLE;way;2
 BOULEVARD;boulevard;BD;way;2
-BRECHE;br�che;BRECHE;way;2
+BRECHE;brèche;BRECHE;way;2
 CALE;cale;CALE;way;2
 CAMI;cami;CAMI;way;2
 CAMIN;camin;CAMIN;way;2
 CAMINAU;caminau;CAMINAU;way;2
-CITES;cit�s;CITE;area;1
+CITES;cités;CITE;area;1
 COLLINES;collines;COLI;area;1
 CORNICHES;corniches;COR;area;1
 COTTAGES;cottages;COTT;area;1
-ECLUSES;�cluses;ECL;area;1
+ECLUSES;écluses;ECL;area;1
 FERMES;fermes;FRM;area;1
 GALERIES;galeries;GAL;area;1
 GROUPES;groupes;GPE;area;1
@@ -66,8 +66,8 @@ JARDINS;jardins;JARD;area;1
 CHEMINS;chemins;CHE;way;1
 ESCALES;escales;ESCALES;way;1
 CHEZ;chez;CHEZ;area;2
-CITE;cit�;CITE;area;2
-CLOITRE;clo�tre;CLOI;area;2
+CITE;cité;CITE;area;2
+CLOITRE;cloître;CLOI;area;2
 COL;col;COL;area;2
 COLLINE;colline;COLI;area;2
 CONTOUR;contour;CTR;area;2
@@ -75,12 +75,12 @@ CORNICHE;corniche;COR;area;2
 COTTAGE;cottage;COTT;area;2
 DARSE;darse;DARS;area;2
 DOMAINE;domaine;DOM;area;2
-ECLUSE;�cluse;ECL;area;2
-EGLISE;�glise;EGL;area;2
+ECLUSE;écluse;ECL;area;2
+EGLISE;église;EGL;area;2
 ENCEINTE;enceinte;EN;area;2
 ENCLAVE;enclave;ENV;area;2
 ENCLOS;enclos;ENC;area;2
-ETANG;�tang;ETNG;area;2
+ETANG;étang;ETNG;area;2
 FERME;ferme;FRM;area;2
 FONTAINE;fontaine;FON;area;2
 FORT;fort;FORT;area;2
@@ -95,7 +95,7 @@ HALLE;halle;HLE;area;2
 HAMEAU;hameau;HAM;area;2
 HIPPODROME;hippodrome;HIP;area;2
 HLM;hlm;HLM;area;2
-ILE;�le;ILE;area;2
+ILE;île;ILE;area;2
 IMMEUBLE;immeuble;IMM;area;2
 JARDIN;jardin;JARD;area;2
 LIEU DIT;lieu dit;LD;area;2
@@ -109,25 +109,25 @@ ESCALERE;escalere;ESCALERE;way;2
 ESCALETTE;escalette;ESCALETTE;way;2
 ESCALIROTS;escalirots;ESCALIROTS;way;2
 ESCALLE;escalle;ESCALLE;way;2
-MARCHES;march�s;MAR;area;1
+MARCHES;marchés;MAR;area;1
 MOULINS;moulins;MLN;area;1
 PARCS;parcs;PARC;area;1
 PASSERELLES;passerelles;PLE;area;1
 PAVILLONS;pavillons;PAV;area;1
 PLAGES;plages;PLAG;area;1
 MAIL;mail;MAIL;area;2
-MAISON FORESTIERE;maison foresti�re;MF;area;2
+MAISON FORESTIERE;maison forestière;MF;area;2
 MANOIR;manoir;MAN;area;2
-MARCHE;march�;MAR;area;2
+MARCHE;marché;MAR;area;2
 MAS;mas;MAS;area;2
-METRO;m�tro;MET;area;2
+METRO;métro;MET;area;2
 MOULIN;moulin;MLN;area;2
-MUSEE;mus�e;MUS;area;2
+MUSEE;musée;MUS;area;2
 PALAIS;palais;PAL;area;2
 PARC;parc;PARC;area;2
 PARK;park;PARK;area;2
 PARKING;parking;PKG;area;2
-PASSAGE A NIVEAU;passage � niveau;PN;area;2
+PASSAGE A NIVEAU;passage à niveau;PN;area;2
 PASSERELLE;passerelle;PLE;area;2
 PATIO;patio;PAT;area;2
 PAVILLON;pavillon;PAV;area;2
@@ -146,7 +146,7 @@ PLATEAU;plateau;PLT;area;2
 VILLAGES;villages;VGE;area;1
 VILLAS;villas;VLA;area;1
 CAP;cap;CAP;way;2
-CARRE;carr�;CARR;way;2
+CARRE;carré;CARR;way;2
 CARREAU;carreau;CAU;way;2
 CARRELOT;carrelot;CARRELOT;way;2
 CARRERA;carrera;CARRERA;way;2
@@ -158,12 +158,12 @@ CARRIERA;carriera;CARRIERA;way;2
 CARRIEROU;carrierou;CARRIEROU;way;2
 CARRONT;carront;CARRONT;way;2
 CAUSSADE;caussade;CAUSSADE;way;2
-CAVEE;cav�e;CAV;way;2
+CAVEE;cavée;CAV;way;2
 VILLA;villa;VLA;area;2
 VILLAGE;village;VGE;area;2
 CENTRE;centre;CTRE;way;2
 CHARMILLE;charmille;CHI;way;2
-CHAUSSEE;chauss�e;CHS;way;2
+CHAUSSEE;chaussée;CHS;way;2
 CHEMIN;chemin;CHE;way;2
 CHEMIN VICINAL;chemin vicinal;CHV;way;2
 CHEMINEMENT;cheminement;CHEM;way;2
@@ -172,7 +172,7 @@ ESCALOS;escalos;ESCALOS;way;2
 ESCALUSSE;escalusse;ESCALUSSE;way;2
 FAUBOURG;faubourg;FG;way;2
 FORUM;forum;FORM;way;2
-FOSSE;foss�;FOS;way;2
+FOSSE;fossé;FOS;way;2
 FOURC;fourc;FOURC;way;2
 FOURCADE;fourcade;FOURCADE;way;2
 GARENN;garenn;GARENN;way;2
@@ -180,17 +180,17 @@ GARRON;garron;GARRON;way;2
 GARRONT;garront;GARRONT;way;2
 GOUA;goua;GOUA;way;2
 GRAND BOULEVARD;grand boulevard;GBD;way;2
-PERISTYLE;p�ristyle;PSTY;way;2
+PERISTYLE;péristyle;PSTY;way;2
 PLAZA;plaza;PLAZA;area;2
 POINTE;pointe;PNT;area;2
 PORT;port;PORT;area;2
 PORTE;porte;PTE;area;2
 PORTIQUE;portique;PORQ;area;2
 POTERNE;poterne;POT;area;2
-PRE;pr�;PRE;area;2
-PRESQU'ILE;presqu'�le;PRQ;area;2
+PRE;pré;PRE;area;2
+PRESQU'ILE;presqu'île;PRQ;area;2
 QUARTIER;quartier;QUA;area;2
-RESIDENCE;r�sidence;RES;area;2
+RESIDENCE;résidence;RES;area;2
 RONDPOINT;rond point;RPT;area;2
 ROQUET;roquet;ROQT;area;2
 ROTONDE;rotonde;RTD;area;2
@@ -202,12 +202,12 @@ TERRASSE;terrasse;TSSE;area;2
 TERRE PLEIN;terre plein;TPL;area;2
 TERTRE;tertre;TRT;area;2
 TOUR;tour;TOUR;area;2
-VALLEE;vall�e;VAL;area;2
+VALLEE;vallée;VAL;area;2
 PARVIS;parvis;PRV;way;2
 PASSAGE;passage;PAS;way;2
 PASSE;passe;PASS;way;2
 PECH;pech;PECH;way;2
-PERIPHERIQUE;p�riph�rique;PERI;way;2
+PERIPHERIQUE;périphérique;PERI;way;2
 PETIT CHEMIN;petit chemin;PCH;way;2
 RACCOURCI;raccourci;RAC;way;2
 RAIDILLON;raidillon;RAID;way;2
@@ -238,11 +238,11 @@ VC;vc;VC;way;2
 VENELLE;venelle;VEN;way;2
 VIA;via;VIA;way;2
 ZONE;zone;ZONE;area;2
-ZONE A URBANISER EN PRIORITE;zone � urbaniser en priorit�;ZUP;area;2
+ZONE A URBANISER EN PRIORITE;zone à urbaniser en priorité;ZUP;area;2
 ZONE ARTISANALE;zone artisanale;ZA;area;2
-ZONE D ACTIVITE;zone d'activit�;ZAI;area;2
-ZONE D AMENAGEMENT CONCERTE;zone d'am�nagement concert�;ZAC;area;2
-ZONE D AMENAGEMENT DIFFERE;zone d'am�nagement diff�r�;ZAD;area;2
+ZONE D ACTIVITE;zone d'activité;ZAI;area;2
+ZONE D AMENAGEMENT CONCERTE;zone d'aménagement concerté;ZAC;area;2
+ZONE D AMENAGEMENT DIFFERE;zone d'aménagement différé;ZAD;area;2
 ZONE INDUSTRIELLE;zone industrielle;ZI;area;2
 CLAU;clau;CLAU;way;2
 CLOS;clos;CLOS;way;2
@@ -255,12 +255,12 @@ COSTOS;costos;COSTOS;way;2
 COT;cot;COT;way;2
 COTEAU;coteau;COTE;way;2
 COUR;cour;COUR;way;2
-COUREE;cour�e;COUREE;way;2
+COUREE;courée;COUREE;way;2
 COURS;cours;CRS;way;2
-DEGRE;degr�;DEG;way;2
+DEGRE;degré;DEG;way;2
 DESCENTE;descente;DSC;way;2
 DIGUE;digue;DIG;way;2
-DREVE;dr�ve;DREVE;way;2
+DREVE;drève;DREVE;way;2
 ESCALIER;escalier;ESC;way;2
 ESPACE;espace;ESPA;way;2
 ESPLANADE;esplanade;ESP;way;2
@@ -288,7 +288,7 @@ HENTOU;hentou;HENTOU;way;2
 HOURC;hourc;HOURC;way;2
 HOURCADE;hourcade;HOURCADE;way;2
 IMPASSE;impasse;IMP;way;2
-JETEE;jet�e;JTE;way;2
+JETEE;jetée;JTE;way;2
 KARR HENT;karr hent;KARR HENT;way;2
 KARR PONT;karr pont;KARR PONT;way;2
 KARRIKA;karrika;KARRIKA;way;2
@@ -298,15 +298,15 @@ KARRONT;karront;KARRONT;way;2
 KROASHENT TRO;kroashent tro;KROASHENT TRO;way;2
 KROAZ HENT TRO;kroaz hent tro;KROAZ HENT TRO;way;2
 KROAZ PONT;kroaz pont;KROAZ PONT;way;2
-LEVEE;lev�e;LEVE;way;2
+LEVEE;levée;LEVE;way;2
 LICES;lices;LICES;way;2
 LODENN;lodenn;LODENN;way;2
 LOTISSEMENT;lotissement;LOT;way;2
-MONTEE;mont�e;MTE;way;2
+MONTEE;montée;MTE;way;2
 MOUNT;mount;MOUNT;way;2
 NOUVELLE ROUTE;nouvelle route;NTE;way;2
-PETIT DEGRE;petit degr�;PDEG;way;2
-PETITE ALLEE;petite all�e;PTA;way;2
+PETIT DEGRE;petit degré;PDEG;way;2
+PETITE ALLEE;petite allée;PTA;way;2
 PETITE AVENUE;petite avenue;PAE;way;2
 PETITE IMPASSE;petite impasse;PIM;way;2
 PETITE ROUTE;petite route;PRT;way;2
@@ -336,9 +336,9 @@ VIEUX CHEMIN;vieux chemin;VCHE;way;2
 VOIE;voie;VOI;way;2
 VOIE COMMUNALE;voie communale;VC;way;2
 CENTRAL;central;CTRE;way;1
-CHAUSSEES;chauss�es;CHS;way;1
+CHAUSSEES;chaussées;CHS;way;1
 CHEMINEMENTS;cheminements;CHEM;way;1
-FOSSES;foss�s;FOS;way;1
+FOSSES;fossés;FOS;way;1
 PLATEAUX;plateaux;PLT;area;1
 PORTIQUES;portiques;PORQ;area;1
 TERRASSES;terrasses;TSSE;area;1
@@ -353,7 +353,7 @@ VENELLES;venelles;VEN;way;1
 CHEMINS VICINAUX;chemins vicinaux;CHV;way;1
 CLAUX;claux;CLAUX;way;1
 COTEAUX;coteaux;COTE;way;1
-DEGRES;degr�s;DEG;way;1
+DEGRES;degrés;DEG;way;1
 DESCENTES;descentes;DSC;way;1
 DIGUES;digues;DIG;way;1
 ESCALIERS;escaliers;ESC;way;1
@@ -362,10 +362,10 @@ GRANDE RUE;grande rue;GR;way;1
 GRANDS ENSEMBLES;grands ensembles;GDEN;way;1
 HAUTS CHEMINS;hauts chemins;HCH;way;1
 IMPASSES;impasses;IMP;way;1
-JETEES;jet�es;JTE;way;1
-MONTEES;mont�es;MTE;way;1
-PETITES ALLEES;petites all�es;PTA;way;1
-PETITS DEGRES;petits degr�s;PDEG;way;1
+JETEES;jetées;JTE;way;1
+MONTEES;montées;MTE;way;1
+PETITES ALLEES;petites allées;PTA;way;1
+PETITS DEGRES;petits degrés;PDEG;way;1
 PONTS;ponts;PONT;way;1
 VOIES;voies;VOI;way;1
 GDE RUE;gde rue;GR;way;0
