@@ -1,10 +1,10 @@
 #!/bin/sh
-# But : preparer et exporter des fichiers json pour un departement directement
-# importable dans la ban
-# avec la commande ban import:init
+# But : preparer les tables d'adresses et de voies des différentes sources 
+# à l'importation dans la ban. 
+# Les principaux traitements sont :
+# - TODO
 ################################################################################
-# ARGUMENT :* $1 : repertoire dans lequel seront generes les json
-#           * $2 : departement à traiter
+# ARGUMENT : néant
 ################################################################################
 # ENTREE : la base PostgreSQL temporaire dans laquelle ont ete importees
 # les données des différentes sources dans les tables suivantes (France entiere):
@@ -21,84 +21,81 @@
 # - ign_house_number
 # - les aitf ????
 ##############################################################################
-# SORTIE : les fichiers json dans $1 :
-# - a completer
+# SORTIE :
+# - les mêmes tables que précédemment préparées
 #############################################################################
 #  Les donnees doivent etre dans la base PostgreSQL PGDATABASE (variable 
 #  d'environnement)
 #############################################################################
-data_path=$1
-dep=$2
-
-if [ $# -lt 2 ]; then
-        echo "Usage : export_json.sh <outPath> <dep>"
+if [ $# -ne 0 ]; then
+        echo "Usage : preparation.sh"
         exit 1
 fi
-
-#verification du repertoire data_path
-mkdir ${data_path}
-rm -r ${data_path}/${dep}
-mkdir ${data_path}/${dep}
 
 echo "\\\set ON_ERROR_STOP 1" > commandeTemp.sql
 echo "\\\timing" >> commandeTemp.sql
 
 ###############################################################################
 # MUNICIPALITY
-# Extraction et export en json
-echo "\COPY (select format('{\"type\":\"municipality\",\"insee\":\"%s\",\"name\":\"%s\"}',insee,name) from insee_cog WHERE insee like '${dep}%') to '${data_path}/${dep}/01_municipalities.json';" >> commandeTemp.sql
+# remplacement des articles null par ''
+echo "UPDATE insee_cog SET artmin = coalesce(artmin,'') WHERE artmin is null;"  >> commandeTemp.sql
+# Suppression des parentheses sur les articles
+echo "UPDATE insee_cog SET artmin = replace(artmin,'(','') WHERE artmin LIKE '%(%';"  >> commandeTemp.sql
+echo "UPDATE insee_cog set artmin = replace(artmin,')','') WHERE artmin LIKE '%)%';"  >> commandeTemp.sql
+# on ajoute le champ name
+echo "ALTER TABLE insee_cog DROP COLUMN IF EXISTS name;" >> commandeTemp.sql
+echo "ALTER TABLE insee_cog ADD COLUMN name varchar;" >> commandeTemp.sql
+echo "UPDATE insee_cog SET name = trim(artmin ||' ' || nccenr);" >> commandeTemp.sql
+echo "UPDATE insee_cog SET name = replace(name, E'\' '::text, E'\''::text);" >> commandeTemp.sql
 
 #####################################################################################
 # POSTCODE
-# extraction et export en json
-echo "\COPY (select format('{\"type\":\"postcode\",\"postcode\":\"%s\",\"name\":\"%s\",\"municipality:insee\":\"%s\" ,\"complement\":\"%s\"}',co_postal,lb_l6,co_insee, lb_l5_nn) from poste_cp WHERE co_insee like '${dep}%' ) to '${data_path}/${dep}/02_postcodes.json';" >> commandeTemp.sql
+# Fusion de commune : 
+# - si le postcode ne pointe pas vers un insee du cog, mais vers un insee ancien impliquee dans une fusion de commune, on le redirige vers le nouvel insee
+# - on bascule le nom de l'ancien poste code dans la ligne 5
+echo "UPDATE poste_cp SET co_insee=f.insee_new, lb_l5_nn = CASE WHEN lb_l5_nn is null or lb_l5_nn = '' THEN lb_l6 END FROM fusion_commune AS f, insee_cog WHERE poste_cp.co_insee = f.insee_old AND co_insee NOT IN (SELECT insee from insee_cog);" >> commandeTemp.sql
+
+
+#####################################################################################
+# GROUP
+
+#########################
+# preparation de la table group_fantoir
+# Suppression des detruits
+echo "DELETE FROM dgfip_fantoir WHERE caractere_annul not like ' ';" >> commandeTemp.sql
+# On remplace les " par un blanc
+echo "UPDATE dgfip_fantoir SET libelle_voie = replace(libelle_voie,'\"',' ') WHERE  libelle_voie LIKE '%\"%';" >> commandeTemp.sql
+# Nettoyage doubles espaces, apostrophes, trait d'union (à lancer plusieurs fois car si une fois, il reste des doubles blancs)
+echo "UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)',' ','g') WHERE libelle_voie ~ E'([\'-]|  )';" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)',' ','g') WHERE libelle_voie ~ E'([\'-]|  )';" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)',' ','g') WHERE libelle_voie ~ E'([\'-]|  )';" >> commandeTemp.sql
+# On enleve la nature de voie du libelle si le champ nature_voie est deja rempli avec la même valeur (EX : nature_voie = RUE et libelle_voie = RUE DES ACCACIAS ->  nature_voie = RUE et libelle_voie = DES ACCACIAS). On ne traite que ce cas là. Il y a des cas ou la nature_voie est rempli et est aussi présent dans le libelle voie mais avec une autre valeur. Cela est correct dans de nombreux cas (EX : nature_voie = LOT et libelle voie = CLOS MONTMAJOUR -> le nom complet de la voie est bien LOT CLOS MONTMAJOUR)
+echo "UPDATE  dgfip_fantoir set libelle_voie=substr(libelle_voie,length(split_part(libelle_voie,' ',1))+2) FROM abbrev WHERE split_part(libelle_voie,' ',1) = nature_voie AND abbrev.nom_court = nature_voie;" >> commandeTemp.sql
+# On rempli la nature_voie si elle est vide et présente dans le libelle_voie. On l'enleve alors du libelle_voie. (EX : nature_voie = vide et libelle_voie = RUE DES ACCACIAS ->  nature_voie = RUE et libelle_voie = DES ACCACIAS)
+#--> PAS FAIT car est-ce vraiment utile ?
+
+# Ajout de la colonne name (concatenation nature_voie et libelle_voie)
+echo "ALTER TABLE dgfip_fantoir ADD name varchar;" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir SET name = nature_voie||' '||libelle_voie;" >> commandeTemp.sql
+
+
 
 psql -e -f commandeTemp.sql
 
 if [ $? -ne 0 ]
 then
-  echo "Erreur lors de l export des jsons"
+  echo "Erreur lors de la preparation"
   exit 1
 fi
 
 exit
 
 
-#####################################################################################
-# GROUP
-# Creation de la table group${dep}
-echo "drop table if exists group${dep};" >> commandeTemp.sql
-echo "CREATE TABLE group${dep}(
-	name character varying(200) NOT NULL,
-	nom_norm varchar,
-	alias character varying(255),
-	kind character varying(64) NOT NULL,
-	addressing character varying(16),
-	fantoir character varying(255),
-	laposte character varying(8),
-	ign character varying(24),
-	insee varchar NOT NULL,
-	insee_old varchar,
-	source_nom varchar,
-	fantoir_name varchar,
-	ign_name varchar,
-	laposte_name varchar);" >> commandeTemp.sql
-echo "CREATE INDEX idx_group_insee${dep} ON group${dep}(insee);" >> commandeTemp.sql
 
-#########################
-# preparation de la table group_fantoir
-# Extraction du departement
-echo "DROP TABLE IF EXISTS group_fantoir${dep};" >> commandeTemp.sql
-echo "CREATE TABLE group_fantoir${dep} AS SELECT * FROM dgfip_fantoir where code_insee like '${dep}%';" >> commandeTemp.sql
 # Creation de la colonne kind
 echo "ALTER TABLE group_fantoir${dep} ADD COLUMN kind varchar;" >> commandeTemp.sql
 echo "UPDATE group_fantoir${dep} SET kind=abbrev.kind from abbrev where nature_voie like nom_long;" >> commandeTemp.sql
 echo "UPDATE group_fantoir${dep} SET kind='area' WHERE kind is null;" >> commandeTemp.sql
-# Integration dans la table group${dep}
-echo "INSERT INTO group${dep} (kind, insee, fantoir, name, nom_norm, fantoir_name, source_nom ) 
-SELECT kind, code_insee, fantoir_9, f.name , f.name, f.name, 'FANTOIR' from group_fantoir${dep} f, insee_cog${dep} where f.code_insee=insee_cog${dep}.insee;" >> commandeTemp.sql
-# !!! Export des groupes fantoirs
-echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"fantoir\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\"}',kind,fantoir,insee, name) from group${dep}) to '${data_path}/${dep}/03_A_groups.json';" >> commandeTemp.sql
 
 
 #################################
@@ -198,6 +195,12 @@ echo "UPDATE group${dep} g set name=v.voie_cadastre, source_nom='CADASTRE' from 
 echo "\COPY (select format('{\"type\":\"group\",\"fantoir\":\"%s\",\"name\":\"%s\"}',fantoir, name) from group${dep} WHERE source_nom='CADASTRE') to '${data_path}/${dep}/03_D_groups.json';" >> commandeTemp.sql
 
 psql -e -f commandeTemp.sql
+
+if [ $? -ne 0 ]
+then
+  echo "Erreur lors de la preparation"
+  exit 1
+fi
 
 exit
 
@@ -467,7 +470,7 @@ psql -e -f commandeTemp.sql
 
 if [ $? -ne 0 ]
 then
-  echo "Erreur lors de l export des jsons"
+  echo "Erreur lors de la preparation"
   exit 1
 fi
 
