@@ -19,20 +19,6 @@ create table dgfip_fantoir as (select substr(raw,1,2)||substr(raw,4,3)||'_'||sub
 -- plus besoin de la table fantoir RAW
 drop table dgfip_fantoir_temp;"
 
-# prise en compte des fusions de communes : si un group ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune :
-# alors on met a jour son code insee et on bascule le code insee d'origine dans l'insee old
-#on l'ajoute ici à cause des changements de départements autrement on aurait pu l'ajouter dans export_json.sh
-echo "Prise en compte des fusions de communes"
-psql -c "
-alter table dgfip_fantoir add column insee_cog varchar;
-update dgfip_fantoir set insee_cog = insee_cog.insee FROM insee_cog where insee_cog.insee = dgfip_fantoir.code_insee;
-update dgfip_fantoir set code_insee = f.insee_new from fusion_commune as f where dgfip_fantoir.code_insee = f.insee_old and dgfip_fantoir.insee_cog is null;"
-
-# ajout de la colonne fantoir sur 9 caracteres
-echo "Ajout de la colonne fantoir_9"
-psql -c "alter table dgfip_fantoir add column fantoir_9 varchar;
-update dgfip_fantoir set fantoir_9=left(replace(fantoir,'_',''),9);"
-
 # ajout des indexes
 echo "Ajout des indexes"
 psql -c "create index idx_dgfip_fantoir_code_insee on dgfip_fantoir(code_insee);"

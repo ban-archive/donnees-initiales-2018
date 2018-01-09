@@ -18,6 +18,7 @@ SET default_with_oids = false;
 --
 -- Name: modification_insee; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
+DROP TABLE IF EXISTS fusion_commune;
 
 CREATE TABLE fusion_commune (
     insee_old character varying,

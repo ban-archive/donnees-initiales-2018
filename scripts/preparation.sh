@@ -35,6 +35,9 @@ fi
 echo "\\\set ON_ERROR_STOP 1" > commandeTemp.sql
 echo "\\\timing" >> commandeTemp.sql
 
+if false; then
+fi
+
 ###############################################################################
 # MUNICIPALITY
 # remplacement des articles null par ''
@@ -69,14 +72,39 @@ echo "UPDATE dgfip_fantoir SET libelle_voie = replace(libelle_voie,'\"',' ') WHE
 echo "UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)',' ','g') WHERE libelle_voie ~ E'([\'-]|  )';" >> commandeTemp.sql
 echo "UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)',' ','g') WHERE libelle_voie ~ E'([\'-]|  )';" >> commandeTemp.sql
 echo "UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)',' ','g') WHERE libelle_voie ~ E'([\'-]|  )';" >> commandeTemp.sql
-# On enleve la nature de voie du libelle si le champ nature_voie est deja rempli avec la même valeur (EX : nature_voie = RUE et libelle_voie = RUE DES ACCACIAS ->  nature_voie = RUE et libelle_voie = DES ACCACIAS). On ne traite que ce cas là. Il y a des cas ou la nature_voie est rempli et est aussi présent dans le libelle voie mais avec une autre valeur. Cela est correct dans de nombreux cas (EX : nature_voie = LOT et libelle voie = CLOS MONTMAJOUR -> le nom complet de la voie est bien LOT CLOS MONTMAJOUR)
-echo "UPDATE  dgfip_fantoir set libelle_voie=substr(libelle_voie,length(split_part(libelle_voie,' ',1))+2) FROM abbrev WHERE split_part(libelle_voie,' ',1) = nature_voie AND abbrev.nom_court = nature_voie;" >> commandeTemp.sql
+# On enleve la nature de voie du libelle si le champ nature_voie est deja rempli avec la même valeur (EX : nature_voie = RUE et libelle_voie = RUE DES ACCACIAS ->  nature_voie = RUE et libelle_voie = DES ACCACIAS). 
+# On traite aussi le cas ou le type de voie long est dans le libelle_voie et le type de voie court dans la nature vcie : IMP, IMPASSE DES ACCACIAS -> NULL, IMPASSE DES ACCACIAS
+# On ne traite pas les autres cas : par exemple si la nature_voie est rempli et est aussi présent dans le libelle voie mais avec une autre valeur. Cela est correct dans de nombreux cas (EX : nature_voie = LOT et libelle voie = CLOS MONTMAJOUR -> le nom complet de la voie est bien LOT CLOS MONTMAJOUR)
+echo "UPDATE dgfip_fantoir set libelle_voie=substr(libelle_voie,length(split_part(libelle_voie,' ',1))+2) FROM abbrev WHERE split_part(libelle_voie,' ',1) = nature_voie AND abbrev.nom_court = nature_voie;" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir set nature_voie = null FROM abbrev WHERE split_part(libelle_voie,' ',1) = abbrev.nom_long AND abbrev.nom_court = nature_voie;" >> commandeTemp.sql
 # On rempli la nature_voie si elle est vide et présente dans le libelle_voie. On l'enleve alors du libelle_voie. (EX : nature_voie = vide et libelle_voie = RUE DES ACCACIAS ->  nature_voie = RUE et libelle_voie = DES ACCACIAS)
 #--> PAS FAIT car est-ce vraiment utile ?
 
+
 # Ajout de la colonne name (concatenation nature_voie et libelle_voie)
+echo "ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS name;" >> commandeTemp.sql
 echo "ALTER TABLE dgfip_fantoir ADD name varchar;" >> commandeTemp.sql
-echo "UPDATE dgfip_fantoir SET name = nature_voie||' '||libelle_voie;" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir SET name = trim(nature_voie||' '||libelle_voie);" >> commandeTemp.sql
+
+# Ajout du kind (par defaut area, puis on update les way à partir de la table des abbreviations)
+# Croisement sur le champ nature_voie, puis sur le premier mot du libelle avec les noms long et nom court de la table abbrev (tous les cas sont possibles dans le fantoir)
+echo "ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS kind;" >> commandeTemp.sql
+echo "ALTER TABLE dgfip_fantoir ADD COLUMN kind varchar DEFAULT 'area';" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir SET kind='way' from abbrev where nature_voie like nom_court and abbrev.kind = 'way';" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir SET kind='way' from abbrev where nature_voie like nom_long and abbrev.kind = 'way' and dgfip_fantoir.kind = 'area';" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir SET kind='way' from abbrev where split_part(libelle_voie,' ',1) like nom_court and abbrev.kind = 'way' and dgfip_fantoir.kind = 'area';" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir SET kind='way' from abbrev where split_part(libelle_voie,' ',1) like nom_long and abbrev.kind = 'way' and dgfip_fantoir.kind = 'area';" >> commandeTemp.sql
+
+# ajout de la colonne fantoir sur 9 caracteres
+echo "ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS fantoir_9;" >> commandeTemp.sql
+echo "ALTER TABLE dgfip_fantoir ADD COLUMN fantoir_9 varchar;" >> commandeTemp.sql
+echo "UPDATE dgfip_fantoir SET fantoir_9=left(replace(fantoir,'_',''),9);" >> commandeTemp.sql
+
+# Fusion de commune : si le groupe fantoir ne pointe pas vers un insee du cog, mais vers un insee ancien impliquee dans une fusion de commune, on le redirige vers le nouvel insee
+echo "UPDATE dgfip_fantoir SET code_insee=f.insee_new FROM fusion_commune AS f, insee_cog WHERE dgfip_fantoir.code_insee = f.insee_old AND code_insee NOT IN (SELECT insee from insee_cog);" >> commandeTemp.sql
+
+
+
 
 
 
@@ -89,13 +117,6 @@ then
 fi
 
 exit
-
-
-
-# Creation de la colonne kind
-echo "ALTER TABLE group_fantoir${dep} ADD COLUMN kind varchar;" >> commandeTemp.sql
-echo "UPDATE group_fantoir${dep} SET kind=abbrev.kind from abbrev where nature_voie like nom_long;" >> commandeTemp.sql
-echo "UPDATE group_fantoir${dep} SET kind='area' WHERE kind is null;" >> commandeTemp.sql
 
 
 #################################

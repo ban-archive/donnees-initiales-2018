@@ -53,17 +53,6 @@ echo "\COPY (select format('{\"type\":\"municipality\",\"insee\":\"%s\",\"name\"
 # extraction et export en json
 echo "\COPY (select format('{\"type\":\"postcode\",\"postcode\":\"%s\",\"name\":\"%s\",\"municipality:insee\":\"%s\" ,\"complement\":\"%s\"}',co_postal,lb_l6,co_insee, lb_l5_nn) from poste_cp WHERE co_insee like '${dep}%' ) to '${data_path}/${dep}/02_postcodes.json';" >> commandeTemp.sql
 
-psql -e -f commandeTemp.sql
-
-if [ $? -ne 0 ]
-then
-  echo "Erreur lors de l export des jsons"
-  exit 1
-fi
-
-exit
-
-
 #####################################################################################
 # GROUP
 # Creation de la table group${dep}
@@ -86,19 +75,21 @@ echo "CREATE TABLE group${dep}(
 echo "CREATE INDEX idx_group_insee${dep} ON group${dep}(insee);" >> commandeTemp.sql
 
 #########################
-# preparation de la table group_fantoir
-# Extraction du departement
-echo "DROP TABLE IF EXISTS group_fantoir${dep};" >> commandeTemp.sql
-echo "CREATE TABLE group_fantoir${dep} AS SELECT * FROM dgfip_fantoir where code_insee like '${dep}%';" >> commandeTemp.sql
-# Creation de la colonne kind
-echo "ALTER TABLE group_fantoir${dep} ADD COLUMN kind varchar;" >> commandeTemp.sql
-echo "UPDATE group_fantoir${dep} SET kind=abbrev.kind from abbrev where nature_voie like nom_long;" >> commandeTemp.sql
-echo "UPDATE group_fantoir${dep} SET kind='area' WHERE kind is null;" >> commandeTemp.sql
-# Integration dans la table group${dep}
-echo "INSERT INTO group${dep} (kind, insee, fantoir, name, nom_norm, fantoir_name, source_nom ) 
-SELECT kind, code_insee, fantoir_9, f.name , f.name, f.name, 'FANTOIR' from group_fantoir${dep} f, insee_cog${dep} where f.code_insee=insee_cog${dep}.insee;" >> commandeTemp.sql
+# Integration des groupes fantoirs du departement dans la table group${dep}
+echo "INSERT INTO group${dep} (kind, insee, fantoir, name, fantoir_name, source_nom ) 
+SELECT kind, code_insee, fantoir_9, f.name , f.name, 'FANTOIR' from dgfip_fantoir f, insee_cog where f.code_insee=insee_cog.insee and code_insee like '${dep}%' ;" >> commandeTemp.sql
 # !!! Export des groupes fantoirs
 echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"fantoir\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\"}',kind,fantoir,insee, name) from group${dep}) to '${data_path}/${dep}/03_A_groups.json';" >> commandeTemp.sql
+
+psql -e -f commandeTemp.sql
+
+if [ $? -ne 0 ]
+then
+  echo "Erreur lors de l export des jsons"
+  exit 1
+fi
+
+exit
 
 
 #################################
