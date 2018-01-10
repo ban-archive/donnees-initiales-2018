@@ -37,13 +37,6 @@ echo "DROP TABLE IF EXISTS ran_housenumber;" >> commandeTemp.sql
 echo "CREATE TABLE ran_housenumber (co_insee varchar, co_voie varchar, co_postal varchar, no_voie varchar, lb_ext varchar, co_cea varchar);" >> commandeTemp.sql
 echo "\COPY ran_housenumber FROM '${data_path}/ran_housenumber.csv' WITH CSV HEADER DELIMITER ';'" >> commandeTemp.sql
 
-# prise en compte des fusions de communes : si un group ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune :
-# alors on met a jour son code insee et on bascule le code insee d'origine dans l'insee old
-#on l'ajoute ici à cause des changements de départements autrement on aurait pu l'ajouter dans export_json.sh
-echo "alter table ran_group add column insee_cog varchar;" >> commandeTemp.sql
-echo "update ran_group set insee_cog = insee_cog.insee FROM insee_cog where insee_cog.insee = ran_group.co_insee;" >> commandeTemp.sql
-echo "update ran_group set co_insee = f.insee_new, co_insee_l5 = f.insee_old from fusion_commune as f where ran_group.co_insee = f.insee_old and ran_group.insee_cog is null;" >> commandeTemp.sql
-
 psql -f commandeTemp.sql
 if [ $? -ne 0 ]
 then

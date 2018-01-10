@@ -81,38 +81,14 @@ SELECT kind, code_insee, fantoir_9, f.name , f.name, 'FANTOIR' from dgfip_fantoi
 # !!! Export des groupes fantoirs
 echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"fantoir\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\"}',kind,fantoir,insee, name) from group${dep}) to '${data_path}/${dep}/03_A_groups.json';" >> commandeTemp.sql
 
-psql -e -f commandeTemp.sql
-
-if [ $? -ne 0 ]
-then
-  echo "Erreur lors de l export des jsons"
-  exit 1
-fi
-
-exit
-
 
 #################################
-# Preparation de la table group_ign
+# GROUP IGN
 # Extraction du departement
 echo "DROP TABLE IF EXISTS group_ign${dep};" >> commandeTemp.sql
 echo "CREATE TABLE group_ign${dep} AS SELECT * FROM ign_group WHERE code_insee like '${dep}%';" >> commandeTemp.sql
-# Suppression des detruits
-echo "DELETE FROM group_ign${dep} WHERE detruit is not null;" >> commandeTemp.sql
-# normalisation du nom
-echo "ALTER TABLE  group_ign${dep} ADD COLUMN nom_norm varchar;" >> commandeTemp.sql
-echo "UPDATE group_ign${dep} SET nom_norm=upper(unaccent(nom));" >> commandeTemp.sql
-# doubles espaces, apostrophe, tiret
-echo "UPDATE group_ign${dep} SET nom_norm=regexp_replace(nom_norm,E'([\'-]|  *)',' ','g') WHERE nom_norm ~ E'([\'-]|  )';" >> commandeTemp.sql
 # index sur id_pseudo_fpb
 echo "CREATE INDEX idx_group_ign${dep}_id_pseudo_fpb ON group_ign${dep}(id_pseudo_fpb);" >> commandeTemp.sql
-# Creation de la colonne addressing
-echo "ALTER TABLE  group_ign${dep} ADD COLUMN addressing varchar;" >> commandeTemp.sql
-echo "UPDATE group_ign${dep} SET addressing=case when type_d_adressage='Classique' then 'classical' when type_d_adressage='Mixte' then 'mixed' when type_d_adressage='Linéaire' then 'linear' when type_d_adressage='Anarchique' then 'anarchical' when type_d_adressage='Métrique' then 'metric' else '' end;" >> commandeTemp.sql
-# Creation de la colonne kind
-echo "ALTER TABLE  group_ign${dep} ADD COLUMN kind varchar;" >> commandeTemp.sql
-echo "UPDATE group_ign${dep} SET kind=abbrev.kind from abbrev where nom_norm like nom_long||' %';" >> commandeTemp.sql
-echo "UPDATE group_ign${dep} SET kind='area' where kind is null;" >> commandeTemp.sql
 
 #################################
 # GROUPES IGN RETROUVES DANS FANTOIR
@@ -133,23 +109,10 @@ SELECT g.kind, g.id_pseudo_fpb, g.code_insee, g.addressing, g.alias, g.id_poste,
 echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"ign\":\"%s\"  %s %s %s}',kind,insee,name,ign, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end) from group${dep} where ign is not null) to '${data_path}/${dep}/03_B_groups.json';" >> commandeTemp.sql
 
 #######################################
-# GROUP LAPOSTE : preparation
+# GROUP LAPOSTE 
 # Extraction du departement
 echo "DROP TABLE IF EXISTS group_ran${dep};" >> commandeTemp.sql
 echo "CREATE TABLE group_ran${dep} AS SELECT * FROM ran_group WHERE co_insee like '${dep}%';" >> commandeTemp.sql
-echo "CREATE INDEX idx_group_ran_co_insee${dep} ON group_ran${dep}(co_insee);" >> commandeTemp.sql 
-# normalisation du nom
-echo "ALTER TABLE  group_ran${dep} ADD COLUMN nom_norm varchar;" >> commandeTemp.sql
-echo "UPDATE group_ran${dep} SET nom_norm=upper(unaccent(lb_voie));" >> commandeTemp.sql
-# doubles espaces, apostrophe, tiret
-echo "UPDATE group_ran${dep} SET nom_norm=regexp_replace(nom_norm,E'([\'-]|  *)',' ','g') WHERE nom_norm ~ E'([\'-]|  )';" >> commandeTemp.sql
-# Creation de la colonne laposte
-echo "ALTER TABLE  group_ran${dep} ADD COLUMN laposte varchar;" >> commandeTemp.sql
-echo "UPDATE group_ran${dep} SET laposte=right('0000000'||co_voie,8);" >> commandeTemp.sql
-# Creation de la colonne kind
-echo "ALTER TABLE group_ran${dep} ADD COLUMN kind varchar;" >> commandeTemp.sql
-echo "UPDATE group_ran${dep} SET kind=abbrev.kind from abbrev where lb_voie like nom_long||' %';" >> commandeTemp.sql
-echo "UPDATE group_ran${dep} SET kind='area' WHERE kind is null;" >> commandeTemp.sql
 
 #################################
 # GROUPES LA POSTE  RETROUVES DANS group${dep} via les appariements de l'IGN
@@ -170,25 +133,20 @@ echo "\COPY (select format('{\"type\":\"group\",\"municipality:insee\":\"%s\" %s
 
 
 ########################################
-# NOMS CADASTRE PREPARATION
-# Extraction du departement
-echo "DROP TABLE IF EXISTS dgfip_noms_cadastre${dep};" >> commandeTemp.sql
-echo "CREATE TABLE dgfip_noms_cadastre${dep} AS SELECT * FROM dgfip_noms_cadastre WHERE insee_com like '${dep}%';" >> commandeTemp.sql
-# Normalisation du nom
-echo "ALTER TABLE  dgfip_noms_cadastre${dep} ADD COLUMN nom_norm varchar;" >> commandeTemp.sql
-echo "UPDATE dgfip_noms_cadastre${dep} SET nom_norm=upper(unaccent(voie_cadastre));" >> commandeTemp.sql
-echo "UPDATE dgfip_noms_cadastre${dep} SET nom_norm=regexp_replace(nom_norm,E'([\'-]|  *)',' ','g') WHERE nom_norm ~ E'([\'-]|  )';" >> commandeTemp.sql
-#index sur fantoir
-echo "CREATE INDEX idx_dgfip_noms_cadastre${dep}_fantoir ON dgfip_noms_cadastre${dep}(fantoir);" >> commandeTemp.sql
-
-#######################################
+# NOMS CADASTRE 
 # On retient les noms cadastre complet si le nom cadastre normalisé est egal au nom normalisé retenu jusqu'à présent
-echo "UPDATE group${dep} g set name=v.voie_cadastre, source_nom='CADASTRE' from dgfip_noms_cadastre${dep} v where left(v.fantoir,9)=g.fantoir and v.fantoir is not null and v.nom_norm = g.nom_norm;" >> commandeTemp.sql
+echo "UPDATE group${dep} g set name=v.voie_cadastre, source_nom='CADASTRE' from dgfip_noms_cadastre v where left(v.fantoir,9)=g.fantoir and v.fantoir is not null and v.nom_norm = g.nom_norm;" >> commandeTemp.sql
 
 # !!! Export des groupes dont les noms ont été modifiés par le cadastre
 echo "\COPY (select format('{\"type\":\"group\",\"fantoir\":\"%s\",\"name\":\"%s\"}',fantoir, name) from group${dep} WHERE source_nom='CADASTRE') to '${data_path}/${dep}/03_D_groups.json';" >> commandeTemp.sql
 
 psql -e -f commandeTemp.sql
+
+if [ $? -ne 0 ]
+then
+  echo "Erreur lors de l export des jsons"
+  exit 1
+fi
 
 exit
 
