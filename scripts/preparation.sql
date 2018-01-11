@@ -5,7 +5,7 @@
 
 \set ON_ERROR_STOP 1
 \timing
-/*
+
 -------------------------------------------------------------------------
 --  MUNICIPALITY
 -- remplacement des articles null par ''
@@ -120,7 +120,7 @@ create index idx_ign_group_id_fantoir on ign_group(id_fantoir);
 ALTER TABLE ran_group DROP COLUMN IF EXISTS laposte;
 ALTER TABLE ran_group ADD COLUMN laposte varchar;
 UPDATE ran_group SET laposte=right('0000000'||co_voie,8);
-*/
+
 -- création d'un champ nom normalisé (majuscule, desaccentué, suppression des doubles espaces, remplacement - et ' par espace)
 ALTER TABLE ran_group DROP COLUMN IF EXISTS nom_norm;
 ALTER TABLE ran_group ADD COLUMN nom_norm varchar;
@@ -145,6 +145,7 @@ UPDATE dgfip_noms_cadastre SET nom_norm=regexp_replace(nom_norm,E'([\'-]|  *)','
 -- index sur fantoir
 CREATE INDEX idx_dgfip_noms_cadastre_fantoir ON dgfip_noms_cadastre(fantoir);
 
+
 ----------------------
 -- AJOUT id fantoir sur group IGN par rapprochement sur les noms normalisés
 -- on apparie les groupes fantoirs sans identifiant ign avec les groups ign sans fantoir
@@ -163,4 +164,3 @@ CREATE TABLE fantoir_ign_join_nom_norm as select max(fantoir_9) as fantoir, max(
 -- on rabbat l'id fantoir sur la table ign
 CREATE INDEX idx_fantoir_ign_join_nom_norm_id_pseudo_fpb on fantoir_ign_join_nom_norm(id_pseudo_fpb);
 UPDATE ign_group SET id_fantoir = f.fantoir from fantoir_ign_join_nom_norm f where ign_group.id_pseudo_fpb = f.id_pseudo_fpb and ign_group.id_fantoir is null;
-
