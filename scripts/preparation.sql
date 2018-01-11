@@ -111,6 +111,9 @@ UPDATE ign_group SET kind='area' where kind is null;
 -- Fusion de commune : si le groupe ign ne pointe pas vers un insee du cog, mais vers un insee ancien impliquee dans une fusion de commune, on le redirige vers le nouvel insee
 UPDATE ign_group SET code_insee=f.insee_new FROM fusion_commune AS f, insee_cog WHERE ign_group.code_insee = f.insee_old AND code_insee NOT IN (SELECT insee from insee_cog);
 
+-- quelques indexes
+create index idx_ign_group_id_fantoir on ign_group(id_fantoir);
+
 ----------------------
 -- GROUP LA POSTE
 -- Creation de la colonne laposte
@@ -144,10 +147,20 @@ CREATE INDEX idx_dgfip_noms_cadastre_fantoir ON dgfip_noms_cadastre(fantoir);
 
 ----------------------
 -- AJOUT id fantoir sur group IGN par rapprochement sur les noms normalisés
--- On ne le fait que pour les appariements 1-1 de nom normalisé
--- Par exemple si le fantoir contient 2 "RUE DE L'EGLISE" et l'IGN un "RUE DE L'EGLISE" sans fantoir, on ne rapproche pas
--- Par exemple si le fantoir contient 2 "RUE DE L'EGLISE" et l'IGN 2 "RUE DE L'EGLISE" dont une sans fantoir, on ne rapproche pas
-DROP TABLE IF exists fantoir_ign_join_nom_norm; 
--- on commence par faire une jointure entre les groupes ign et fantoir sur le code insee et le code fantoir (que celui-ci soit vide ou non sur les données IGN)
-CREATE TABLE fantoir_ign_join_nom_norm as select f.code_insee,fantoir_9,id_pseudo_fpb,id_fantoir,f.nom_norm from dgfip_fantoir as f, ign_group as i where f.code_insee = i.code_insee and f.nom_norm = i.nom_norm; 
+-- on apparie les groupes fantoirs sans identifiant ign avec les groups ign sans fantoir
+-- On ne retient que les appariements 1-1 de nom normalisé
+-- Par exemple : 
+--    si le fantoir (sans id ign) contient une seule "RUE DE L'EGLISE" et l'IGN (sans fantoir) un seule "RUE DE L'EGLISE", on reporte l'id fantoir
+--    si le fantoir (sans id ign) contient deux "RUE DE L'EGLISE" et l'IGN (sans fantoir) un seule "RUE DE L'EGLISE", on ne reporte pas l'id fantoir
+--    si le fantoir (sans id ign) contient une "RUE DE L'EGLISE" et l'IGN (sans fantoir) deux "RUE DE L'EGLISE", on ne reporte pas l'id fantoir
+-- Préparation de la table des groupes fantoir sans correspondant ign
+DROP TABLE IF exists dgfip_fantoir_non_ign;
+CREATE TABLE dgfip_fantoir_non_ign as select f.code_insee,f.nom_norm,f.fantoir_9 from dgfip_fantoir f left join ign_group i on (f.fantoir_9 = i.id_fantoir) where i.id_fantoir is null;
+CREATE INDEX idx_dgfip_fantoir_non_ign_code_insee on dgfip_fantoir_non_ign(code_insee);
+-- jointure entre les groupes ign sans fantoir et les groupes fantoir non ign sur le code insee et le nom normalisé (on ne retient que les appariements 1-1)
+DROP TABLE IF exists fantoir_ign_join_nom_norm;
+CREATE TABLE fantoir_ign_join_nom_norm as select max(fantoir_9) as fantoir, max(id_pseudo_fpb) as id_pseudo_fpb,f.code_insee,f.nom_norm from dgfip_fantoir_non_ign as f, ign_group as i where f.code_insee = i.code_insee and f.nom_norm = i.nom_norm AND i.id_fantoir is null group by f.code_insee,f.nom_norm having count(*) = 1;
+-- on rabbat l'id fantoir sur la table ign
+CREATE INDEX idx_fantoir_ign_join_nom_norm_id_pseudo_fpb on fantoir_ign_join_nom_norm(id_pseudo_fpb);
+UPDATE ign_group SET id_fantoir = f.fantoir from fantoir_ign_join_nom_norm f where ign_group.id_pseudo_fpb = f.id_pseudo_fpb and ign_group.id_fantoir is null;
 
