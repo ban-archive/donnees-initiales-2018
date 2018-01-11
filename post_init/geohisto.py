@@ -42,7 +42,10 @@ def call_api(method, endpoint, payload=None, retry=False):
         print(result.status_code, result.text)
         exit
     if result.text != '':
-        return(result.status_code, json.loads(result.text))
+        try:
+            return(result.status_code, json.loads(result.text))
+        except:
+            print(method, endpoint, result.text, payload)
     else:
         return(result.status_code)
 
@@ -53,10 +56,10 @@ auth_token = getAuthToken()
 with open('geohisto/exports/communes/communes.csv') as geohisto:
     communes = csv.DictReader(geohisto)
     for commune in communes:
-        if commune['successors'] != '':
+        if commune['successors'] != '' and commune['insee_code'] > '55300' :
             nouvel_insee = commune['successors'][11:16]
             if nouvel_insee != commune['insee_code']:
+                print(commune['insee_code'], nouvel_insee)
                 err = call_api('PUT','/municipality/insee:%s/redirects/insee:%s' % (nouvel_insee, commune['insee_code']))
                 if err in [201,404]:
                     continue
-                print(err, commune['insee_code'], nouvel_insee)
