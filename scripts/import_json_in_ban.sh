@@ -5,7 +5,7 @@ if [ $# -ne 1 ]; then
 	exit 1
 fi
 
-ban import:init ${json_path}/01_municipalities.json
+ban import:init init_cog ${json_path}/01_municipalities.json
 ban import:init ${json_path}/02_postcodes.json
 ban import:init ${json_path}/03_A_groups.json 
 ban import:init ${json_path}/03_B_groups.json

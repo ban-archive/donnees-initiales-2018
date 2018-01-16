@@ -35,12 +35,21 @@ if [ $# -ne 1 ]; then
         exit 1
 fi
 
-psql -e -f ${Rep}/preparation.sql
+#psql -e -f ${Rep}/preparation.sql
+
+#if [ $? -ne 0 ]
+#then
+#  echo "Erreur lors de la preparation"
+#  exit 1
+#fi
+
+psql -e -f ${Rep}/app_group.sql
 
 if [ $? -ne 0 ]
 then
-  echo "Erreur lors de la preparation"
+  echo "Erreur lors de l'appariement des groupes "
   exit 1
 fi
+
 
 echo "SUCCES : préparation des données terminée"

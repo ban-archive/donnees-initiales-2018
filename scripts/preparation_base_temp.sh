@@ -60,6 +60,17 @@ then
    exit 1
 fi
 
+# création de la table des abbréviations pour le pasage libelle long -> libelle court
+psql -f ${Rep}/abbrev.sql
+if [ $? -ne 0 ]
+then
+   echo "Erreur lors de la creation de la table des abbreviations pour passage libelles long -> libelles court"
+   exit 1
+fi
+
+rm commandeTemp.sql
+
+
 
 # creation de la table des fusions de communes
 psql -f ${Rep}/fusion_commune.sql
