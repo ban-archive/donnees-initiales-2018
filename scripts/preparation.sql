@@ -243,9 +243,13 @@ update libelles set court = 'PTR' where court = 'PETITE RUE';
 update libelles set court = 'PTR' where court = 'PTR PETITE RUE';
 update libelles set court = replace(court,'R ','RUE ') where court like 'R %';
 
+
 -- traitement de "HAMEAU" en fin ou début de libellé
 update libelles set court = regexp_replace(court,' HAMEAU$','') where court ~' HAMEAU$' and long !~ '(^| )(LE|DU|D|L|AU|JEAN|GRAND|PETIT|VIEUX) HAMEAU$';
 update libelles set court = regexp_replace(court,'^HAM ','') where court ~'^HAM ';
+
+-- traitement des xxxxC'H bretons
+update libelles set court = regexp_replace(court,'C H$','CH') where court ~'C H$';
 
 
 -- menage final
