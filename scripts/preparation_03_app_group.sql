@@ -1,3 +1,7 @@
+--------------------------------------------------------------------------
+-- PREPARATION DES DONNEES : APPRIEMENTS DES GROUPES DES DIFFERENTES SOURCES
+--------------------------------------------------------------------------
+
 \set ON_ERROR_STOP 1
 \timing
 

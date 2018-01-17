@@ -35,15 +35,27 @@ if [ $# -ne 1 ]; then
         exit 1
 fi
 
-#psql -e -f ${Rep}/preparation.sql
+#echo "Etape 1 : preparation généralités"
+#psql -e -f ${Rep}/preparation_01_generalites.sql
 
 #if [ $? -ne 0 ]
 #then
-#  echo "Erreur lors de la preparation"
+#  echo "Erreur lors de la preparation generalités"
 #  exit 1
 #fi
 
-psql -e -f ${Rep}/app_group.sql
+
+#echo "Etape 2 : préparation de la table des libellés"
+#psql -e -f ${Rep}/preparation_02_libelles.sql
+
+#if [ $? -ne 0 ]
+#then
+#  echo "Erreur lors de la preparation de la table des libellés"
+#  exit 1
+#fi
+
+echo "Etape 3 : appariement des groupes"
+psql -e -f ${Rep}/preparation_03_app_group.sql
 
 if [ $? -ne 0 ]
 then
