@@ -218,8 +218,10 @@ update libelles set court = regexp_replace(court,'([0-9])([^0-9 ])','\1 \2') whe
 -- libelles: chemin départemental -> CD
 UPDATE libelles SET court = regexp_replace(replace(regexp_replace(court,'(^| )(CD |CHE |)?(CH|CHE|CHEM|CHEMIN)\.? (DEP|DEPT|DEPTA|DEPTAL|DEPART|DEPARTE|DEPARTEM|DEPARTEME|DEPARTEMEN|DEPARTEME|DEPARTEMEN|DEPARTEMENT|DEPARTEMENTA|DEPARTEMTAL|DEPARTEMENTAL|DEPARTEMENTALE|DEPTARMENTAL|DEPARMENTAL|DEPARTEMEMTAL|DEPAETEMENTAL|DEPARTEMTALE)($|\.? ((N|NO|NR|NUM|NUMER|NUMERO|N\.|N°)([0-9 ]))?)','\1CD \8'),'CD CD','CD '),'  *',' ','g') WHERE court ~'(CH|CHE|CHEM|CHEMIN)\.? (DEP|DEPT|DEPART|DEPARTEM|DEPARTEMTAL|DEPARTEMENTA|DEPARTEMENTAL|DEPARTE|DEPTARMENTAL)\.?( N)?';
 -- libelles: route départementale -> CD
-update libelles set court=regexp_replace(replace(regexp_replace(court,'(^| )(CD |RD |RTE |)?(RTE|ROUTE)\.? (DEP|DEPT|DEPTA|DEPTAL|DEPART|DEPARTE|DEPARTEM|DEPARTEME|DEPARTEMEN|DEPARTEME|DEPARTEMEN|DEPARTEMENT|DEPARTEMENTA|DEPARTEMTAL|DEPARTEMENTAL|DEPARTEMENTAL|DEPTARMENTAL|DEPARMENTAL|DEPARTEMEMTAL|DEPAETEMENTAL|DEPARTEMTAL|DEPARTEMANTAL|DEPATREMENTAL)E?($|\.? ((N|NO|NR|NUM|NUMER|NUMERO|N\.|N°)([0-9 ]))?)','\1CD \8'),'CD CD','CD '),'  *',' ','g') where court ~'(RTE|ROUTE)\.? (DEP|DEPT|DEPART|DEPARTEM|DEPARTEMTAL|DEPARTEMENTA|DEPARTEMENTAL|DEPARTE|DEPTARMENTAL)\.?( N)?';
-
+update libelles set court=regexp_replace(replace(regexp_replace(court,'(^| )(CD |RD |RTE |CHE )?(CD|CHE|RTE|ROUTE|ROUTES|CHEMIN|CHENIN|VC|VOIE|RUE)\.? (DEP|DEPT|DEPTA|DEPTAL|DEPART|DEPARTE|DEPARTEM|DEPARTEME|DEPARTEMEN|DEPARTEME|DEPARTEMENT|DEPARTEMENTA|DEPARTEMTAL|DEPARTEMENTAL|DEPARTMENTAL|DEPARTEMENATALE|DEPARTENTALE|DEPARTMEMENTALE|DEPARTT|DEPTARMENTAL|DEPARMENTAL|DEPARTEMEMTAL|DEPAETEMENTAL|DEPARTEMANTAL|DEPATREMENTAL|DEPARTEMETAL|DEPATEMENTALE)E?($|\.? ((N|NO|NR|NUM|NUMER|NUMERO|N 0)([0-9 ]))?)','\1CD \8'),'CD CD','CD '),'  *',' ','g')
+  where court ~'(^| )(CD |RD |RTE |CHE )?(CD|CHE|RTE|ROUTE|ROUTES|CHEMIN|CHENIN|VC|VOIE|RUE)\.? (DEP|DEPT|DEPTA|DEPTAL|DEPART|DEPARTE|DEPARTEM|DEPARTEME|DEPARTEMEN|DEPARTEME|DEPARTEMENT|DEPARTEMENTA|DEPARTEMTAL|DEPARTEMENTAL|DEPARTMENTAL|DEPARTEMENATALE|DEPARTENTALE|DEPARTMEMENTALE|DEPARTT|DEPTARMENTAL|DEPARMENTAL|DEPARTEMEMTAL|DEPAETEMENTAL|DEPARTEMANTAL|DEPATREMENTAL|DEPARTEMETAL|DEPATEMENTALE)E?($|\.? ((N|NO|NR|NUM|NUMER|NUMERO|N 0)([0-9 ]))?)';
+-- CH/CHE/CHEM/CHEMIN CD/RD... sans les DU xxx AU yyy
+update libelles set court = regexp_replace(court,'^(CH|CHE|CHEM|CHEMIN) (CD|RD) ','CD ') where court ~ '^(CH|CHE|CHEM|CHEMIN) (CD|RD) ' and long !~ 'DU.* (A|AU) ';
 
 -- abbreviation des types de voies dans les libelles court (environ 1.7 millions de lignes) (remarque on ne met pas l'option g car autrement on risque de remplacer les chaines de caractères de milieu de mot)
 with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,u.txt_long, u.txt_court) from u where court ~ (txt_long||' ') and regexp_replace(court,u.txt_long, u.txt_court) <> court;
@@ -245,6 +247,10 @@ update libelles set court = 'GR' where court = 'RUE GRANDE';
 update libelles set court = 'PTR' where court = 'PETITE RUE';
 update libelles set court = 'PTR' where court = 'PTR PETITE RUE';
 update libelles set court = replace(court,'R ','RUE ') where court like 'R %';
+
+-- simplification anciens CHEMINS de différentes natures (ruraux, communaux, ordinaires, vicinaux, etc)
+update libelles set court = regexp_replace(court,'^AN(C|) (CH|CHE|CHEM|CHEMIN|C R|CR|C C|CC|CV|C V|CVO|C V O)( RURAL| COMMUNAL| VICINAL| ORDINAIRE|)( DIT |) ','ACH ')
+  where court ~ '^AN(C|) (CH|CHE|CHEM|CHEMIN|C R|CR|C C|CC|CV|C V|CVO|C V O)( RURAL| COMMUNAL| VICINAL| ORDINAIRE|)( DIT |) ';
 
 -- voies Numérotées DIT/DITE ...
 update libelles set court= regexp_replace(court,' (N|NO) [0-9]* (DIT|DITE) ',' ') where court ~ ' (N|NO) [0-9]* (DIT|DITE) ';
