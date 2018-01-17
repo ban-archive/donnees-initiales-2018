@@ -188,17 +188,17 @@ CREATE INDEX idx_dgfip_noms_cadastre_nom_maj on dgfip_noms_cadastre(nom_maj);
 DROP TABLE IF EXISTS libelles;
 
 -- libelles nom IGN non rapprochés
-CREATE TABLE libelles AS SELECT nom_maj AS long, trim(regexp_replace(replace(replace(nom_maj,'Œ','OE'),'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|ET) )*',' ','g')) AS court FROM ign_group;
+CREATE TABLE libelles AS SELECT nom_maj AS long, trim(regexp_replace(replace(replace(nom_maj,'Œ','OE'),'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g')) AS court FROM ign_group;
 CREATE INDEX idx_libelles_long ON libelles (long);
 
 -- libelles afnor contenu dans les donnes ign
-INSERT INTO libelles SELECT nom_afnor AS long, regexp_replace(replace(nom_afnor,'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|ET) )*',' ','g') AS court FROM ign_group LEFT JOIN libelles ON (long=nom_afnor) WHERE long IS NULL GROUP BY 1,2;
+INSERT INTO libelles SELECT nom_afnor AS long, regexp_replace(replace(nom_afnor,'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g') AS court FROM ign_group LEFT JOIN libelles ON (long=nom_afnor) WHERE long IS NULL GROUP BY 1,2;
 
 -- libelles nom FANTOIR
-INSERT INTO libelles SELECT nom_maj AS long, trim(regexp_replace(replace(nom_maj,'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|ET) )*',' ','g')) AS court FROM dgfip_fantoir f left join libelles l ON (long=nom_maj) WHERE long IS NULL GROUP BY 1,2;
+INSERT INTO libelles SELECT nom_maj AS long, trim(regexp_replace(replace(nom_maj,'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g')) AS court FROM dgfip_fantoir f left join libelles l ON (long=nom_maj) WHERE long IS NULL GROUP BY 1,2;
 
 -- libellés RAN
-INSERT INTO libelles SELECT lb_voie AS long, regexp_replace(replace(lb_voie,'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|ET) )*',' ','g') AS court FROM ran_group LEFT JOIN libelles ON (long=lb_voie) WHERE long IS NULL GROUP BY 1,2;
+INSERT INTO libelles SELECT lb_voie AS long, regexp_replace(replace(lb_voie,'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g') AS court FROM ran_group LEFT JOIN libelles ON (long=lb_voie) WHERE long IS NULL GROUP BY 1,2;
 
 -- index par trigram sur le libellé court
 create index libelle_trigram on libelles using gin (court gin_trgm_ops);
