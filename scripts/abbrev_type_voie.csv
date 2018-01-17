@@ -292,8 +292,6 @@ PUJOL;PUJOL;pujol;way;2
 PUJOS;PUJOS;pujos;way;2
 QUA;QUARTIER;quartier;area;2
 QUERREUX;QUERREUX;querreux;way;2
-R;RUE;rue;way;2
-R;RUES;rues;way;1
 RAC;RACCOURCI;raccourci;way;2
 RAID;RAIDILLON;raidillon;way;2
 RAISE;RAISE;raise;way;2
@@ -312,6 +310,8 @@ RTE;ROUTES;routes;way;1
 RTTE;RUETTE;ruette;way;2
 RTTE;RUETTES;ruettes;way;1
 RU;RU;ru;way;2
+RUE;RUE;rue;way;2
+RUES;RUES;rues;way;1
 SARRAT;SARRAT;sarrat;way;2
 SEN;SENTIER;sentier;way;1
 SEN;SENTIERS;sentiers;way;1

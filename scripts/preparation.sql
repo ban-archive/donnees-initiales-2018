@@ -6,10 +6,11 @@
 \set ON_ERROR_STOP 1
 \timing
 
+
 -------------------------------------------------------------------------
 --  MUNICIPALITY
 -- remplacement des articles null par ''
-/*UPDATE insee_cog SET artmin = coalesce(artmin,'') WHERE artmin is null;
+UPDATE insee_cog SET artmin = coalesce(artmin,'') WHERE artmin is null;
 -- Suppression des parentheses sur les articles
 UPDATE insee_cog SET artmin = replace(artmin,'(','') WHERE artmin LIKE '%(%';
 UPDATE insee_cog set artmin = replace(artmin,')','') WHERE artmin LIKE '%)%';
@@ -104,6 +105,12 @@ UPDATE ign_group SET nom_maj=regexp_replace(nom_maj,E'([\'-]|  *)',' ','g') WHER
 UPDATE ign_group SET nom_maj=regexp_replace(nom_maj,E'([\'-]|  *)',' ','g') WHERE nom_maj ~ E'([\'-]|  )';
 CREATE INDEX idx_ign_group_nom_maj on ign_group(nom_maj);
 
+-- Correction des fantoirs à 4 caractères (il manque le code insee)
+UPDATE ign_group SET id_fantoir = code_insee||id_fantoir where length(id_fantoir) = 4;
+
+-- Correction R -> RUE
+UPDATE ign_group SET nom_maj=replace(nom_maj,'R ','RUE ') where nom_maj like 'R %';
+
 -- Correction enceinte
 update ign_group set nom = replace(nom,'enceinte ','en '), nom_maj =replace(nom_maj,'ENCEINTE ','EN ') where nom_maj like 'ENCEINTE %' and nom_afnor like 'EN %';
 
@@ -136,6 +143,7 @@ UPDATE ign_group SET code_insee=f.insee_new FROM fusion_commune AS f, insee_cog 
 
 -- quelques indexes
 create index idx_ign_group_id_fantoir on ign_group(id_fantoir);
+CREATE INDEX idx_ign_group_id_poste ON ign_group(id_poste);
 
 ----------------------
 -- GROUP LA POSTE
@@ -174,7 +182,7 @@ CREATE INDEX idx_dgfip_noms_cadastre_nom_maj on dgfip_noms_cadastre(nom_maj);
 --ALTER TABLE dgfip_noms_cadastre ADD COLUMN nom_norm varchar;
 --UPDATE dgfip_noms_cadastre SET nom_norm=upper(unaccent(voie_cadastre));
 --UPDATE dgfip_noms_cadastre SET nom_norm=regexp_replace(nom_norm,E'([\'-]|  *)',' ','g') WHERE nom_norm ~ E'([\'-]|  )';
-
+*/
 -------------------------------------------------------------------------
 -- CREATION DE LA TABLE DES LIBELLES long et court des différentes sources
 DROP TABLE IF EXISTS libelles;
@@ -250,6 +258,3 @@ alter table libelles2 rename to libelles;
 -- index
 CREATE INDEX idx_libelles_long ON libelles (long);
 CREATE INDEX idx_libelles_court ON libelles (court);
-
-*/
-

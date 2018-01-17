@@ -38,42 +38,42 @@ and regexp_replace(l1.court,'^.* ', '') = regexp_replace(l2.court,'^.* ', '')
 and regexp_replace(l1.court,'^.* ', '') != ab1.nom_court;
 
 -- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir et avec nom ign confirmé par nom afnor
-INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
-SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, nom maj ign = nom afnor' from ign_group i
-left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
-LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
-where a.id_pseudo_fpb is null and i.id_fantoir is not null
-and i.nom_maj = i.nom_afnor and i.nom_maj is not null and i.nom_maj <> ''
-and fantoir_9 is not null and fantoir_9 <> '';
+--INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
+--SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, nom maj ign = nom afnor' from ign_group i
+--left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
+--LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
+--where a.id_pseudo_fpb is null and i.id_fantoir is not null
+--and i.nom_maj = i.nom_afnor and i.nom_maj is not null and i.nom_maj <> ''
+--and fantoir_9 is not null and fantoir_9 <> '';
 
 -- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir et avec nom fantoir confirmé par nom afnor
-INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
-SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, nom maj fantoir = nom afnor' from ign_group i
-left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
-LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
-where a.id_pseudo_fpb is null and i.id_fantoir is not null
-and f.nom_maj = i.nom_afnor and f.nom_maj is not null and f.nom_maj <> '';
+--INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
+--SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, nom maj fantoir = nom afnor' from ign_group i
+--left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
+--LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
+--where a.id_pseudo_fpb is null and i.id_fantoir is not null
+--and f.nom_maj = i.nom_afnor and f.nom_maj is not null and f.nom_maj <> '';
 
 -- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir et avec nom court fantoir confirmé par nom court afnor
-INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
-SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj, i.nom_afnor, 'fantoir = id fantoir ign, nom court fantoir = nom court afnor' from ign_group i
-left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
-LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
-LEFT JOIN libelles l1 ON (l1.long = i.nom_afnor)
-LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
-where a.id_pseudo_fpb is null and i.id_fantoir is not null
-and l1.court = l2.court and i.nom_afnor is not null and i.nom_afnor <> '';
+--INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
+--SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj, i.nom_afnor, 'fantoir = id fantoir ign, nom court fantoir = nom court afnor' from ign_group i
+--left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
+--LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
+--LEFT JOIN libelles l1 ON (l1.long = i.nom_afnor)
+--LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
+--where a.id_pseudo_fpb is null and i.id_fantoir is not null
+--and l1.court = l2.court and i.nom_afnor is not null and i.nom_afnor <> '';
 
 -- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir et avec nom court ign confirmé par nom court afnor
-INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
-SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj, i.nom_afnor, 'fantoir = id fantoir ign, nom court ign = nom court afnor' from ign_group i
-left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
-LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
-LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
-LEFT JOIN libelles l2 ON (l2.long = i.nom_afnor)
-where a.id_pseudo_fpb is null and i.id_fantoir is not null
-and l1.court = l2.court and i.nom_afnor is not null and i.nom_afnor <> '' 
-and fantoir_9 is not null and fantoir_9 <> '';
+--INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
+--SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj, i.nom_afnor, 'fantoir = id fantoir ign, nom court ign = nom court afnor' from ign_group i
+--left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
+--LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
+--LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+--LEFT JOIN libelles l2 ON (l2.long = i.nom_afnor)
+--where a.id_pseudo_fpb is null and i.id_fantoir is not null
+--and l1.court = l2.court and i.nom_afnor is not null and i.nom_afnor <> '' 
+--and fantoir_9 is not null and fantoir_9 <> '';
 
 
 -- groupe ign (avec ou sans fantoir) et groupe fantoir non apparié précédemment. 
@@ -156,5 +156,57 @@ LEFT JOIN ign_group_app a on (a.id_fantoir = f.fantoir_9);
 
 -- insertion des groupes ign non appariés
 INSERT INTO group_fnal(code_insee,id_pseudo_fpb,nom_ign,nom_maj_ign,alias_ign,kind_ign,addressing,id_fantoir_ign) SELECT code_insee,id_pseudo_fpb,nom,nom_maj,alias,kind,addressing,id_fantoir from ign_group_non_app;
+
+-- indexes
+CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- APPARIEMENT Groupes IGN - LA POSTE
+
+-- groupe la poste et ign avec le même id poste et le meme nom (majuscule, sans accent, remplacement ''', '-' , '  ' par ' ')
+DROP TABLE IF EXISTS ran_group_app;
+CREATE TABLE ran_group_app AS SELECT id_pseudo_fpb,laposte,lb_voie,p.kind,'id poste = id poste ign, nom maj poste = nom maj ign'::varchar as commentaire from ran_group p 
+left join ign_group i on (laposte = i.id_poste) and (i.nom_maj = lb_voie) 
+where id_pseudo_fpb is not null and id_pseudo_fpb <> '' ;
+CREATE INDEX idx_ran_group_app_laposte on ran_group_app(laposte);
+--CREATE INDEX idx_ign_group_app_id_pseudo_fpb on ign_group_app(id_pseudo_fpb);
+
+-- groupe la poste et ign avec le même id poste et le même libellé court
+INSERT INTO ran_group_app(laposte,id_pseudo_fpb,lb_voie,kind,commentaire)
+SELECT p.laposte,i.id_pseudo_fpb,p.lb_voie,p.kind, 'id poste = id poste ign, nom court poste = nom court ign' from ran_group p
+left join ran_group_app a on (p.laposte = a.laposte)
+LEFT JOIN ign_group i on (p.laposte = i.id_poste)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = p.lb_voie)
+where a.laposte is null and l1.court = l2.court 
+and p.lb_voie is not null and p.lb_voie <> '';
+
+-- groupe la poste et ign avec le même id poste, la même nature de voie et le même mot directeur
+INSERT INTO ran_group_app(laposte,id_pseudo_fpb,lb_voie,kind,commentaire)
+SELECT p.laposte,i.id_pseudo_fpb,p.lb_voie,p.kind, 'd poste = id poste ign, nature voie laposte = nature voie ign, mot directeur laposte = mot directeur ign' FROM ran_group p
+left join ran_group_app a on (p.laposte = a.laposte)
+LEFT JOIN ign_group i on (p.laposte = i.id_poste)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long =  p.lb_voie)
+left join (select nom_court from abbrev_type_voie group by nom_court) as ab1 on (l1.court like ab1.nom_court || ' %')
+left join (select nom_court from abbrev_type_voie group by nom_court) as ab2 on (l2.court like ab2.nom_court || ' %')
+where a.laposte is null 
+and i.nom_maj is not null 
+and ab1.nom_court is not null and ab1.nom_court = ab2.nom_court
+and regexp_replace(l1.court,'^.* ', '') = regexp_replace(l2.court,'^.* ', '')
+and regexp_replace(l1.court,'^.* ', '') != ab1.nom_court;
+
+
+-- groupe ign avec laposte et groupe laposte non apparié précédemment
+DROP TABLE IF EXISTS ran_group_non_app_with_ign;
+CREATE TABLE ran_group_non_app_with_ign AS SELECT p.laposte,i.id_pseudo_fpb,p.lb_voie,p.kind,i.nom_maj as nom_maj_ign, l1.court as court_ign, l2.court as court_laposte,l3.court as court_fantoir from ran_group p
+left join ran_group_app a on (p.laposte = a.laposte)
+left join ign_group i on (p.laposte = i.id_poste)
+left join group_fnal g on (i.id_pseudo_fpb = g.id_pseudo_fpb)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = p.lb_voie)
+LEFT JOIN libelles l3 ON (l3.long = g.nom_maj_fantoir)
+where a.laposte is null 
+and id_poste is not null and id_poste <> '';
 
 
