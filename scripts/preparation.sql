@@ -6,7 +6,7 @@
 \set ON_ERROR_STOP 1
 \timing
 
-
+/*
 -------------------------------------------------------------------------
 --  MUNICIPALITY
 -- remplacement des articles null par ''
@@ -203,6 +203,9 @@ INSERT INTO libelles SELECT lb_voie AS long, regexp_replace(replace(lb_voie,'LIE
 -- index par trigram sur le libellé court
 create index libelle_trigram on libelles using gin (court gin_trgm_ops);
 analyze libelles;
+
+-- élimination des libélés répétés XXX/XXX
+update libelles set court = regexp_replace(court,'^(.*)[/ ]\1$','\1') where court ~ '^(.*)[/ ]\1$';
 
 -- nettoyage pour ne conserver que les chiffres et lettres
 UPDATE libelles SET court = regexp_replace(regexp_replace(court,'[^A-Z 0-9]',' ','g'),'  *',' ','g') WHERE court ~ '[^A-Z 0-9]';
