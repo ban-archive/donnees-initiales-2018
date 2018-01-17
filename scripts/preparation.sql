@@ -204,6 +204,9 @@ INSERT INTO libelles SELECT lb_voie AS long, regexp_replace(replace(lb_voie,'LIE
 create index libelle_trigram on libelles using gin (court gin_trgm_ops);
 analyze libelles;
 
+-- nettoyage pour ne conserver que les chiffres et lettres
+UPDATE libelles SET court = regexp_replace(regexp_replace(court,'[^A-Z 0-9]',' ','g'),'  *',' ','g') WHERE court ~ '[^A-Z 0-9]';
+
 -- libellés: 0 à la place des O
 update libelles set court = replace(replace(replace(replace(replace(replace(replace(replace(court,'0S','OS'),'0N','ON'),'0U','OU'),'0I','OI'),'0R','OR'),'C0','CO'),'N0','NO'),'L0','L ') where court ~ '[^0-9 ][0][^0-9 ]';
 -- des *
