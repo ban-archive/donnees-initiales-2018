@@ -243,6 +243,8 @@ update libelles set court = 'PTR' where court = 'PETITE RUE';
 update libelles set court = 'PTR' where court = 'PTR PETITE RUE';
 update libelles set court = replace(court,'R ','RUE ') where court like 'R %';
 
+-- voies Numérotées DIT/DITE ...
+update libelles set court= regexp_replace(court,' (N|NO) [0-9]* (DIT|DITE) ',' ') where court ~ ' (N|NO) [0-9]* (DIT|DITE) ';
 
 -- traitement de "HAMEAU" en fin ou début de libellé
 update libelles set court = regexp_replace(court,' HAMEAU$','') where court ~' HAMEAU$' and long !~ '(^| )(LE|DU|D|L|AU|JEAN|GRAND|PETIT|VIEUX) HAMEAU$';
