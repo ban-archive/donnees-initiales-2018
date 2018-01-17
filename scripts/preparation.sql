@@ -22,7 +22,7 @@ UPDATE insee_cog SET name = replace(name, E'\' '::text, E'\''::text);
 
 -------------------------------------------------------------------------
 -- POSTCODE
--- Fusion de commune : 
+-- Fusion de commune :
 -- - si le postcode ne pointe pas vers un insee du cog, mais vers un insee ancien impliquee dans une fusion de commune, on le redirige vers le nouvel insee
 --- on bascule le nom de l'ancien poste code dans la ligne 5
 UPDATE poste_cp SET co_insee=f.insee_new, lb_l5_nn = CASE WHEN lb_l5_nn is null or lb_l5_nn = '' THEN lb_l6 END FROM fusion_commune AS f, insee_cog WHERE poste_cp.co_insee = f.insee_old AND co_insee NOT IN (SELECT insee from insee_cog);
@@ -32,7 +32,7 @@ UPDATE poste_cp SET co_insee=f.insee_new, lb_l5_nn = CASE WHEN lb_l5_nn is null 
 -- GROUP
 
 ----------------------
--- GROUP Fantoir 
+-- GROUP Fantoir
 -- Suppression des detruits
 DELETE FROM dgfip_fantoir WHERE caractere_annul not like ' ';
 -- On remplace les " par un blanc
@@ -42,7 +42,7 @@ UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)'
 UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)',' ','g') WHERE libelle_voie ~ E'([\'-]|  )';
 UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)',' ','g') WHERE libelle_voie ~ E'([\'-]|  )';
 -- Nettoyage des doubles de nature voie identique : on vide la nature de voie si elle est deja rempli dans le libelle de voie (avec la même valeur abbregé ou non)
---  CAS 1 : nature_voie = AV et libelle_voie = AV DES ACCACIAS ->  nature_voie = NULL et libelle_voie = AV DES ACCACIAS 
+--  CAS 1 : nature_voie = AV et libelle_voie = AV DES ACCACIAS ->  nature_voie = NULL et libelle_voie = AV DES ACCACIAS
 --  CAS 2 : nature_voie = AV et libelle_voie = AVENUE DES ACCACIAS ->  nature_voie = NULL et libelle_voie = AVENUE DES ACCACIAS
 --  CAS 3 : nature_voie = AVENUE et libelle_voie = AVENUE DES ACCACIAS ->  nature_voie = NULL et libelle_voie = AVENUE DES ACCACIAS
 --  CAS 4 : nature_voie = AVENUE et libelle_voie = AV DES ACCACIAS ->  nature_voie = NULL et libelle_voie = AVENUE DES ACCACIAS
@@ -242,6 +242,11 @@ update libelles set court = 'GR' where court = 'RUE GRANDE';
 update libelles set court = 'PTR' where court = 'PETITE RUE';
 update libelles set court = 'PTR' where court = 'PTR PETITE RUE';
 update libelles set court = replace(court,'R ','RUE ') where court like 'R %';
+
+-- traitement de "HAMEAU" en fin ou début de libellé
+update libelles set court = regexp_replace(court,' HAMEAU$','') where court ~' HAMEAU$' and long !~ '(^| )(LE|DU|D|L|AU|JEAN|GRAND|PETIT|VIEUX) HAMEAU$';
+update libelles set court = regexp_replace(court,'^HAM ','') where court ~'^HAM ';
+
 
 -- menage final
 update libelles set court=trim(court) where court like ' %' or court like '% ';
