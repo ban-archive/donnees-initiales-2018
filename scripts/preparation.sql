@@ -251,6 +251,7 @@ update libelles set court = replace(court,'R ','RUE ') where court like 'R %';
 -- simplification anciens CHEMINS de différentes natures (ruraux, communaux, ordinaires, vicinaux, etc)
 update libelles set court = regexp_replace(court,'^AN(C|) (CH|CHE|CHEM|CHEMIN|C R|CR|C C|CC|CV|C V|CVO|C V O)( RURAL| COMMUNAL| VICINAL| ORDINAIRE|)( DIT |) ','ACH ')
   where court ~ '^AN(C|) (CH|CHE|CHEM|CHEMIN|C R|CR|C C|CC|CV|C V|CVO|C V O)( RURAL| COMMUNAL| VICINAL| ORDINAIRE|)( DIT |) ';
+update libelles set court = regexp_replace(court,'^(CC|CE|CH|CHE|CHEMD|CHV|CR)( CHE| COM| C R| CR| EXP| EXPL| EXPLOIT| EXPLOITATION| R| RUR| RURAL)( NUMERO|) .* (DIT|DITE)( CHE|) ','CHE ') where court ~ '^(CC|CE|CH|CHE|CHEMD|CHV|CR)( CHE| COM| C R| CR| EXP| EXPL| EXPLOIT| EXPLOITATION| R| RUR| RURAL)( NUMERO|) .* (DIT|DITE) ';
 
 -- voies Numérotées DIT/DITE ...
 update libelles set court= regexp_replace(court,' (N|NO) [0-9]* (DIT|DITE) ',' ') where court ~ ' (N|NO) [0-9]* (DIT|DITE) ';
