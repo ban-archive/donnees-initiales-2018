@@ -155,11 +155,12 @@ where a.id_pseudo_fpb is null;
 
 -- groupes fantoir seuls ou appariés avec un groupe ign
 DROP TABLE IF EXISTS group_fnal;
-CREATE TABLE group_fnal AS SELECT f.code_insee,f.fantoir_9 as id_fantoir,f.nature_voie,f.libelle_voie,f.nom_maj as nom_maj_fantoir,f.kind as kind_fantoir, a.id_pseudo_fpb, a.nom as nom_ign,a.nom_maj as nom_maj_ign, a.alias as alias_ign, a.kind as kind_ign, a.addressing, a.id_fantoir_old as id_fantoir_ign, commentaire   from dgfip_fantoir f
+CREATE TABLE group_fnal AS SELECT f.code_insee,f.fantoir_9 as id_fantoir,f.nature_voie,f.libelle_voie,f.nom_maj as nom_maj_fantoir,f.kind as kind_fantoir, a.id_pseudo_fpb, a.nom as nom_ign,a.nom_maj as nom_maj_ign, a.alias as alias_ign, a.kind as kind_ign, a.addressing, a.id_fantoir_old as id_fantoir_ign, commentaire as commentaire_app_ign  from dgfip_fantoir f
 LEFT JOIN ign_group_app a on (a.id_fantoir = f.fantoir_9);
 
 -- insertion des groupes ign non appariés
-INSERT INTO group_fnal(code_insee,id_pseudo_fpb,nom_ign,nom_maj_ign,alias_ign,kind_ign,addressing,id_fantoir_ign) SELECT code_insee,id_pseudo_fpb,nom,nom_maj,alias,kind,addressing,id_fantoir from ign_group_non_app;
+INSERT INTO group_fnal(code_insee,id_pseudo_fpb,nom_ign,nom_maj_ign,alias_ign,kind_ign,addressing,id_fantoir_ign) 
+SELECT code_insee,id_pseudo_fpb,nom,nom_maj,alias,kind,addressing,id_fantoir from ign_group_non_app;
 
 -- indexes
 CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);
@@ -187,7 +188,7 @@ and p.lb_voie is not null and p.lb_voie <> '';
 
 -- groupe la poste et ign avec le même id poste, la même nature de voie et le même mot directeur
 INSERT INTO ran_group_app(laposte,id_pseudo_fpb,lb_voie,kind,commentaire)
-SELECT p.laposte,i.id_pseudo_fpb,p.lb_voie,p.kind, 'd poste = id poste ign, nature voie laposte = nature voie ign, mot directeur laposte = mot directeur ign' FROM ran_group p
+SELECT p.laposte,i.id_pseudo_fpb,p.lb_voie,p.kind, 'id poste = id poste ign, nature voie laposte = nature voie ign, mot directeur laposte = mot directeur ign' FROM ran_group p
 left join ran_group_app a on (p.laposte = a.laposte)
 LEFT JOIN ign_group i on (p.laposte = i.id_poste)
 LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
@@ -199,7 +200,6 @@ and i.nom_maj is not null
 and ab1.nom_court is not null and ab1.nom_court = ab2.nom_court
 and regexp_replace(l1.court,'^.* ', '') = regexp_replace(l2.court,'^.* ', '')
 and regexp_replace(l1.court,'^.* ', '') != ab1.nom_court;
-
 
 -- groupe ign avec laposte et groupe laposte non apparié précédemment
 DROP TABLE IF EXISTS ran_group_non_app_with_ign;
@@ -213,4 +213,107 @@ LEFT JOIN libelles l3 ON (l3.long = g.nom_maj_fantoir)
 where a.laposte is null 
 and id_poste is not null and id_poste <> '';
 
+-- On ajoute les infos la poste dans la table group_fnal pour les groupes appariés avec l'id ign 
+-- On fait un create as suivant d'un rename pour eviter l'update trop lent
+DROP TABLE IF EXISTS group_fnal_tmp;
+CREATE TABLE group_fnal_tmp AS SELECT g.*, a.laposte, a.lb_voie, a.kind as kind_laposte,a.commentaire as commentaire_app_lp FROM group_fnal g
+LEFT JOIN ran_group_app a ON (g.id_pseudo_fpb = a.id_pseudo_fpb);
+
+DROP TABLE IF EXISTS group_fnal;
+ALTER TABLE group_fnal_tmp RENAME TO group_fnal;
+
+CREATE INDEX idx_group_fnal_laposte on group_fnal(laposte);
+CREATE INDEX idx_group_fnal_code_insee on group_fnal(code_insee);
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement par les nom maj (poste et fantoir). On ne fait que les cas 1-1)
+-- table candidat laposte
+DROP TABLE IF exists ran_group_candidat;
+CREATE TABLE ran_group_candidat AS SELECT p.* FROM ran_group p
+LEFT JOIN group_fnal g on (g.laposte = p.laposte)
+where g.laposte is null;
+CREATE INDEX idx_ran_group_candidat_co_insee on ran_group_candidat(co_insee);
+-- appariement
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as select max(id_fantoir) as id_fantoir, max(p.laposte) as laposte, p.lb_voie , max(p.kind) as kind, 'nom maj poste = nom maj fantoir'::varchar as commentaire from group_fnal g, ran_group_candidat p where g.code_insee = p.co_insee and g.nom_maj_fantoir = p.lb_voie and g.laposte is null group by g.code_insee, p.lb_voie having count(*) = 1;
+CREATE INDEX idx_ran_group_app_id_fantoir on ran_group_app(id_fantoir);
+CREATE INDEX idx_ran_group_app_laposte on ran_group_app(laposte);
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement par les nom court fantoir et la poste (on ne fait que les cas 1-1)
+--i table candidat fantoir
+DROP TABLE IF exists group_fnal_candidat;
+CREATE TABLE group_fnal_candidat AS SELECT g.code_insee, g.nom_maj_fantoir, g.id_fantoir from group_fnal g
+left join ran_group_app a on (g.id_fantoir = a.id_fantoir)
+where a.id_fantoir is null and g.laposte is null;
+CREATE INDEX idx_group_fnal_candidat_code_insee on group_fnal_candidat(code_insee);
+-- table candidat la poste
+DROP TABLE IF exists ran_group_candidat;
+CREATE TABLE ran_group_candidat AS SELECT p.* FROM ran_group p
+LEFT JOIN ran_group_app a on (p.laposte = a.laposte)
+LEFT JOIN group_fnal g on (g.laposte = p.laposte)
+where a.laposte is null and g.laposte is null;
+CREATE INDEX idx_ran_group_candidat_co_insee on ran_group_candidat(co_insee);
+-- appariement
+DROP TABLE IF exists ran_group_app2;
+CREATE TABLE ran_group_app2 as select max(id_fantoir) as id_fantoir,max(laposte) as laposte,l1.court
+from group_fnal_candidat as g, ran_group_candidat as p, libelles l1, libelles l2
+where g.code_insee = p.co_insee and l1.long = p.lb_voie and l2.long = g.nom_maj_fantoir and l1.court = l2.court
+group by g.code_insee,l1.court having count(*) = 1;
+
+-- injection dans la table des groupes appariés
+INSERT INTO ran_group_app(id_fantoir,laposte,lb_voie,kind,commentaire)
+SELECT a.id_fantoir,a.laposte,p.lb_voie,p.kind,'nom court laposte = nom court fantoir, appariement 1-1' from ran_group_app2 a
+LEFT JOIN ran_group p ON (p.laposte = a.laposte);
+
+-- On ajoute les infos la poste dans la table group_fnal pour les groupes appariés de ran_group_app
+UPDATE group_fnal SET laposte = a.laposte, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_fantoir = a.id_fantoir;
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement par les nom maj ign et la poste (on ne fait que les cas 1-1)
+DROP TABLE IF exists ran_group_candidat;
+CREATE TABLE ran_group_candidat AS SELECT p.* FROM ran_group p
+LEFT JOIN group_fnal g on (g.laposte = p.laposte)
+where g.laposte is null;
+CREATE INDEX idx_ran_group_candidat_co_insee on ran_group_candidat(co_insee);
+-- appariement
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as select max(id_pseudo_fpb) as id_pseudo_fpb, max(p.laposte) as laposte, p.lb_voie , max(p.kind) as kind, 'nom maj poste = nom maj ign'::varchar as commentaire from group_fnal g, ran_group_candidat p where g.code_insee = p.co_insee and g.nom_maj_ign = p.lb_voie and g.laposte is null group by g.code_insee, p.lb_voie having count(*) = 1;
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+-- On ajoute les infos la poste dans la table group_fnal pour les groupes appariés de ran_group_app
+UPDATE group_fnal SET laposte = a.laposte, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement par les nom court ign et la poste (on ne fait que les cas 1-1)
+DROP TABLE IF exists ran_group_candidat;
+CREATE TABLE ran_group_candidat AS SELECT p.* FROM ran_group p
+LEFT JOIN group_fnal g on (g.laposte = p.laposte)
+where g.laposte is null;
+CREATE INDEX idx_ran_group_candidat_co_insee on ran_group_candidat(co_insee);
+-- appariement
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as select max(id_pseudo_fpb) as id_pseudo_fpb, max(p.laposte) as laposte, max(p.lb_voie) as lb_voie , max(p.kind) as kind, 'nom court poste = nom court ign'::varchar as commentaire 
+FROM group_fnal g, ran_group_candidat p, libelles l1, libelles l2
+WHERE g.code_insee = p.co_insee and l1.long = p.lb_voie and l2.long = g.nom_maj_ign and l1.court = l2.court
+and g.laposte is null 
+group by g.code_insee, l1.court having count(*) = 1;
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+-- On ajoute les infos la poste dans la table group_fnal pour les groupes appariés de ran_group_app
+UPDATE group_fnal SET laposte = a.laposte, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+-- groupe laposte non apparié ni avec fantoir et ign
+DROP TABLE IF EXISTS ran_group_non_app;
+CREATE TABLE ran_group_non_app AS SELECT p.* FROM ran_group p
+LEFT JOIN group_fnal g on (g.laposte = p.laposte)
+where g.laposte is null;
+
+-- insertion des groupes laposte non appariés dans la table des groupes fnal
+INSERT INTO group_fnal(code_insee,laposte,lb_voie,kind_laposte)
+SELECT co_insee,laposte,lb_voie,kind from ran_group_non_app;
 
