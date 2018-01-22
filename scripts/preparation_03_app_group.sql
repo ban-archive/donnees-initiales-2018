@@ -41,45 +41,6 @@ and ab1.nom_court is not null and ab1.nom_court = ab2.nom_court
 and regexp_replace(l1.court,'^.* ', '') = regexp_replace(l2.court,'^.* ', '')
 and regexp_replace(l1.court,'^.* ', '') != ab1.nom_court;
 
--- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir et avec nom ign confirmé par nom afnor
---INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
---SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, nom maj ign = nom afnor' from ign_group i
---left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
---LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
---where a.id_pseudo_fpb is null and i.id_fantoir is not null
---and i.nom_maj = i.nom_afnor and i.nom_maj is not null and i.nom_maj <> ''
---and fantoir_9 is not null and fantoir_9 <> '';
-
--- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir et avec nom fantoir confirmé par nom afnor
---INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
---SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, nom maj fantoir = nom afnor' from ign_group i
---left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
---LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
---where a.id_pseudo_fpb is null and i.id_fantoir is not null
---and f.nom_maj = i.nom_afnor and f.nom_maj is not null and f.nom_maj <> '';
-
--- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir et avec nom court fantoir confirmé par nom court afnor
---INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
---SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj, i.nom_afnor, 'fantoir = id fantoir ign, nom court fantoir = nom court afnor' from ign_group i
---left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
---LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
---LEFT JOIN libelles l1 ON (l1.long = i.nom_afnor)
---LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
---where a.id_pseudo_fpb is null and i.id_fantoir is not null
---and l1.court = l2.court and i.nom_afnor is not null and i.nom_afnor <> '';
-
--- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir et avec nom court ign confirmé par nom court afnor
---INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
---SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj, i.nom_afnor, 'fantoir = id fantoir ign, nom court ign = nom court afnor' from ign_group i
---left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
---LEFT JOIN dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
---LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
---LEFT JOIN libelles l2 ON (l2.long = i.nom_afnor)
---where a.id_pseudo_fpb is null and i.id_fantoir is not null
---and l1.court = l2.court and i.nom_afnor is not null and i.nom_afnor <> '' 
---and fantoir_9 is not null and fantoir_9 <> '';
-
-
 -- groupe ign (avec ou sans fantoir) et groupe fantoir non apparié précédemment. 
 -- --> appariement par les nom maj (on ne fait que les cas 1-1)
 -- Par exemple :
@@ -317,3 +278,67 @@ where g.laposte is null;
 INSERT INTO group_fnal(code_insee,laposte,lb_voie,kind_laposte)
 SELECT co_insee,laposte,lb_voie,kind from ran_group_non_app;
 
+-- ajout sur group_fnal d'une sequence et du nom maj fnal (par ordre de priorité LP, puis IGN, puis fantoir)
+DROP SEQUENCE IF EXISTS seq_id_group_fnal;
+CREATE SEQUENCE seq_id_group_fnal;
+DROP TABLE IF EXISTS group_fnal_temp;
+CREATE TABLE group_fnal_temp AS SELECT nextval('seq_id_group_fnal') as id,*, coalesce(lb_voie,nom_maj_ign,nom_maj_fantoir) AS nom_maj_fnal FROM group_fnal;
+
+DROP TABLE group_fnal;
+ALTER TABLE group_fnal_temp rename to group_fnal;
+
+CREATE INDEX idx_group_fnal_id_fantoir on group_fnal(id_fantoir);
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- APPARIEMENT Groupes Cadastre - Nom maj 
+
+-- groupe cadastre et groupe fnal avec le même fantoir et le meme nom (majuscule, sans accent, remplacement ''', '-' , '  ' par ' ')
+DROP TABLE IF EXISTS cadastre_group_app;
+CREATE TABLE cadastre_group_app AS SELECT id,c.fantoir,voie_cadastre,'cadastre fantoir = fantoir groupe fnal , nom maj cadastre  = nom maj groupe fnal'::varchar as commentaire from dgfip_noms_cadastre c 
+left join group_fnal g on (g.id_fantoir = substr(c.fantoir,1,9)) and (g.nom_maj_fnal = c.nom_maj)
+where g.nom_maj_fnal is not null and g.nom_maj_fnal <> '' ;
+CREATE INDEX idx_cadastre_group_app_id on cadastre_group_app(id);
+CREATE INDEX idx_cadastre_group_app_fantoir on cadastre_group_app(fantoir);
+
+-- A VOIR : groupe cadastre et groupe fnal avec le même fantoir et le meme nom court
+DROP TABLE IF EXISTS cadastre_group_meme_nom_court;
+CREATE TABLE cadastre_group_meme_nom_court as SELECT g.id,c.fantoir,c.voie_cadastre, g.nom_maj_fnal, 'cadastre fantoir = fantoir groupe fnal , nom court cadastre  = nom court groupe fnal'::varchar as commentaire from dgfip_noms_cadastre c
+LEFT JOIN cadastre_group_app a on (c.fantoir = a.fantoir)
+LEFT JOIN group_fnal g on (g.id_fantoir = substr(c.fantoir,1,9))
+LEFT JOIN libelles l1 ON (l1.long = c.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = g.nom_maj_fnal)
+where a.id is null and l1.court = l2.court and c.nom_maj is not null and c.nom_maj <> '';
+
+-- A VOIR : groupe cadastre et groupe fnal source fantoir uniquement avec le même fantoir et le meme nom court
+DROP TABLE IF EXISTS cadastre_group_meme_nom_court_source_fantoir;
+CREATE TABLE cadastre_group_meme_nom_court_source_fantoir as SELECT g.id,c.fantoir,c.voie_cadastre, g.nom_maj_fnal, 'cadastre fantoir = fantoir groupe fnal , nom court cadastre  = nom court groupe fnal'::varchar as commentaire from dgfip_noms_cadastre c
+LEFT JOIN cadastre_group_app a on (c.fantoir = a.fantoir)
+LEFT JOIN group_fnal g on (g.id_fantoir = substr(c.fantoir,1,9))
+LEFT JOIN libelles l1 ON (l1.long = c.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = g.nom_maj_fnal)
+where a.id is null and l1.court = l2.court and c.nom_maj is not null and c.nom_maj <> ''
+and id_pseudo_fpb is null and laposte is null;
+
+-- groupe cadastre et groupe fantoir non apparié précédemment
+DROP TABLE IF EXISTS cadastre_group_non_app;
+CREATE TABLE cadastre_group_non_app AS SELECT c.fantoir,c.nom_maj,c.voie_cadastre, g.nom_maj_fnal, l1.court as court_cadastre, l2.court as court_fnal from dgfip_noms_cadastre c
+left join cadastre_group_app a on (c.fantoir = a.fantoir)
+left join group_fnal g on (g.id_fantoir = substr(c.fantoir,1,9))
+LEFT JOIN libelles l1 ON (l1.long = c.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = g.nom_maj_fnal)
+where a.id is null; 
+
+-- On ajoute les infos cadastre dans la table group_fnal pour les groupes appariés de cadastre_group_app
+ALTER TABLE group_fnal ADD column voie_cadastre varchar;
+ALTER TABLE group_fnal ADD column commentaire_app_cadastre varchar;
+UPDATE group_fnal SET voie_cadastre = a.voie_cadastre, commentaire_app_cadastre = a.commentaire
+FROM cadastre_group_app a
+WHERE group_fnal.id = a.id;
+
+-------------------------------------------------------------------------
+-- MISE EN FORME FINALE DE group_fnal
+
+-- ajout du champ ign retenu (passage en majuscules simple et autres ...)
+ALTER TABLE group_fnal ADD column nom_ign_retenu varchar;
+UPDATE group_fnal SET nom_ign_retenu = upper(unaccent(nom_ign)) where nom_ign is not null and nom_ign <> '';
