@@ -55,90 +55,18 @@ echo "\COPY (select format('{\"type\":\"postcode\",\"postcode\":\"%s\",\"name\":
 
 #####################################################################################
 # GROUP
-# Creation de la table group${dep}
-echo "drop table if exists group${dep};" >> commandeTemp.sql
-echo "CREATE TABLE group${dep}(
-	name character varying(200) NOT NULL,
-	nom_norm varchar,
-	alias character varying(255),
-	kind character varying(64) NOT NULL,
-	addressing character varying(16),
-	fantoir character varying(255),
-	laposte character varying(8),
-	ign character varying(24),
-	insee varchar NOT NULL,
-	insee_old varchar,
-	source_nom varchar,
-	fantoir_name varchar,
-	ign_name varchar,
-	laposte_name varchar);" >> commandeTemp.sql
-echo "CREATE INDEX idx_group_insee${dep} ON group${dep}(insee);" >> commandeTemp.sql
+# Export des groupes fantoirs
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"fantoir\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"attributes\":{\"init_source_name\":\"fantoir\"}}',kind_fantoir,id_fantoir,code_insee, nom_maj_fantoir) from group_fnal WHERE code_insee like '${dep}%' and id_fantoir is not null) to '${data_path}/${dep}/03_A_groups.json';" >> commandeTemp.sql
 
-#########################
-# Integration des groupes fantoirs du departement dans la table group${dep}
-echo "INSERT INTO group${dep} (kind, insee, fantoir, name, fantoir_name, source_nom ) 
-SELECT kind, code_insee, fantoir_9, f.name , f.name, 'FANTOIR' from dgfip_fantoir f, insee_cog where f.code_insee=insee_cog.insee and code_insee like '${dep}%' ;" >> commandeTemp.sql
-# !!! Export des groupes fantoirs
-echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"fantoir\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\"}',kind,fantoir,insee, name) from group${dep}) to '${data_path}/${dep}/03_A_groups.json';" >> commandeTemp.sql
+# Export des groupes ign
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"ign\":\"%s\",\"attributes\":{\"init_source_name\":\"ign\"} %s %s %s}',kind_ign,code_insee,nom_ign_retenu,id_pseudo_fpb, case when id_fantoir is not null then ',\"fantoir\": \"'||id_fantoir||'\"' end, case when alias_ign is not null then ',\"alias\": \"'||alias_ign||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end) from group_fnal where code_insee like '${dep}%' and id_pseudo_fpb is not null) to '${data_path}/${dep}/03_B_groups.json';" >> commandeTemp.sql
 
+# Export des groupes La Poste
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"laposte\":\"%s\", \"attributes\":{\"init_source_name\":\"laposte\"} %s %s}',kind_laposte, code_insee, lb_voie, laposte, case when id_fantoir is not null then ',\"fantoir\": \"'||id_fantoir||'\"' end, case when id_pseudo_fpb is not null then ',\"ign\": \"'||id_pseudo_fpb||'\"' end) from group_fnal where code_insee like '${dep}%' and laposte is not null) to '${data_path}/${dep}/03_C_groups.json';" >> commandeTemp.sql
 
-#################################
-# GROUP IGN
-# Extraction du departement
-echo "DROP TABLE IF EXISTS group_ign${dep};" >> commandeTemp.sql
-echo "CREATE TABLE group_ign${dep} AS SELECT * FROM ign_group WHERE code_insee like '${dep}%';" >> commandeTemp.sql
-# index sur id_pseudo_fpb
-echo "CREATE INDEX idx_group_ign${dep}_id_pseudo_fpb ON group_ign${dep}(id_pseudo_fpb);" >> commandeTemp.sql
+# Export des groupes cadastre
+echo "\COPY (select format('{\"type\":\"group\",\"fantoir\":\"%s\",\"name\":\"%s\", \"attributes\":{\"init_source_name\":\"dgfip\"}}',id_fantoir, voie_cadastre) from group_fnal where code_insee like '${dep}%' and voie_cadastre is not null) to '${data_path}/${dep}/03_D_groups.json';" >> commandeTemp.sql
 
-#################################
-# GROUPES IGN RETROUVES DANS FANTOIR
-# complete les groups deja dans group${dep} ayant un id fantoir avec les infos des groups ign avec le meme id fantoir
-# les infos ajoutées sont : ign, alias, addressing, insee_old
-# Le nom et le nom normalisé deviennent celui de l'ign, idem pour le kind
-# On met à jour source_nom avec 'IGN'
-# On sauvegarde le nom fantoir si il est différent du nom ign (comparaison après normalisation
-echo "UPDATE group${dep} SET ign=g.id_pseudo_fpb, addressing=g.addressing, alias=g.alias, laposte = g.id_poste, name=g.nom, nom_norm=g.nom_norm, source_nom='IGN', kind=g.kind, insee_old=g.insee_obs, ign_name = g.nom from group_ign${dep} g where g.id_fantoir=fantoir;" >> commandeTemp.sql
-
-#########################################
-# GROUPS IGN NON RETROUVES DANS FANTOIR (avec l'id fantoir)
-# Integration dans la table group${dep}
-echo "INSERT INTO group${dep} (kind, ign, insee, addressing, alias, laposte, nom_norm, name, insee_old, ign_name, source_nom)
-SELECT g.kind, g.id_pseudo_fpb, g.code_insee, g.addressing, g.alias, g.id_poste, g.nom_norm, g.nom, g.insee_obs, g.nom, 'IGN' from group_ign${dep} g left join group${dep} i on g.id_pseudo_fpb=i.ign where name is null and id_pseudo_fpb is not null;" >> commandeTemp.sql
-
-# !!! Export des groupes ign
-echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"ign\":\"%s\"  %s %s %s}',kind,insee,name,ign, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end) from group${dep} where ign is not null) to '${data_path}/${dep}/03_B_groups.json';" >> commandeTemp.sql
-
-#######################################
-# GROUP LAPOSTE 
-# Extraction du departement
-echo "DROP TABLE IF EXISTS group_ran${dep};" >> commandeTemp.sql
-echo "CREATE TABLE group_ran${dep} AS SELECT * FROM ran_group WHERE co_insee like '${dep}%';" >> commandeTemp.sql
-
-#################################
-# GROUPES LA POSTE  RETROUVES DANS group${dep} via les appariements de l'IGN
-# complete les groups deja dans group${dep} ayant un id poste
-# si le nom normalise poste est différent du nom normalise retenu jusqu'à present, on met a jour les infos suivantes :
-# name, nom_norm, kind, source_nom, diff_nom
-echo "UPDATE group${dep} g set name=r.lb_voie, nom_norm=r.nom_norm, kind=r.kind, source_nom='LAPOSTE' from group_ran${dep} r where g.laposte=r.laposte and g.nom_norm <> r.nom_norm;" >> commandeTemp.sql
-# on sauvegarde le nom de la poste
-echo "UPDATE group${dep} g set laposte_name=r.lb_voie from group_ran${dep} r where g.laposte=r.laposte;" >> commandeTemp.sql
-
-#####################################
-# AJOUT DES GROUPES LAPOSTE NON RETROUVES 
-echo "INSERT INTO group${dep} (kind, name, insee, laposte, nom_norm, insee_old, laposte_name, source_nom)
-SELECT g.kind, g.lb_voie, g.co_insee, g.laposte, g.nom_norm, g.co_insee_l5, g.lb_voie, 'LAPOSTE'  from group_ran${dep} g left join group${dep} on g.laposte = group${dep}.laposte where insee is null; " >> commandeTemp.sql
-
-# !!! Export des groupes La Poste
-echo "\COPY (select format('{\"type\":\"group\",\"municipality:insee\":\"%s\" %s %s,\"laposte\":\"%s\" %s }',insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, laposte, case when source_nom = 'LAPOSTE' then ',\"name\": \"'||name||'\",\"group\": \"'||kind||'\"' end) from group${dep} where laposte is not null) to '${data_path}/${dep}/03_C_groups.json';" >> commandeTemp.sql
-
-
-########################################
-# NOMS CADASTRE 
-# On retient les noms cadastre complet si le nom cadastre normalisé est egal au nom normalisé retenu jusqu'à présent
-echo "UPDATE group${dep} g set name=v.voie_cadastre, source_nom='CADASTRE' from dgfip_noms_cadastre v where left(v.fantoir,9)=g.fantoir and v.fantoir is not null and v.nom_norm = g.nom_norm;" >> commandeTemp.sql
-
-# !!! Export des groupes dont les noms ont été modifiés par le cadastre
-echo "\COPY (select format('{\"type\":\"group\",\"fantoir\":\"%s\",\"name\":\"%s\"}',fantoir, name) from group${dep} WHERE source_nom='CADASTRE') to '${data_path}/${dep}/03_D_groups.json';" >> commandeTemp.sql
 
 psql -e -f commandeTemp.sql
 
@@ -150,36 +78,20 @@ fi
 
 exit
 
-#####################################
-# Ajout du champ source init
-echo "ALTER TABLE group${dep} ADD COLUMN source_init varchar[];" >> commandeTemp.sql
-echo "UPDATE group${dep} SET source_init = source_init || '{FANTOIR}' WHERE fantoir is not null;" >> commandeTemp.sql
-echo "UPDATE group${dep} SET source_init = source_init || '{IGN}' WHERE ign is not null;" >> commandeTemp.sql
-echo "UPDATE group${dep} SET source_init = source_init || '{LAPOSTE}' WHERE laposte is not null;" >> commandeTemp.sql
-
-# indexes utiles pour la suite
-echo "create index idx_group_fantoir${dep} on group${dep}(fantoir);" >> commandeTemp.sql
-echo "create index idx_group_insee_old${dep} on group${dep}(insee_old);" >> commandeTemp.sql
-echo "create index idx_group_ign${dep} on group${dep}(ign);" >> commandeTemp.sql
-echo "create index idx_group_laposte${dep} on group${dep}(laposte);" >> commandeTemp.sql
 
 ##########################################
 # AJOUT DES ANCIENNES COMMUNES DANS GROUP
 # on ajoute les insee old pointees par les groupes, figurant dans la table fusion de commune mais pas le cog
-echo "DROP TABLE IF EXISTS group_secondary${dep};" >> commandeTemp.sql
-echo "CREATE TABLE group_secondary${dep} (insee varchar, name varchar, insee_old varchar, ign varchar);" >> commandeTemp.sql
-echo "INSERT INTO group_secondary${dep}(insee,insee_old) 
-SELECT g.insee,insee_old FROM group${dep} as g  left join insee_cog on (g.insee_old = insee_cog.insee) WHERE insee_old is not null and insee_cog.insee is null GROUP BY g.insee,insee_old ;" >> commandeTemp.sql
-echo "UPDATE group_secondary${dep} SET name = f.nom_old from fusion_commune as f where f.insee_old = group_secondary${dep}.insee_old;" >> commandeTemp.sql
-echo "DELETE FROM group_secondary${dep} WHERE name is null;" >> commandeTemp.sql
-echo "UPDATE group_secondary${dep} SET ign = insee_old||'####';" >> commandeTemp.sql
-echo "INSERT INTO group${dep} (name, kind, insee, ign) 
-SELECT name, 'area', insee, ign FROM group_secondary${dep};" >> commandeTemp.sql
+#echo "DROP TABLE IF EXISTS group_secondary${dep};" >> commandeTemp.sql
+#echo "CREATE TABLE group_secondary${dep} (insee varchar, name varchar, insee_old varchar, ign varchar);" >> commandeTemp.sql
+#echo "INSERT INTO group_secondary${dep}(insee,insee_old) 
+#SELECT g.insee,insee_old FROM group${dep} as g  left join insee_cog on (g.insee_old = insee_cog.insee) WHERE insee_old is not null and insee_cog.insee is null GROUP BY g.insee,insee_old ;" >> commandeTemp.sql
+#echo "UPDATE group_secondary${dep} SET name = f.nom_old from fusion_commune as f where f.insee_old = group_secondary${dep}.insee_old;" >> commandeTemp.sql
+#echo "DELETE FROM group_secondary${dep} WHERE name is null;" >> commandeTemp.sql
+#echo "UPDATE group_secondary${dep} SET ign = insee_old||'####';" >> commandeTemp.sql
+#echo "INSERT INTO group${dep} (name, kind, insee, ign) 
+#SELECT name, 'area', insee, ign FROM group_secondary${dep};" >> commandeTemp.sql
 
-
-echo "UPDATE group${dep} SET name=regexp_replace(name,'\"','','g');" >> commandeTemp.sql
-
-echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\" %s ,\"name\":\"%s\" %s %s %s %s,\"attributes\":{\"source_init\":\"%s\",\"source_name_init\":\"%s\" %s %s %s} }',kind,insee, case when fantoir is not null then ',\"fantoir\": \"'||fantoir||'\"' end, name, case when ign is not null then ',\"ign\": \"'||ign||'\"' end, case when laposte is not null then ',\"laposte\": \"'||laposte||'\"' end, case when alias is not null then ',\"alias\": \"'||alias||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end, source_init, source_nom, case when fantoir_name is not null then ',\"fantoir_name_init\":\"'||fantoir_name||'\"' end, case when ign_name is not null then ',\"ign_name_init\":\"'||ign_name||'\"' end, case when laposte_name is not null then ',\"laposte_name_init\":\"'||laposte_name||'\"' end) from group${dep}) to '${data_path}/${dep}/03_groups.json';" >> commandeTemp.sql
 
 
 #################################################################################

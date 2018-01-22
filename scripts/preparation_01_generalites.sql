@@ -54,28 +54,6 @@ UPDATE dgfip_fantoir set nature_voie = null FROM abbrev_type_voie WHERE libelle_
 UPDATE dgfip_fantoir set nature_voie = null FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_long || ' %' AND abbrev_type_voie.nom_long = nature_voie;
 UPDATE dgfip_fantoir set nature_voie = null FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_court || ' %' AND abbrev_type_voie.nom_long = nature_voie;
 
--- Ajout du nom complet concaténation de la nature et du libelle
-ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS nom_maj;
-ALTER TABLE dgfip_fantoir ADD nom_maj varchar;
-UPDATE dgfip_fantoir SET nom_maj =  trim(nature_voie||' '||libelle_voie) ;
-CREATE INDEX idx_dgfip_fantoir_nom_maj on dgfip_fantoir(nom_maj);
-
--- Ajout de la colonne nom normalise (concatenation nature_voie et libelle_voie et dessabbreviation du type de voie et divers)
--- On dessabrege au préalable les 2 colonnes
--- Attention dans le fantoir la nature_voie peut aussi être dans le libelle_voie (et en plus en abbrégé ou non)
---ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS nature_voie_norm;
---ALTER TABLE dgfip_fantoir ADD nature_voie_norm varchar;
---UPDATE dgfip_fantoir set nature_voie_norm = nature_voie;
---UPDATE dgfip_fantoir set nature_voie_norm = abbrev_type_voie.nom_long FROM abbrev_type_voie WHERE nature_voie_norm = abbrev_type_voie.nom_court and code = '2';
---ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS libelle_voie_norm;
---ALTER TABLE dgfip_fantoir ADD libelle_voie_norm varchar;
---UPDATE dgfip_fantoir set libelle_voie_norm = libelle_voie;
---UPDATE dgfip_fantoir set libelle_voie_norm = nom_long || ' ' || trim(substr(libelle_voie_norm,length(nom_court)+1))  FROM abbrev_type_voie WHERE libelle_voie_norm like abbrev_type_voie.nom_court || ' %' and nom_court != nom_long AND code = '2';
---UPDATE dgfip_fantoir set libelle_voie_norm = nom_long || ' ' || trim(substr(libelle_voie_norm,length(nom_court)+1))  FROM abbrev_divers WHERE libelle_voie_norm like abbrev_divers.nom_court || ' %' AND code = '2';
---ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS nom_norm;
---ALTER TABLE dgfip_fantoir ADD nom_norm varchar;
---UPDATE dgfip_fantoir SET nom_norm =  trim(nature_voie_norm||' '||libelle_voie_norm) ;
-
 -- Ajout du kind (par defaut area, puis on update les way à partir de la table des abbrev_type_voieiations)
 -- Croisement sur le champ nature_voie, puis sur le premier mot du libelle avec les noms long et nom court de la table abbrev_type_voie (tous les cas sont possibles dans le fantoir)
 ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS kind;
@@ -85,11 +63,15 @@ UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where nature_voie like
 UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where libelle_voie like abbrev_type_voie.nom_court || ' %' and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
 UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where libelle_voie like nom_long and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
 
--- ajout de la colonne fantoir sur 9 caracteres
-ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS fantoir_9;
-ALTER TABLE dgfip_fantoir ADD COLUMN fantoir_9 varchar;
-UPDATE dgfip_fantoir SET fantoir_9=left(replace(fantoir,'_',''),9);
+-- ajout des champs suivants : 
+--   - fantoir sur 9 caracteres
+--   - nom complet concaténation de la nature et du libelle
+CREATE TABLE dgfip_fantoir_tmp AS SELECT *, left(replace(fantoir,'_',''),9)::varchar as fantoir_9, CASE WHEN nature_voie is not null THEN trim(nature_voie||' '||libelle_voie) ELSE libelle_voie END as nom_maj FROM dgfip_fantoir;
+DROP TABLE dgfip_fantoir;
+ALTER TABLE dgfip_fantoir_tmp RENAME TO dgfip_fantoir;
+CREATE INDEX idx_dgfip_fantoir_nom_maj on dgfip_fantoir(nom_maj);
 CREATE INDEX idx_dgfip_fantoir_fantoir_9 on dgfip_fantoir(fantoir_9);
+
 
 -- Fusion de commune : si le groupe fantoir ne pointe pas vers un insee du cog, mais vers un insee ancien impliquee dans une fusion de commune, on le redirige vers le nouvel insee
 UPDATE dgfip_fantoir SET code_insee=f.insee_new FROM fusion_commune AS f, insee_cog WHERE dgfip_fantoir.code_insee = f.insee_old AND code_insee NOT IN (SELECT insee from insee_cog);
@@ -118,16 +100,6 @@ update ign_group set nom = replace(nom,'enceinte ','en '), nom_maj =replace(nom_
 
 -- Correction sentier -> sente
 update ign_group set nom = replace(nom,'sentier ','sente '), nom_maj =replace(nom_maj,'SENTIER ','SENTE ') where nom_maj like 'SENTIER %' and nom_afnor like 'SENTE %';
-
--- création d'un champ nom normalisé (majuscule, desaccentué, desabbrege, suppression des doubles espaces, remplacement - et ' par espace)
---ALTER TABLE ign_group DROP COLUMN IF EXISTS nom_norm;
---ALTER TABLE ign_group ADD COLUMN nom_norm varchar;
---UPDATE ign_group SET nom_norm=upper(unaccent(nom));
---UPDATE ign_group SET nom_norm=regexp_replace(nom_norm,E'([\'-]|  *)',' ','g') WHERE nom_norm ~ E'([\'-]|  )';
---UPDATE ign_group SET nom_norm=regexp_replace(nom_norm,E'([\'-]|  *)',' ','g') WHERE nom_norm ~ E'([\'-]|  )';
---UPDATE ign_group SET nom_norm = abbrev_type_voie.nom_long || substr(nom_norm,length(split_part(nom_norm,' ',1))+1) FROM abbrev_type_voie WHERE split_part(nom_norm,' ',1) = abbrev_type_voie.nom_court and nom_court != nom_long and code = '2';
-
---UPDATE ign_group SET nom_norm = nom_long || ' ' || trim(substr(nom_norm,length(nom_court)+1)) FROM abbrev_divers WHERE nom_norm like abbrev_divers.nom_court || ' %' and code = '2';
 
 -- Creation de la colonne addressing
 ALTER TABLE ign_group DROP COLUMN IF EXISTS addressing;
