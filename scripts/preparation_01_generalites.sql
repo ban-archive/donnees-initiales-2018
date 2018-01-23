@@ -49,10 +49,10 @@ UPDATE dgfip_fantoir SET libelle_voie=regexp_replace(libelle_voie,E'([\'-]|  *)'
 --  CAS 3 : nature_voie = AVENUE et libelle_voie = AVENUE DES ACCACIAS ->  nature_voie = NULL et libelle_voie = AVENUE DES ACCACIAS
 --  CAS 4 : nature_voie = AVENUE et libelle_voie = AV DES ACCACIAS ->  nature_voie = NULL et libelle_voie = AVENUE DES ACCACIAS
 -- Attention on ne traite pas les autres cas : par exemple si la nature_voie est rempli et est aussi présent dans le libelle voie mais avec une autre valeur. Cela est correct dans de nombreux cas (EX : nature_voie = LOT et libelle voie = CLOS MONTMAJOUR -> le nom complet de la voie est bien LOT CLOS MONTMAJOUR)
-UPDATE dgfip_fantoir set nature_voie = null FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_court || ' %' AND abbrev_type_voie.nom_court = nature_voie;
-UPDATE dgfip_fantoir set nature_voie = null FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_long || ' %' AND abbrev_type_voie.nom_court = nature_voie;
-UPDATE dgfip_fantoir set nature_voie = null FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_long || ' %' AND abbrev_type_voie.nom_long = nature_voie;
-UPDATE dgfip_fantoir set nature_voie = null FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_court || ' %' AND abbrev_type_voie.nom_long = nature_voie;
+UPDATE dgfip_fantoir set nature_voie = '' FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_court || ' %' AND abbrev_type_voie.nom_court = nature_voie;
+UPDATE dgfip_fantoir set nature_voie = '' FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_long || ' %' AND abbrev_type_voie.nom_court = nature_voie;
+UPDATE dgfip_fantoir set nature_voie = '' FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_long || ' %' AND abbrev_type_voie.nom_long = nature_voie;
+UPDATE dgfip_fantoir set nature_voie = '' FROM abbrev_type_voie WHERE libelle_voie like abbrev_type_voie.nom_court || ' %' AND abbrev_type_voie.nom_long = nature_voie;
 
 -- Ajout du kind (par defaut area, puis on update les way à partir de la table des abbrev_type_voieiations)
 -- Croisement sur le champ nature_voie, puis sur le premier mot du libelle avec les noms long et nom court de la table abbrev_type_voie (tous les cas sont possibles dans le fantoir)
@@ -63,10 +63,10 @@ UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where nature_voie like
 UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where libelle_voie like abbrev_type_voie.nom_court || ' %' and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
 UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where libelle_voie like nom_long and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
 
--- ajout des champs suivants : 
+-- ajout des champs suivants :
 --   - fantoir sur 9 caracteres
 --   - nom complet concaténation de la nature et du libelle
-CREATE TABLE dgfip_fantoir_tmp AS SELECT *, left(replace(fantoir,'_',''),9)::varchar as fantoir_9, CASE WHEN nature_voie is not null THEN trim(nature_voie||' '||libelle_voie) ELSE libelle_voie END as nom_maj FROM dgfip_fantoir;
+CREATE TABLE dgfip_fantoir_tmp AS SELECT *, left(replace(fantoir,'_',''),9)::varchar as fantoir_9, trim(nature_voie||' '||libelle_voie) as nom_maj FROM dgfip_fantoir;
 DROP TABLE dgfip_fantoir;
 ALTER TABLE dgfip_fantoir_tmp RENAME TO dgfip_fantoir;
 CREATE INDEX idx_dgfip_fantoir_nom_maj on dgfip_fantoir(nom_maj);
@@ -156,4 +156,3 @@ CREATE INDEX idx_dgfip_noms_cadastre_nom_maj on dgfip_noms_cadastre(nom_maj);
 --ALTER TABLE dgfip_noms_cadastre ADD COLUMN nom_norm varchar;
 --UPDATE dgfip_noms_cadastre SET nom_norm=upper(unaccent(voie_cadastre));
 --UPDATE dgfip_noms_cadastre SET nom_norm=regexp_replace(nom_norm,E'([\'-]|  *)',' ','g') WHERE nom_norm ~ E'([\'-]|  )';
-
