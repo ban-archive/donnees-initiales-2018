@@ -134,7 +134,22 @@ UPDATE libelles SET court = replace(court,' DECEMBRE',' DEC') WHERE court ~ 'DEC
 UPDATE libelles SET court = replace(court,' 11 NOV (18( |$)|1918)',' 11 NOV') WHERE court ~ ' 11 NOV (18( |$)|1918)';
 -- 8 MAI 45/1945-> 8 MAI
 UPDATE libelles SET court = replace(court,' 8 MAI (45( |$)|1945)',' 8 MAI') WHERE court ~ ' 8 MAI (45( |$)|1945)';
-  
+
+-- premier et variations...
+update libelles set court=regexp_replace(court,' 1 (E|EM|EME|ER|ERE|ERS|ERES)( |$)',' 1E\2') where court ~ ' 1 (E|EM|EME|ER|ERE|ERS|ERES)( |$)';
+update libelles set court=regexp_replace(court,' (PREM|PREMI|PREMIER|PREMIERS|PREMIERE|PREMIERES)( |$)',' 1E\2') WHERE court ~ ' (PREM|PREMI|PREMIER|PREMIERS|PREMIERE|PREMIERES)( |$)';
+
+-- second et variations...
+update libelles set court=regexp_replace(court,' 2(( |)(E|EM|EME|ND|NDE))( |$)',' 2E\4') where court ~ ' 2(( |)(E|EM|EME|ND|NDE|NDS|NDES))( |$)';
+update libelles set court=regexp_replace(court,' (SECOND|SECONDAI|SECONDAIR|SECONDAIRE|SECONDE)(S|)( |$)',' 2E\3') WHERE court ~ ' (SECOND|SECONDAI|SECONDAIR|SECONDAIRE|SECONDE)(S|)( |$)';
+
+-- quantièmes... cas généraux jusqu'à 999 !
+-- la requête génère toutes les combinaisons des quantièmes par unité, dizaine, centaine
+-- certaines sont incorrectes (QUATRE VING DIX SEIZIEME), mais ne seront jamais trouvées
+WITH u AS (SELECT cent+diz+num as quantieme,format(' (%s EM|%sEM|%s EME|%sEME|%s)(E|ES|S|)( |$)',cent+diz+num,cent+diz+num,cent+diz+num,cent+diz+num,trim(txt_cent||' '||txt_diz||' '||txt)) AS re FROM (SELECT regexp_split_to_table(',CENT,DEUX CENT,TROIS CENT,QUATRE CENT,CINQ CENT,SIX CENT,SEPT CENT,HUIT CENT,NEUF CENT',',') AS txt_cent, generate_series(0,9)*100 AS cent) centaine, (SELECT regexp_split_to_table(',DIX,VINGT,TRENTE,QUARANTE,CINQUANTE,SOIXANTE,SOIXANTE DIX,QUATRE VINGT,QUATRE VINGT DIX',',') AS txt_diz, generate_series(0,90,10) AS diz) dizaine, (SELECT regexp_split_to_table('UNIEME,DEUXIEME,TROISIEME,QUATRIEME,CINQUIEME,SIXIEME,SEPTIEME,HUITIEME,NEUVIEME,DIXIEME,ONZIEME,DOUZIEME,TREIZIEME,QUATORZIEME,QUINZIEME,SEIZIEME',',') AS txt, generate_series(1,16) AS num) AS q ORDER BY quantieme DESC)
+  UPDATE libelles SET court = regexp_replace(court,re,format(' %sE\3',quantieme)) FROM u WHERE court ~ re;
+
+
 -- menage final
 update libelles set court=trim(court) where court like ' %' or court like '% ';
 delete from libelles where long is null;
@@ -150,3 +165,5 @@ alter table libelles2 rename to libelles;
 -- index
 CREATE INDEX idx_libelles_long ON libelles (long);
 CREATE INDEX idx_libelles_court ON libelles (court);
+-- index inutilisé par la suite, mais utile pour les tests...
+create index libelle_trigram on libelles using gin (court gin_trgm_ops);
