@@ -119,7 +119,22 @@ UPDATE libelles set court=regexp_replace(court,' XXI( |$)',' 21\1') where court 
 UPDATE libelles set court=regexp_replace(court,' XXII( |$)',' 22\1') where court ~ ' XXII( |$)';
 UPDATE libelles set court=regexp_replace(court,' XXIII( |$)',' 23\1') where court ~ ' XXIII( |$)';
 
-
+-- quantièmes dans les dates... 1 ER / 1ER / PREMIER -> 1
+UPDATE libelles set court=regexp_replace(court,' (1 ER|1ER|PREMIER) (JANVIER|JANV|FEVRIER|FEVR|MARS|AVRIL|MAI|JUIN|JUILLET|JUIL|AOUT|SEPTEMBRE|SEPT|OCTOBRE|OCT|NOVEMBRE|NOV|DECEMBRE|DEC)( |$)',' 1 \2\3') where court ~ ' (1 ER|1ER|PREMIER) (JANVIER|JANV|FEVRIER|FEVR|MARS|AVRIL|MAI|JUIN|JUILLET|JUIL|AOUT|SEPTEMBRE|SEPT|OCTOBRE|OCT|NOVEMBRE|NOV|DECEMBRE|DEC)( |$)';
+-- mois dans les dates
+UPDATE libelles SET court = replace(court,' JANVIER',' JANV') WHERE court ~ 'JANVIER';
+UPDATE libelles SET court = replace(court,' FEVRIER',' FEVR') WHERE court ~ 'FEVRIER';
+UPDATE libelles SET court = replace(court,' JUILLET',' JUIL') WHERE court ~ 'JUILLET';
+UPDATE libelles SET court = replace(court,' SEPTEMBRE',' SEPT') WHERE court ~ 'SEPTEMBRE';
+UPDATE libelles SET court = replace(court,' OCTOBRE',' OCT') WHERE court ~ 'OCTOBRE';
+UPDATE libelles SET court = replace(court,' NOVEMBRE',' NOV') WHERE court ~ 'NOVEMBRE';
+UPDATE libelles SET court = replace(court,' NOVENBRE',' NOV') WHERE court ~ 'NOVENBRE';
+UPDATE libelles SET court = replace(court,' DECEMBRE',' DEC') WHERE court ~ 'DECEMBRE';
+-- 11 NOVEMBRE 18/1918 -> 11 NOV
+UPDATE libelles SET court = replace(court,' 11 NOV (18( |$)|1918)',' 11 NOV') WHERE court ~ ' 11 NOV (18( |$)|1918)';
+-- 8 MAI 45/1945-> 8 MAI
+UPDATE libelles SET court = replace(court,' 8 MAI (45( |$)|1945)',' 8 MAI') WHERE court ~ ' 8 MAI (45( |$)|1945)';
+  
 -- menage final
 update libelles set court=trim(court) where court like ' %' or court like '% ';
 delete from libelles where long is null;
