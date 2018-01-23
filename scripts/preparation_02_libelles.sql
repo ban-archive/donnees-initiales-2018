@@ -71,6 +71,7 @@ update libelles set court = 'GR' where court = 'RUE GRANDE';
 update libelles set court = 'PTR' where court = 'PETITE RUE';
 update libelles set court = 'PTR' where court = 'PTR PETITE RUE';
 update libelles set court = replace(court,'R ','RUE ') where court like 'R %';
+update libelles set court = 'PETITE IMPASSE' where court = 'IMP PETITE IMPASSE';
 
 -- simplification anciens CHEMINS de différentes natures (ruraux, communaux, ordinaires, vicinaux, etc)
 update libelles set court = regexp_replace(court,'^AN(C|) (CH|CHE|CHEM|CHEMIN|C R|CR|C C|CC|CV|C V|CVO|C V O)( RURAL| COMMUNAL| VICINAL| ORDINAIRE|)( DIT |) ','ACH ')
