@@ -344,3 +344,4 @@ ALTER TABLE group_fnal ADD column nom_ign_retenu varchar;
 UPDATE group_fnal SET nom_ign_retenu = upper(unaccent(nom_ign)) where nom_ign is not null and nom_ign <> '';
 
 CREATE INDEX idx_group_fnal_code_insee on group_fnal(code_insee);
+CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);

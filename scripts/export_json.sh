@@ -100,76 +100,9 @@ exit
 echo "DROP TABLE IF EXISTS housenumber${dep};" >> commandeTemp.sql
 echo "CREATE TABLE housenumber${dep} (\"number\" varchar, ordinal varchar, cia varchar, laposte varchar, ign varchar, group_fantoir varchar, group_ign varchar, group_laposte varchar, postcode_code varchar, lb_l5 varchar, insee varchar, no_pile_doublon integer, ancestor_ign varchar, source_init varchar[] );" >> commandeTemp.sql
 
-###################################
-# Preparation de la table housenumber_bano
-# Extraction du departement
-echo "DROP TABLE IF EXISTS housenumber_bano${dep};" >> commandeTemp.sql
-echo "CREATE TABLE housenumber_bano${dep} AS SELECT * FROM dgfip_housenumbers WHERE insee_com like '${dep}%';" >> commandeTemp.sql
-# Creation de la colonne fantoir_hn
-echo "ALTER TABLE  housenumber_bano${dep} ADD COLUMN fantoir_hn varchar;" >> commandeTemp.sql
-echo "UPDATE housenumber_bano${dep} SET fantoir_hn=left(fantoir,5)||left(right(fantoir,5),4);" >> commandeTemp.sql
-# Creation de la colonne number
-echo "ALTER TABLE  housenumber_bano${dep} ADD COLUMN number varchar;" >> commandeTemp.sql
-echo "UPDATE housenumber_bano${dep} SET number=left(numero||' ',strpos(numero||' ',' ')-1);" >> commandeTemp.sql
-# Creation de la colonne ordinal
-echo "ALTER TABLE  housenumber_bano${dep} ADD COLUMN ordinal varchar;" >> commandeTemp.sql
-echo "UPDATE housenumber_bano${dep} SET ordinal=upper(trim(right(numero||' ',-strpos(numero||' ',' '))));" >> commandeTemp.sql
-# Creation de la colonne cia
-echo "ALTER TABLE  housenumber_bano${dep} ADD COLUMN cia varchar;" >> commandeTemp.sql
-echo "UPDATE housenumber_bano${dep} SET cia=upper(format('%s_%s_%s_%s',left(fantoir,5),left(right(fantoir,5),4),number,ordinal));" >> commandeTemp.sql
-
-
-# Insertion dans la table housenumber${dep}
-echo "INSERT INTO housenumber${dep} (group_fantoir, group_ign, group_laposte, number, ordinal, insee, source_init)
-SELECT g.fantoir, g.ign, g.laposte, h.number, h.ordinal, g.insee, '{DGFIP-BANO}' from housenumber_bano${dep} h, group${dep} g where fantoir_hn=g.fantoir group by g.fantoir, g.ign, g.laposte, h.number, h.ordinal, g.insee;" >> commandeTemp.sql
-
-
 ########################################
 # PREPARATION HOUSENUMBER IGN
-# Extraction du departement / suppression des doublons parfaits / suppression des detruits
-echo "DROP TABLE IF EXISTS housenumber_ign${dep};" >> commandeTemp.sql
-echo "CREATE TABLE housenumber_ign${dep} AS SELECT max(id) as id, max(id_poste) as id_poste, numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree FROM ign_housenumber WHERE code_insee like '${dep}%' and detruit is null group by (numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree);" >> commandeTemp.sql
-# Passage en majuscule du rep
-echo "UPDATE housenumber_ign${dep} SET rep = upper(rep);" >> commandeTemp.sql
-#Marquage des doublons (meme numero et indice de repetition)
-# etape1 : creation des piles de doublons sémantiques
-echo "DROP TABLE IF EXISTS doublon_ign_${dep};" >> commandeTemp.sql
-echo "CREATE TABLE doublon_ign_${dep} AS SELECT numero,rep,code_post,code_insee,id_pseudo_fpb,count(*) FROM housenumber_ign${dep} GROUP BY (numero,rep,code_post,code_insee,id_pseudo_fpb) HAVING COUNT(*) > 1;" >> commandeTemp.sql
-echo "DROP SEQUENCE IF EXISTS seq_doublons_ign_${dep};" >> commandeTemp.sql
-echo "CREATE SEQUENCE seq_doublons_ign_${dep};" >> commandeTemp.sql
-echo "ALTER TABLE doublon_ign_${dep} ADD no_pile_doublon integer;" >> commandeTemp.sql
-echo "UPDATE doublon_ign_${dep} SET no_pile_doublon = nextval('seq_doublons_ign_${dep}');" >> commandeTemp.sql
 
-# etape 2 : marquage du numéro de piles doublons sémantiques sur les hns ign
-echo "ALTER TABLE housenumber_ign${dep} ADD no_pile_doublon integer;" >> commandeTemp.sql
-echo "UPDATE housenumber_ign${dep} AS hn SET no_pile_doublon = d.no_pile_doublon FROM doublon_ign_${dep} AS d WHERE 
-	(hn.numero = d.numero and 
-	 hn.rep = d.rep and 
-	 hn.code_post = d.code_post and
-	 hn.code_insee = d.code_insee and
-	 hn.id_pseudo_fpb = d.id_pseudo_fpb);" >> commandeTemp.sql
-
-# Creation de la colonne fantoir
-echo "ALTER TABLE  housenumber_ign${dep} ADD COLUMN fantoir varchar;" >> commandeTemp.sql
-echo "UPDATE housenumber_ign${dep} SET fantoir=g.fantoir FROM group${dep} g WHERE housenumber_ign${dep}.id_pseudo_fpb=g.ign;" >> commandeTemp.sql
-
-
-########################################
-# HOUSENUMBER IGN GROUP RAPPROCHES
-# Mise a jour du champ ign de housenumber${dep}
-echo "update housenumber${dep} h set ign=i.id from housenumber_ign${dep} i where h.group_ign=i.id_pseudo_fpb and h.number=i.numero and h.ordinal=i.rep;" >> commandeTemp.sql
-# Mise a jour de no_pile_doublon
-echo "update housenumber${dep} h set no_pile_doublon=i.no_pile_doublon from housenumber_ign${dep} i where h.ign=i.id;" >> commandeTemp.sql
-
-###########################################
-# HOUSENUMBER IGN GROUP NON RAPPROCHES
-# Ajout des housenumber_ign non retrouves dans  housenumber${dep} (cles = fantoir, numero, dep) et dont le fantoir n'est pas nul
-echo "INSERT INTO housenumber${dep} (ign, group_fantoir, group_ign, number, ordinal, no_pile_doublon, insee)
-SELECT max(i.id), i.fantoir, i.id_pseudo_fpb, i.numero, i.rep, i.no_pile_doublon, code_insee from housenumber_ign${dep} i
-left join housenumber${dep} h on (h.group_fantoir=i.fantoir and i.numero=h.number and i.rep=h.ordinal) where h.number is null and i.fantoir is not null group by i.fantoir, i.id_pseudo_fpb, i.numero, i.rep, i.no_pile_doublon, i.code_insee;" >> commandeTemp.sql
-# Ajout dans la ban les housenumbers ign dont le fantoir est nul
-echo "INSERT INTO housenumber${dep} (ign, group_ign, number, ordinal, no_pile_doublon, insee)
-SELECT max(id), id_pseudo_fpb, numero, rep, no_pile_doublon, code_insee from housenumber_ign${dep} where fantoir is null group by id_pseudo_fpb, numero, rep, no_pile_doublon, code_insee;" >> commandeTemp.sql
 
 ########################################
 # Mise à jour des champs la poste avec les données IGN
@@ -191,34 +124,10 @@ SELECT g.laposte, r.cea, r.co_postal, r.co_insee from group_ran${dep} r, group${
 
 #####################################
 # Preparation de housenumber_ran
-# Extraction du departement
-echo "DROP TABLE IF EXISTS housenumber_ran${dep};" >> commandeTemp.sql
-echo "CREATE TABLE housenumber_ran${dep} AS SELECT * FROM ran_housenumber WHERE co_insee like '${dep}%';" >> commandeTemp.sql
-# Creation de la colonne group_laposte
-echo "ALTER TABLE  housenumber_ran${dep} ADD COLUMN group_laposte varchar;" >> commandeTemp.sql
-echo "UPDATE housenumber_ran${dep} SET group_laposte=right('0000000'||co_voie,8);" >> commandeTemp.sql
-# Passage à vide de l'indice de répétition pour être conforme aux autres sources
-echo "UPDATE housenumber_ran${dep} SET lb_ext='' where lb_ext is null;" >> commandeTemp.sql
-
-
-#####################################
-# Mise a jour de laposte dans la table housenumber${dep}
-echo "UPDATE housenumber${dep} h SET laposte=r.co_cea FROM housenumber_ran${dep} r WHERE r.group_laposte=h.group_laposte and h.number=r.no_voie and h.ordinal=r.lb_ext and h.laposte is null and not exists (select laposte from housenumber${dep} where laposte=r.co_cea);" >> commandeTemp.sql
 
 # Mise a jour des postcodes dans la table housenumber${dep} à partir des données poste
 echo "UPDATE housenumber${dep} h SET postcode_code=r.co_postal FROM housenumber_ran${dep} r WHERE r.co_cea=h.laposte and r.co_postal is not null;" >> commandeTemp.sql
 
-
-#####################################
-# HOUSENUMBERS LAPOSTE NON RAPPROCHES
-# Insertion dans la table housenumber${dep}
-echo "INSERT INTO housenumber${dep} (group_laposte, number, ordinal, postcode_code, laposte)
-SELECT r.group_laposte, r.no_voie, r.lb_ext, r.co_postal, co_cea FROM housenumber_ran${dep} r left join housenumber${dep} h  on(r.co_cea=h.laposte) where insee is null;" >> commandeTemp.sql
-
-# Quelques indexes utiles pour la suite
-echo "create index idx_housenumber_group_fantoir${dep} on housenumber${dep}(group_fantoir);" >> commandeTemp.sql
-echo "create index idx_housenumber_group_ign${dep} on housenumber${dep}(group_ign);" >> commandeTemp.sql
-echo "create index idx_housenumber_group_laposte${dep} on housenumber${dep}(group_laposte);" >> commandeTemp.sql
 
 # Ligne 5
 # A partir des donnnées LP (on remonte a la ligne 5 contenu dans ran_group)
