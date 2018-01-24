@@ -111,11 +111,20 @@ LEFT JOIN group_fnal g ON (g.laposte = p.co_voie)
 WHERE h.laposte is null and g.laposte is not null
 AND co_insee like '90%';
 
--- ajout CIA
+-- ajout CIA, source_init
 DROP TABLE IF EXISTS housenumber_temp;
-CREATE TABLE housenumber_temp AS SELECT *, CASE WHEN group_fantoir is not null THEN upper(format('%s_%s_%s_%s',left(group_fantoir,5),right(group_fantoir,4),number, coalesce(ordinal,''))) ELSE null END as cia FROM housenumber;
+CREATE TABLE housenumber_temp AS SELECT *, CASE WHEN group_fantoir is not null THEN upper(format('%s_%s_%s_%s',left(group_fantoir,5),right(group_fantoir,4),number, coalesce(ordinal,''))) ELSE null END as cia, array_to_string(array[CASE WHEN source_dgfip is true THEN 'DGFIP' ELSE null END,CASE WHEN ign is null THEN null ELSE 'IGN' END,CASE WHEN laposte is null THEN null ELSE 'LAPOSTE' END],'|') as source_init FROM housenumber;
 DROP TABLE housenumber;
 ALTER TABLE housenumber_temp RENAME TO housenumber;
+
+-------------- TODO 
+-- ajout postcode vide
+ALTER TABLE housenumber ADD COLUMN postcode_code varchar;
+-- ajout ligne 5 vide
+ALTER TABLE housenumber ADD COLUMN lb_l5 varchar;
+-- ajout ancestor ign vide
+ALTER TABLE housenumber ADD COLUMN ancestor_ign varchar;
+
 
 
 
