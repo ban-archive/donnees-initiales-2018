@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------
--- PREPARATION DES DONNEES : CONSITUTION DE LA TABLE LIEBELLES LONG, LIBELLES COURTS DES GROUPES 
+-- PREPARATION DES DONNEES : CONSITUTION DE LA TABLE LIEBELLES LONG, LIBELLES COURTS DES GROUPES
 -- Cette table sert ensuite aux appariements des libellés des différentes sources
 --------------------------------------------------------------------------
 
@@ -8,7 +8,7 @@
 
 DROP TABLE IF EXISTS libelles;
 
--- libelles nom IGN 
+-- libelles nom IGN
 CREATE TABLE libelles AS SELECT nom_maj AS long, trim(regexp_replace(replace(replace(nom_maj,'Œ','OE'),'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g')) AS court FROM ign_group;
 CREATE INDEX idx_libelles_long ON libelles (long);
 
@@ -71,6 +71,7 @@ update libelles set court = 'GR' where court = 'RUE GRANDE';
 update libelles set court = 'PTR' where court = 'PETITE RUE';
 update libelles set court = 'PTR' where court = 'PTR PETITE RUE';
 update libelles set court = replace(court,'R ','RUE ') where court like 'R %';
+update libelles set court = 'PETITE IMPASSE' where court = 'IMP PETITE IMPASSE';
 
 -- simplification anciens CHEMINS de différentes natures (ruraux, communaux, ordinaires, vicinaux, etc)
 update libelles set court = regexp_replace(court,'^AN(C|) (CH|CHE|CHEM|CHEMIN|C R|CR|C C|CC|CV|C V|CVO|C V O)( RURAL| COMMUNAL| VICINAL| ORDINAIRE|)( DIT |) ','ACH ')
@@ -89,79 +90,68 @@ update libelles set court = regexp_replace(court,'^HAM ','') where court ~'^HAM 
 update libelles set court = regexp_replace(court,'C H$','CH') where court ~'C H$';
 
 -- chiffres romains
-UPDATE libelles set court=replace(court,' II ',' 2 ') where court ~ ' II ';
-UPDATE libelles set court=regexp_replace(court,' II$',' 2') where court ~ ' II$';
-UPDATE libelles set court=replace(court,' III ',' 3 ') where court ~ ' III ';
-UPDATE libelles set court=regexp_replace(court,' III$',' 3') where court ~ ' III$';
-UPDATE libelles set court=replace(court,' IV ',' 4 ') where court ~ ' IV ';
-UPDATE libelles set court=regexp_replace(court,' IV$',' 4') where court ~ ' IV$';
-UPDATE libelles set court=replace(court,' VII ',' 7 ') where court ~ ' VII ';
-UPDATE libelles set court=regexp_replace(court,' VII$',' 7') where court ~ ' VII$';
-UPDATE libelles set court=replace(court,' VIII ',' 8 ') where court ~ ' VIII ';
-UPDATE libelles set court=regexp_replace(court,' VIII$',' 8') where court ~ ' VIII$';
-UPDATE libelles set court=replace(court,' IX ',' 9 ') where court ~ ' IX ';
-UPDATE libelles set court=regexp_replace(court,' IX$',' 9') where court ~ ' IX$';
-UPDATE libelles set court=replace(court,' XI ',' 11 ') where court ~ ' XI ';
-UPDATE libelles set court=regexp_replace(court,' XI$',' 11') where court ~ ' XI$';
-UPDATE libelles set court=replace(court,' XII ',' 12 ') where court ~ ' XII ';
-UPDATE libelles set court=regexp_replace(court,' XII$',' 12') where court ~ ' XII$';
-UPDATE libelles set court=replace(court,' XIII ',' 13 ') where court ~ ' XIII ';
-UPDATE libelles set court=regexp_replace(court,' XIII$',' 13') where court ~ ' XIII$';
-UPDATE libelles set court=replace(court,' XIV ',' 14 ') where court ~ ' XIV ';
-UPDATE libelles set court=regexp_replace(court,' XIV$',' 14') where court ~ ' XIV$';
-UPDATE libelles set court=replace(court,' XV ',' 15 ') where court ~ ' XV ';
-UPDATE libelles set court=regexp_replace(court,' XV$',' 15') where court ~ ' XV$';
-UPDATE libelles set court=replace(court,' XVI ',' 16 ') where court ~ ' XVI ';
-UPDATE libelles set court=regexp_replace(court,' XVI$',' 16') where court ~ ' XVI$';
-UPDATE libelles set court=replace(court,' XVII ',' 17 ') where court ~ ' XVII ';
-UPDATE libelles set court=regexp_replace(court,' XVII$',' 17') where court ~ ' XVII$';
-UPDATE libelles set court=replace(court,' XVIII ',' 18 ') where court ~ ' XVIII ';
-UPDATE libelles set court=regexp_replace(court,' XVIII$',' 18') where court ~ ' XVIII$';
-UPDATE libelles set court=replace(court,' XIX ',' 19 ') where court ~ ' XIX ';
-UPDATE libelles set court=regexp_replace(court,' XIX$',' 19') where court ~ ' XIX$';
-UPDATE libelles set court=replace(court,' XX ',' 20 ') where court ~ ' XX ';
-UPDATE libelles set court=regexp_replace(court,' XX$',' 20') where court ~ ' XX$';
-UPDATE libelles set court=replace(court,' XXI ',' 21 ') where court ~ ' XXI ';
-UPDATE libelles set court=regexp_replace(court,' XXI$',' 21') where court ~ ' XXI$';
-UPDATE libelles set court=replace(court,' XXII ',' 22 ') where court ~ ' XXII ';
-UPDATE libelles set court=regexp_replace(court,' XXII$',' 22') where court ~ ' XXII$';
-UPDATE libelles set court=replace(court,' XXIII ',' 23 ') where court ~ ' XXIII ';
-UPDATE libelles set court=regexp_replace(court,' XXIII$',' 23') where court ~ ' XXIII$';
+UPDATE libelles set court=regexp_replace(court,' (HENRI|LOUIS|NAPOLEON) I( |$)',' \1 1\2') where court ~ ' (HENRI|LOUIS|NAPOLEON) I( |$)';
 
-UPDATE libelles set court=replace(court,' HENRI I ',' HENRI 1 ') where court ~ ' HENRI I ';
-UPDATE libelles set court=regexp_replace(court,' HENRI I$',' HENRI 1') where court ~ ' HENRI I$';
-UPDATE libelles set court=replace(court,' LOUIS I ',' LOUIS 1 ') where court ~ ' LOUIS I ';
-UPDATE libelles set court=regexp_replace(court,' LOUIS I$',' LOUIS 1') where court ~ ' LOUIS I$';
-UPDATE libelles set court=replace(court,' NAPOLEON I ',' NAPOLEON 1 ') where court ~ ' NAPOLEON I ';
-UPDATE libelles set court=regexp_replace(court,' NAPOLEON I$',' NAPOLEON 1') where court ~ ' NAPOLEON I$';
+UPDATE libelles set court=regexp_replace(court,' II( |$)',' 2\1') where court ~ ' II( |$)';
+UPDATE libelles set court=regexp_replace(court,' III( |$)',' 3\1') where court ~ ' III( |$)';
+UPDATE libelles set court=regexp_replace(court,' IV( |$)',' 4\1') where court ~ ' IV( |$)';
 
-UPDATE libelles set court=replace(court,' CHARLES V ',' CHARLES 5 ') where court ~ ' CHARLES V ';
-UPDATE libelles set court=regexp_replace(court,' CHARLES V$',' CHARLES 5') where court ~ ' CHARLES V$';
-UPDATE libelles set court=replace(court,' GEORGES V ',' GEORGES 5 ') where court ~ ' GEORGES V ';
-UPDATE libelles set court=regexp_replace(court,' GEORGES V$',' GEORGES 5') where court ~ ' GEORGES V$';
-UPDATE libelles set court=replace(court,' GUSTAVE V ',' GUSTAVE 5 ') where court ~ ' GUSTAVE V ';
-UPDATE libelles set court=regexp_replace(court,' GUSTAVE V$',' GUSTAVE 5') where court ~ ' GUSTAVE V$';
-UPDATE libelles set court=replace(court,' HENRI V ',' HENRI 5 ') where court ~ ' HENRI V ';
-UPDATE libelles set court=regexp_replace(court,' HENRI V$',' HENRI 5') where court ~ ' HENRI V$';
-UPDATE libelles set court=replace(court,' LOUIS V ',' LOUIS 5 ') where court ~ ' LOUIS V ';
-UPDATE libelles set court=regexp_replace(court,' LOUIS V$',' LOUIS 5') where court ~ ' LOUIS V$';
-UPDATE libelles set court=replace(court,' MOHAMMED V ',' MOHAMMED 5 ') where court ~ ' MOHAMMED V ';
-UPDATE libelles set court=regexp_replace(court,' MOHAMMED V$',' MOHAMMED 5') where court ~ ' MOHAMMED V$';
+UPDATE libelles set court=regexp_replace(court,' (CHARLES|LOUIS|GEORGES|GUSTAVE|HENRI|MOHAMMED) V( |$)',' \1 5\2') where court ~ ' (CHARLES|LOUIS|GEORGES|GUSTAVE|HENRI|MOHAMMED) V( |$)';
 
-UPDATE libelles set court=replace(court,' CHARLES VI ',' CHARLES 6 ') where court ~ ' CHARLES VI ';
-UPDATE libelles set court=regexp_replace(court,' CHARLES VI$',' CHARLES 6') where court ~ ' CHARLES VI$';
-UPDATE libelles set court=replace(court,' GEORGES VI ',' GEORGES 6 ') where court ~ ' GEORGES VI ';
-UPDATE libelles set court=regexp_replace(court,' GEORGES VI$',' GEORGES 6') where court ~ ' GEORGES VI$';
-UPDATE libelles set court=replace(court,' HENRI VI ',' HENRI 6 ') where court ~ ' HENRI VI ';
-UPDATE libelles set court=regexp_replace(court,' HENRI VI$',' HENRI 6') where court ~ ' HENRI VI$';
-UPDATE libelles set court=replace(court,' LOUIS VI ',' LOUIS 6 ') where court ~ ' LOUIS VI ';
-UPDATE libelles set court=regexp_replace(court,' LOUIS VI$',' LOUIS 6') where court ~ ' LOUIS VI$';
+UPDATE libelles set court=regexp_replace(court,' (CHARLES|GEORGES|HENRI|LOUIS) VI( |$)',' \1 6\2') where court ~ ' (CHARLES|GEORGES|HENRI|LOUIS) VI( |$)';
 
-UPDATE libelles set court=replace(court,' CHARLES X ',' CHARLES 10 ') where court ~ ' CHARLES X ';
-UPDATE libelles set court=regexp_replace(court,' CHARLES X$',' CHARLES 10') where court ~ ' CHARLES X$';
-UPDATE libelles set court=replace(court,' LOUIS X ',' LOUIS 10 ') where court ~ ' LOUIS X ';
-UPDATE libelles set court=regexp_replace(court,' LOUIS X$',' LOUIS 10') where court ~ ' LOUIS X$';
+UPDATE libelles set court=regexp_replace(court,' VII( |$)',' 7\1') where court ~ ' VII( |$)';
+UPDATE libelles set court=regexp_replace(court,' VIII( |$)',' 8\1') where court ~ ' VIII( |$)';
+UPDATE libelles set court=regexp_replace(court,' IX( |$)',' 9\1') where court ~ ' IX( |$)';
 
+UPDATE libelles set court=regexp_replace(court,' (CHARLES|LOUIS) X( |$)',' \1 10\2') where court ~ ' (CHARLES|LOUIS) X( |$)';
+
+UPDATE libelles set court=regexp_replace(court,' XI( |$)',' 11\1') where court ~ ' XI( |$)';
+UPDATE libelles set court=regexp_replace(court,' XII( |$)',' 12\1') where court ~ ' XII( |$)';
+UPDATE libelles set court=regexp_replace(court,' XIII( |$)',' 13\1') where court ~ ' XIII( |$)';
+UPDATE libelles set court=regexp_replace(court,' XIV( |$)',' 14\1') where court ~ ' XIV( |$)';
+UPDATE libelles set court=regexp_replace(court,' XV( |$)',' 15\1') where court ~ ' XV( |$)';
+UPDATE libelles set court=regexp_replace(court,' XVI( |$)',' 16\1') where court ~ ' XVI( |$)';
+UPDATE libelles set court=regexp_replace(court,' XVII( |$)',' 17\1') where court ~ ' XVII( |$)';
+UPDATE libelles set court=regexp_replace(court,' XVIII( |$)',' 18\1') where court ~ ' XVIII( |$)';
+UPDATE libelles set court=regexp_replace(court,' XIX( |$)',' 19\1') where court ~ ' XIX( |$)';
+UPDATE libelles set court=regexp_replace(court,' XX( |$)',' 20\1') where court ~ ' XX( |$)';
+UPDATE libelles set court=regexp_replace(court,' XXI( |$)',' 21\1') where court ~ ' XXI( |$)';
+UPDATE libelles set court=regexp_replace(court,' XXII( |$)',' 22\1') where court ~ ' XXII( |$)';
+UPDATE libelles set court=regexp_replace(court,' XXIII( |$)',' 23\1') where court ~ ' XXIII( |$)';
+
+-- quantièmes dans les dates... 1 ER / 1ER / PREMIER -> 1
+UPDATE libelles set court=regexp_replace(court,' (1 ER|1ER|PREMIER) (JANVIER|JANV|FEVRIER|FEVR|MARS|AVRIL|MAI|JUIN|JUILLET|JUIL|AOUT|SEPTEMBRE|SEPT|OCTOBRE|OCT|NOVEMBRE|NOV|DECEMBRE|DEC)( |$)',' 1 \2\3') where court ~ ' (1 ER|1ER|PREMIER) (JANVIER|JANV|FEVRIER|FEVR|MARS|AVRIL|MAI|JUIN|JUILLET|JUIL|AOUT|SEPTEMBRE|SEPT|OCTOBRE|OCT|NOVEMBRE|NOV|DECEMBRE|DEC)( |$)';
+-- mois dans les dates
+UPDATE libelles SET court = replace(court,' JANVIER',' JANV') WHERE court ~ 'JANVIER';
+UPDATE libelles SET court = replace(court,' FEVRIER',' FEVR') WHERE court ~ 'FEVRIER';
+UPDATE libelles SET court = replace(court,' JUILLET',' JUIL') WHERE court ~ 'JUILLET';
+UPDATE libelles SET court = replace(court,' SEPTEMBRE',' SEPT') WHERE court ~ 'SEPTEMBRE';
+UPDATE libelles SET court = replace(court,' OCTOBRE',' OCT') WHERE court ~ 'OCTOBRE';
+UPDATE libelles SET court = replace(court,' NOVEMBRE',' NOV') WHERE court ~ 'NOVEMBRE';
+UPDATE libelles SET court = replace(court,' NOVENBRE',' NOV') WHERE court ~ 'NOVENBRE';
+UPDATE libelles SET court = replace(court,' DECEMBRE',' DEC') WHERE court ~ 'DECEMBRE';
+-- 11 NOVEMBRE 18/1918 -> 11 NOV
+UPDATE libelles SET court = replace(court,' 11 NOV (18( |$)|1918)',' 11 NOV') WHERE court ~ ' 11 NOV (18( |$)|1918)';
+-- 8 MAI 45/1945-> 8 MAI
+UPDATE libelles SET court = replace(court,' 8 MAI (45( |$)|1945)',' 8 MAI') WHERE court ~ ' 8 MAI (45( |$)|1945)';
+
+-- premier et variations...
+update libelles set court=regexp_replace(court,' 1 (E|EM|EME|ER|ERE|ERS|ERES)( |$)',' 1E\2') where court ~ ' 1 (E|EM|EME|ER|ERE|ERS|ERES)( |$)';
+update libelles set court=regexp_replace(court,' (PREM|PREMI|PREMIER|PREMIERS|PREMIERE|PREMIERES)( |$)',' 1E\2') WHERE court ~ ' (PREM|PREMI|PREMIER|PREMIERS|PREMIERE|PREMIERES)( |$)';
+
+-- second et variations...
+update libelles set court=regexp_replace(court,' 2(( |)(E|EM|EME|ND|NDE))( |$)',' 2E\4') where court ~ ' 2(( |)(E|EM|EME|ND|NDE|NDS|NDES))( |$)';
+update libelles set court=regexp_replace(court,' (SECOND|SECONDAI|SECONDAIR|SECONDAIRE|SECONDE)(S|)( |$)',' 2E\3') WHERE court ~ ' (SECOND|SECONDAI|SECONDAIR|SECONDAIRE|SECONDE)(S|)( |$)';
+
+-- quantièmes... cas généraux jusqu'à 999 !
+-- la requête génère toutes les combinaisons des quantièmes par unité, dizaine, centaine
+-- certaines sont incorrectes (QUATRE VING DIX SEIZIEME), mais ne seront jamais trouvées
+WITH u AS (SELECT cent+diz+num as quantieme,format(' (%s EM|%sEM|%s EME|%sEME|%s)(E|ES|S|)( |$)',cent+diz+num,cent+diz+num,cent+diz+num,cent+diz+num,trim(txt_cent||' '||txt_diz||' '||txt)) AS re FROM (SELECT regexp_split_to_table(',CENT,DEUX CENT,TROIS CENT,QUATRE CENT,CINQ CENT,SIX CENT,SEPT CENT,HUIT CENT,NEUF CENT',',') AS txt_cent, generate_series(0,9)*100 AS cent) centaine, (SELECT regexp_split_to_table(',DIX,VINGT,TRENTE,QUARANTE,CINQUANTE,SOIXANTE,SOIXANTE DIX,QUATRE VINGT,QUATRE VINGT DIX',',') AS txt_diz, generate_series(0,90,10) AS diz) dizaine, (SELECT regexp_split_to_table('UNIEME,DEUXIEME,TROISIEME,QUATRIEME,CINQUIEME,SIXIEME,SEPTIEME,HUITIEME,NEUVIEME,DIXIEME,ONZIEME,DOUZIEME,TREIZIEME,QUATORZIEME,QUINZIEME,SEIZIEME',',') AS txt, generate_series(1,16) AS num) AS q ORDER BY quantieme DESC)
+  UPDATE libelles SET court = regexp_replace(court,re,format(' %sE\3',quantieme)) FROM u WHERE court ~ re;
+
+-- suppression finale des mot répétés (de 2 lettres minimum)
+update libelles set court= regexp_replace(court,'( |$)([A-Z]{2,}) \2( |$)','\1\2\3') where court ~ '( |$)([A-Z]{2,}) \2( |$)';
 
 -- menage final
 update libelles set court=trim(court) where court like ' %' or court like '% ';
@@ -178,3 +168,5 @@ alter table libelles2 rename to libelles;
 -- index
 CREATE INDEX idx_libelles_long ON libelles (long);
 CREATE INDEX idx_libelles_court ON libelles (court);
+-- index inutilisé par la suite, mais utile pour les tests...
+create index libelle_trigram on libelles using gin (court gin_trgm_ops);
