@@ -29,7 +29,7 @@ CREATE TABLE dgfip_housenumbers_temp AS SELECT
 	upper(trim(right(numero||' ',-strpos(numero||' ',' ')))) AS ordinal
 FROM dgfip_housenumbers;
 DROP TABLE IF EXISTS dgfip_housenumbers_temp2;
-CREATE TABLE dgfip_housenumbers_temp2 AS SELECT *,upper(format('%s_%s_%s_%s',left(fantoir,5),left(right(fantoir,5),4),number,ordinal)) AS cia FROM dgfip_housenumbers_temp;
+CREATE TABLE dgfip_housenumbers_temp2 AS SELECT *,CASE WHEN fantoir is not null or fantoir <> '' THEN upper(format('%s_%s_%s_%s',left(fantoir,5),left(right(fantoir,5),4),number,ordinal)) ELSE '' AS cia FROM dgfip_housenumbers_temp;
 DROP TABLE dgfip_housenumbers;
 ALTER TABLE dgfip_housenumbers_temp2 RENAME TO dgfip_housenumbers;
 DROP TABLE dgfip_housenumbers_temp;
@@ -105,7 +105,7 @@ CREATE INDEX idx_housenumber_laposte ON housenumber(laposte);
 
 -- ajout des hn laposte pas encore ajoutés
 INSERT INTO housenumber(laposte,group_fantoir,group_ign,group_laposte,number,ordinal,code_insee)
-SELECT p.co_cea, g.id_fantoir, g.id_pseudo_fpb,p.co_voie, p.no_voie, p.lb_ext, p.co_insee from ran_housenumber p
+SELECT p.co_cea, g.id_fantoir, g.id_pseudo_fpb,p.co_voie, p.no_voie, p.lb_ext, g.code_insee from ran_housenumber p
 left join housenumber h on (h.laposte = p.co_cea)
 LEFT JOIN group_fnal g ON (g.laposte = p.co_voie)
 WHERE h.laposte is null and g.laposte is not null
@@ -117,6 +117,9 @@ CREATE TABLE housenumber_temp AS SELECT *, CASE WHEN group_fantoir is not null T
 DROP TABLE housenumber;
 ALTER TABLE housenumber_temp RENAME TO housenumber;
 
+CREATE INDEX idx_housenumber_cia ON housenumber(cia);
+CREATE INDEX idx_housenumber_ign ON housenumber(ign);
+
 -------------- TODO 
 -- ajout postcode vide
 ALTER TABLE housenumber ADD COLUMN postcode_code varchar;
@@ -124,6 +127,94 @@ ALTER TABLE housenumber ADD COLUMN postcode_code varchar;
 ALTER TABLE housenumber ADD COLUMN lb_l5 varchar;
 -- ajout ancestor ign vide
 ALTER TABLE housenumber ADD COLUMN ancestor_ign varchar;
+
+
+---------------------------------------------------------------------------------
+-- POSITION IGN
+DROP TABLE IF EXISTS ign_position;
+
+-- position ign tête de pile
+CREATE TABLE ign_position AS SELECT id as id_hn,* FROM ign_housenumber_temp2 where rank = 1;
+CREATE INDEX idx_ign_position_id_pseudo_fpb on ign_position(id_pseudo_fpb);
+
+-- les autres positions des piles (on les fait pointer vers le bon hn ign -> celui de la meme pile de rank 1)
+INSERT INTO ign_position SELECT p.id_hn,h.* FROM ign_housenumber_temp2 h
+LEFT JOIN ign_position p ON (p.numero = h.numero and p.rep = h.rep and p.id_pseudo_fpb = h.id_pseudo_fpb) 
+where h.rank > 1;
+
+-- ajout du champ cia, kind et positioning
+DROP TABLE IF EXISTS ign_position_temp;
+CREATE TABLE ign_position_temp AS SELECT
+ 	p.*, 
+	CASE WHEN indice_de_positionnement = '5' THEN 'area' WHEN type_de_localisation = 'A la plaque' THEN 'entrance' WHEN type_de_localisation = 'Projetée du centre parcelle' THEN 'segment' WHEN type_de_localisation LIKE 'A la zone%' THEN 'area' WHEN type_de_localisation = 'Interpolée' THEN 'segment' ELSE 'unknown' END AS kind, 
+	CASE WHEN type_de_localisation = 'Projetée du centre parcelle' THEN 'projection' WHEN type_de_localisation = 'Interpolée' THEN 'interpolation' ELSE 'other' END AS positioning, 
+	CASE WHEN g.id_fantoir is not null THEN format('%s_%s_%s_%s',left(g.id_fantoir,5), right(g.id_fantoir,4),numero, rep) ELSE '' END AS cia 
+FROM ign_position p
+LEFT JOIN group_fnal g ON (g.id_pseudo_fpb = p.id_pseudo_fpb);
+DROP TABLE ign_position;
+ALTER TABLE ign_position_temp RENAME TO ign_position;
+
+
+
+----------------------------------------------------------------------------------
+-- POSITION DGFIP
+
+
+---------------------------------------------------------------------------------
+-- REGROUPEMENT DES POSITIONS DANS UNE MËME TABLE
+DROP TABLE IF EXISTS position;
+
+-- insertion des positions ign de type entrance
+-- au passage on tronque les coordonnées à 6 chiffres après la virgule ( => 1 dm au max environ)
+CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::numeric,6) as lat,id as ign,id_hn as housenumber_ign,kind,positioning, designation_de_l_entree as name, 'IGN'::varchar AS source_init FROM ign_position WHERE kind = 'entrance';
+
+-- Insertion dans la table position des positions dgfip pour les hn qui n'ont pas encore de positions 
+INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), 'entrance','other', 'DGFIP' FROM dgfip_housenumbers d 
+LEFT join position p ON (p.cia = d.cia)
+WHERE p.cia is null and insee_com like '90%';
+
+CREATE INDEX idx_position_cia ON position(cia);
+CREATE INDEX idx_position_ign ON position(ign);
+CREATE INDEX idx_position_housenumber_ign ON position(housenumber_ign);
+
+-- Insertion dans la table position des positions dgfip si elles sont eloignees de plus de 5 m des positions déjà existantes 
+INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), 'entrance','other', 'DGFIP' FROM dgfip_housenumbers d
+LEFT join position p ON (p.cia = d.cia)
+WHERE p.cia is not null AND d.cia is not null AND d.cia <> '' AND ign is not null 
+AND st_distance(ST_GeographyFromText('POINT('||p.lon||' '||p.lat||')'),ST_GeographyFromText('POINT('||d.lon||' '||d.lat||')'))>5
+and insee_com like '90%';
+
+-- Ajout des positions ign "segment" pour les housenumbers qui n'ont pas de position
+DROP TABLE IF EXISTS housenumber_without_entrance;
+CREATE TABLE housenumber_without_entrance as SELECT h.ign FROM housenumber h 
+LEFT JOIN position p1 ON (p1.housenumber_ign = h.ign)
+LEFT JOIN position p2 ON (p2.cia = h.cia)
+WHERE p1.ign is null and p2.cia is null;
+
+CREATE INDEX idx_housenumber_without_entrance_ign ON housenumber_without_entrance(ign);
+
+INSERT INTO position(cia,lon,lat,ign,housenumber_ign,kind,positioning,name,source_init) 
+SELECT cia,round(lon::numeric,6),round(lat::numeric,6),id,id_hn,kind,positioning,designation_de_l_entree,'IGN' FROM ign_position p
+LEFT JOIN housenumber_without_entrance h ON (h.ign = p.id_hn)
+WHERE kind = 'segment' AND h.ign is not null;
+
+-- Ajout des positions ign non présentes de type segment et qui ont un nom
+INSERT INTO position(cia,lon,lat,ign,housenumber_ign,kind,positioning,name,source_init)
+SELECT i.cia,round(i.lon::numeric,6),round(i.lat::numeric,6),i.id,i.id_hn,i.kind,i.positioning,i.designation_de_l_entree,'IGN' FROM ign_position i
+LEFT JOIN position p ON (i.id = p.ign)
+WHERE p.ign is null and i.designation_de_l_entree is not null and i.designation_de_l_entree <> '' and i.kind = 'segment';
+
+-- on rabbat le code insee de hn
+DROP TABLE IF EXISTS position_temp;
+CREATE TABLE position_temp AS SELECT p.*,h1.code_insee as insee1,h2.code_insee as insee2 FROM position p
+LEFT JOIN housenumber h1 ON (p.cia = h1.cia)
+LEFT JOIN housenumber h2 ON (p.housenumber_ign = h2.ign)
+WHERE (h1.cia is not null and h1.cia <> '') OR
+(h2.ign is not null and h2.ign <> '');
+DROP TABLE position;
+ALTER TABLE position_temp RENAME TO position;
+
+
 
 
 
