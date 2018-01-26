@@ -57,8 +57,10 @@ CREATE INDEX idx_ign_housenumber_unique_id_pseudo_fpb ON ign_housenumber_unique(
 -- on complete le champ co_voie par des 000 et on enleve les null sur les indices de répétition
 DROP TABLE IF EXISTS ran_housenumber_temp;
 ALTER TABLE ran_housenumber DROP COLUMN IF EXISTS co_voie_bis;
-ALTER TABLE ran_housenumber DROP COLUMN IF EXISTS lb_ext_bis
-CREATE TABLE ran_housenumber_temp AS SELECT *,right('0000000'||co_voie,8) as co_voie_bis,coalesce(lb_ext,'') as lb_ext_bis FROM ran_housenumber;
+ALTER TABLE ran_housenumber DROP COLUMN IF EXISTS lb_ext_bis;
+ALTER TABLE ran_housenumber DROP COLUMN IF EXISTS lb_l5;
+CREATE TABLE ran_housenumber_temp AS SELECT h.*,right('0000000'||co_voie,8) as co_voie_bis,coalesce(lb_ext,'') as lb_ext_bis, lb_l5 FROM ran_housenumber AS h
+LEFT JOIN ran_group g ON (h.co_voie = g.co_voie);
 DROP TABLE IF EXISTS ran_housenumber;
 ALTER TABLE ran_housenumber_temp RENAME TO ran_housenumber;
 ALTER TABLE ran_housenumber DROP COLUMN co_voie;
@@ -75,41 +77,46 @@ CREATE INDEX idx_ran_housenumber_co_cea ON ran_housenumber(co_cea);
 DROP TABLE IF EXISTS housenumber;
 
 -- dgfip bano
-CREATE TABLE housenumber AS SELECT g.id_fantoir as group_fantoir, g.id_pseudo_fpb as group_ign, g.laposte as group_laposte, h.number, h.ordinal, g.code_insee, true::bool as source_dgfip 
+CREATE TABLE housenumber AS SELECT g.id_fantoir as group_fantoir, g.id_pseudo_fpb as group_ign, g.co_voie as group_laposte, h.number, h.ordinal, g.code_insee, true::bool as source_dgfip 
 FROM dgfip_housenumbers h, group_fnal g 
 WHERE fantoir_hn=g.id_fantoir and h.insee_com like '90%' 
-GROUP BY g.id_fantoir, g.id_pseudo_fpb, g.laposte, h.number, h.ordinal, g.code_insee;
+GROUP BY g.id_fantoir, g.id_pseudo_fpb, g.co_voie, h.number, h.ordinal, g.code_insee;
 
 -- mise à jour de l'id ign sur housenumber pour les hn dont le group ign, le numero et l'ordinal sont deja présents
+-- on récupère aussi le code postal sur la table ign
 DROP TABLE IF EXISTS housenumber_temp;
-CREATE TABLE housenumber_temp AS SELECT h.*, i.id as ign FROM housenumber h
+CREATE TABLE housenumber_temp AS SELECT h.*, i.id as ign, i.code_post as code_post_ign FROM housenumber h
 LEFT JOIN ign_housenumber_unique i ON (h.group_ign = i.id_pseudo_fpb and h.number=i.numero and h.ordinal=i.rep);
 DROP TABLE housenumber;
 ALTER TABLE housenumber_temp RENAME TO housenumber;
 CREATE INDEX idx_housenumber_ign ON housenumber(ign);
 
 -- ajout des hn ign pas encore ajoutés 
-INSERT INTO housenumber(ign,group_fantoir,group_ign,group_laposte,number,ordinal,code_insee) 
-SELECT i.id, g.id_fantoir,i.id_pseudo_fpb, g.laposte, i.numero, i.rep, g.code_insee from ign_housenumber_unique i
+INSERT INTO housenumber(ign,group_fantoir,group_ign,group_laposte,number,ordinal,code_insee,code_post_ign) 
+SELECT i.id, g.id_fantoir,i.id_pseudo_fpb, g.co_voie, i.numero, i.rep, g.code_insee, i.code_post from ign_housenumber_unique i
 left join housenumber h on (h.ign = i.id)
 LEFT JOIN group_fnal g ON (g.id_pseudo_fpb = i.id_pseudo_fpb)
 WHERE h.ign is null and g.id_pseudo_fpb is not null;
 
 -- mise à jour de l'id poste sur housenumber pour les hn dont le group poste, le numero et l'ordinal sont deja présents
+-- on met aussi à jour le code postal et la ligne 5
 DROP TABLE IF EXISTS housenumber_temp;
-CREATE TABLE housenumber_temp AS SELECT h.*, p.co_cea as laposte FROM housenumber h
+CREATE TABLE housenumber_temp AS SELECT h.*, p.co_cea as laposte, p.co_postal, p.lb_l5 FROM housenumber h
 LEFT JOIN ran_housenumber as p ON (h.group_laposte = p.co_voie and h.number=p.no_voie and h.ordinal=p.lb_ext);
 DROP TABLE housenumber;
 ALTER TABLE housenumber_temp RENAME TO housenumber;
 CREATE INDEX idx_housenumber_laposte ON housenumber(laposte);
 
 -- ajout des hn laposte pas encore ajoutés
-INSERT INTO housenumber(laposte,group_fantoir,group_ign,group_laposte,number,ordinal,code_insee)
-SELECT p.co_cea, g.id_fantoir, g.id_pseudo_fpb,p.co_voie, p.no_voie, p.lb_ext, g.code_insee from ran_housenumber p
+INSERT INTO housenumber(laposte,group_fantoir,group_ign,group_laposte,number,ordinal,code_insee,co_postal,lb_l5)
+SELECT p.co_cea, g.id_fantoir, g.id_pseudo_fpb,p.co_voie, p.no_voie, p.lb_ext, g.code_insee, p.co_postal, p.lb_l5 from ran_housenumber p
 left join housenumber h on (h.laposte = p.co_cea)
-LEFT JOIN group_fnal g ON (g.laposte = p.co_voie)
-WHERE h.laposte is null and g.laposte is not null
+LEFT JOIN group_fnal g ON (g.co_voie = p.co_voie)
+WHERE h.laposte is null and g.co_voie is not null
 AND co_insee like '90%';
+
+-- si le co_postal est vide, on le remplit avec le code postal ign
+UPDATE housenumber SET co_postal = code_post_ign WHERE (co_postal is null or co_postal = '') and (code_post_ign is not null and code_post_ign <> '');
 
 -- ajout CIA, source_init
 DROP TABLE IF EXISTS housenumber_temp;
@@ -121,10 +128,6 @@ CREATE INDEX idx_housenumber_cia ON housenumber(cia);
 CREATE INDEX idx_housenumber_ign ON housenumber(ign);
 
 -------------- TODO 
--- ajout postcode vide
-ALTER TABLE housenumber ADD COLUMN postcode_code varchar;
--- ajout ligne 5 vide
-ALTER TABLE housenumber ADD COLUMN lb_l5 varchar;
 -- ajout ancestor ign vide
 ALTER TABLE housenumber ADD COLUMN ancestor_ign varchar;
 
@@ -154,10 +157,6 @@ LEFT JOIN group_fnal g ON (g.id_pseudo_fpb = p.id_pseudo_fpb);
 DROP TABLE ign_position;
 ALTER TABLE ign_position_temp RENAME TO ign_position;
 
-
-
-----------------------------------------------------------------------------------
--- POSITION DGFIP
 
 
 ---------------------------------------------------------------------------------

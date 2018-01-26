@@ -121,10 +121,8 @@ CREATE INDEX idx_ign_group_id_poste ON ign_group(id_poste);
 
 ----------------------
 -- GROUP LA POSTE
--- Creation de la colonne laposte
-ALTER TABLE ran_group DROP COLUMN IF EXISTS laposte;
-ALTER TABLE ran_group ADD COLUMN laposte varchar;
-UPDATE ran_group SET laposte=right('0000000'||co_voie,8);
+-- On complete le co_voie a 8 caracteres
+UPDATE ran_group SET co_voie=right('0000000'||co_voie,8) where length(co_voie) <> 8;
 
 -- création d'un champ nom normalisé (majuscule, desaccentué, suppression des doubles espaces, remplacement - et ' par espace)
 --ALTER TABLE ran_group DROP COLUMN IF EXISTS nom_norm;
@@ -140,6 +138,9 @@ UPDATE ran_group SET kind='area' WHERE kind is null;
 
 -- Fusion de commune : si le groupe ran ne pointe pas vers un insee du cog, mais vers un insee ancien impliquee dans une fusion de commune, on le redirige vers le nouvel insee
 UPDATE ran_group SET co_insee=f.insee_new FROM fusion_commune AS f, insee_cog WHERE ran_group.co_insee = f.insee_old AND co_insee NOT IN (SELECT insee from insee_cog);
+
+-- quelques indexes
+CREATE INDEX idx_ran_group_co_voie ON ran_group(co_voie);
 
 ----------------------
 -- NOMS CADASTRE PREPARATION
