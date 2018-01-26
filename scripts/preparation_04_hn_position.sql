@@ -184,7 +184,7 @@ WHERE p.cia is not null AND d.cia is not null AND d.cia <> '' AND ign is not nul
 AND st_distance(ST_GeographyFromText('POINT('||p.lon||' '||p.lat||')'),ST_GeographyFromText('POINT('||d.lon||' '||d.lat||')'))>5
 and insee_com like '90%';
 
--- Ajout des positions ign "segment" pour les housenumbers qui n'ont pas de position
+-- Ajout des positions ign "segment" et "area" pour les housenumbers qui n'ont pas de position
 DROP TABLE IF EXISTS housenumber_without_entrance;
 CREATE TABLE housenumber_without_entrance as SELECT h.ign FROM housenumber h 
 LEFT JOIN position p1 ON (p1.housenumber_ign = h.ign)
@@ -196,13 +196,14 @@ CREATE INDEX idx_housenumber_without_entrance_ign ON housenumber_without_entranc
 INSERT INTO position(cia,lon,lat,ign,housenumber_ign,kind,positioning,name,source_init) 
 SELECT cia,round(lon::numeric,6),round(lat::numeric,6),id,id_hn,kind,positioning,designation_de_l_entree,'IGN' FROM ign_position p
 LEFT JOIN housenumber_without_entrance h ON (h.ign = p.id_hn)
-WHERE kind = 'segment' AND h.ign is not null;
+WHERE (kind = 'segment' OR kind = 'area') AND h.ign is not null;
 
--- Ajout des positions ign non présentes de type segment et qui ont un nom
+-- Ajout des positions ign non présentes de type segment ou area et qui ont un nom
 INSERT INTO position(cia,lon,lat,ign,housenumber_ign,kind,positioning,name,source_init)
 SELECT i.cia,round(i.lon::numeric,6),round(i.lat::numeric,6),i.id,i.id_hn,i.kind,i.positioning,i.designation_de_l_entree,'IGN' FROM ign_position i
 LEFT JOIN position p ON (i.id = p.ign)
-WHERE p.ign is null and i.designation_de_l_entree is not null and i.designation_de_l_entree <> '' and i.kind = 'segment';
+WHERE p.ign is null and i.designation_de_l_entree is not null and i.designation_de_l_entree <> '' 
+and (i.kind = 'segment' or i.kind = 'area');
 
 -- on rabbat le code insee de hn
 DROP TABLE IF EXISTS position_temp;
