@@ -9,27 +9,33 @@
 DROP TABLE IF EXISTS libelles;
 
 -- libelles nom IGN
-CREATE TABLE libelles AS SELECT nom_maj AS long, trim(regexp_replace(replace(replace(nom_maj,'Œ','OE'),'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g')) AS court FROM ign_group;
+CREATE TABLE libelles AS SELECT nom_maj AS long, trim(nom_maj) AS court FROM ign_group;
 CREATE INDEX idx_libelles_long ON libelles (long);
 
 -- libelles afnor contenu dans les donnes ign
-INSERT INTO libelles SELECT nom_afnor AS long, regexp_replace(replace(nom_afnor,'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g') AS court FROM ign_group LEFT JOIN libelles ON (long=nom_afnor) WHERE long IS NULL GROUP BY 1,2;
+INSERT INTO libelles SELECT nom_afnor AS long, trim(nom_afnor) AS court FROM ign_group LEFT JOIN libelles ON (long=nom_afnor) WHERE long IS NULL GROUP BY 1,2;
 
 -- libelles nom FANTOIR
-INSERT INTO libelles SELECT nom_maj AS long, trim(regexp_replace(replace(nom_maj,'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g')) AS court FROM dgfip_fantoir f left join libelles l ON (long=nom_maj) WHERE long IS NULL GROUP BY 1,2;
+INSERT INTO libelles SELECT nom_maj AS long, trim(nom_maj) AS court FROM dgfip_fantoir f left join libelles l ON (long=nom_maj) WHERE long IS NULL GROUP BY 1,2;
 
 -- libellés RAN
-INSERT INTO libelles SELECT lb_voie AS long, regexp_replace(replace(lb_voie,'LIEU DIT ',''),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g') AS court FROM ran_group LEFT JOIN libelles ON (long=lb_voie) WHERE long IS NULL GROUP BY 1,2;
+INSERT INTO libelles SELECT lb_voie AS long, trim(lb_voie) AS court FROM ran_group LEFT JOIN libelles ON (long=lb_voie) WHERE long IS NULL GROUP BY 1,2;
 
 -- index par trigram sur le libellé court
 create index libelle_trigram on libelles using gin (court gin_trgm_ops);
 analyze libelles;
 
+-- nettoyage pour ne conserver que les chiffres et lettres
+UPDATE libelles SET court = regexp_replace(regexp_replace(court,'[^A-Z 0-9]',' ','g'),'  *',' ','g') WHERE court ~ '[^A-Z 0-9]';
+
+-- suppression des articles
+UPDATE libelles SET regexp_replace(court,'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g') WHERE court ~ '(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*';
+
+UPDATE libelles SET court = regexp_replace(replace(court,'Œ','OE'),'^(LIEU DIT|LD) ','');
+
 -- élimination des libélés répétés XXX/XXX
 update libelles set court = regexp_replace(court,'^(.*)[/ ]\1$','\1') where court ~ '^(.*)[/ ]\1$';
 
--- nettoyage pour ne conserver que les chiffres et lettres
-UPDATE libelles SET court = regexp_replace(regexp_replace(court,'[^A-Z 0-9]',' ','g'),'  *',' ','g') WHERE court ~ '[^A-Z 0-9]';
 
 -- libellés: 0 à la place des O
 update libelles set court = replace(replace(replace(replace(replace(replace(replace(replace(court,'0S','OS'),'0N','ON'),'0U','OU'),'0I','OI'),'0R','OR'),'C0','CO'),'N0','NO'),'L0','L ') where court ~ '[^0-9 ][0][^0-9 ]';
