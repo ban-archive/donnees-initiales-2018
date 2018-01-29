@@ -156,6 +156,9 @@ update libelles set court=regexp_replace(court,' (SECOND|SECONDAI|SECONDAIR|SECO
 WITH u AS (SELECT cent+diz+num as quantieme,format(' (%s EM|%sEM|%s EME|%sEME|%s)(E|ES|S|)( |$)',cent+diz+num,cent+diz+num,cent+diz+num,cent+diz+num,trim(txt_cent||' '||txt_diz||' '||txt)) AS re FROM (SELECT regexp_split_to_table(',CENT,DEUX CENT,TROIS CENT,QUATRE CENT,CINQ CENT,SIX CENT,SEPT CENT,HUIT CENT,NEUF CENT',',') AS txt_cent, generate_series(0,9)*100 AS cent) centaine, (SELECT regexp_split_to_table(',DIX,VINGT,TRENTE,QUARANTE,CINQUANTE,SOIXANTE,SOIXANTE DIX,QUATRE VINGT,QUATRE VINGT DIX',',') AS txt_diz, generate_series(0,90,10) AS diz) dizaine, (SELECT regexp_split_to_table('UNIEME,DEUXIEME,TROISIEME,QUATRIEME,CINQUIEME,SIXIEME,SEPTIEME,HUITIEME,NEUVIEME,DIXIEME,ONZIEME,DOUZIEME,TREIZIEME,QUATORZIEME,QUINZIEME,SEIZIEME',',') AS txt, generate_series(1,16) AS num) AS q ORDER BY quantieme DESC)
   UPDATE libelles SET court = regexp_replace(court,re,format(' %sE\3',quantieme)) FROM u WHERE court ~ re;
 
+-- nombres au pluriel -> singulier
+UPDATE libelles SET court = regexp_replace(court,' (UN|QUATRE|CINQ|SEPT|HUIT|NEUF|ONZE|DOUZE|TREIZE|QUATORZE|QUINZE|SEIZE|VINGT|TRENTE|QUARANTE|CINQUANTE|SOIXANTE|CENT)S( |$)',' \1\2','g') where court ~ ' (UN|QUATRE|CINQ|SEPT|HUIT|NEUF|ONZE|DOUZE|TREIZE|QUATORZE|QUINZE|SEIZE|VINGT|TRENTE|QUARANTE|CINQUANTE|SOIXANTE|CENT)S( |$)';
+
 -- suppression finale des mot répétés (de 2 lettres minimum)
 update libelles set court= regexp_replace(court,'( |$)([A-Z]{2,}) \2( |$)','\1\2\3') where court ~ '( |$)([A-Z]{2,}) \2( |$)';
 
