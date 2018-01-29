@@ -29,12 +29,12 @@ analyze libelles;
 UPDATE libelles SET court = regexp_replace(regexp_replace(court,'[^A-Z 0-9]',' ','g'),'  *',' ','g') WHERE court ~ '[^A-Z 0-9]';
 
 -- suppression des articles
-UPDATE libelles SET regexp_replace(court,'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g') WHERE court ~ '(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*';
+UPDATE libelles SET court = regexp_replace(court,'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g') WHERE court ~ '(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*';
 
 UPDATE libelles SET court = regexp_replace(replace(court,'Œ','OE'),'^(LIEU DIT|LD) ','');
 
 -- élimination des libélés répétés XXX/XXX
-update libelles set court = regexp_replace(court,'^(.*)[/ ]\1$','\1') where court ~ '^(.*)[/ ]\1$';
+UPDATE libelles SET court = regexp_replace(court,'^(.*)[/ ]\1$','\1') WHERE court ~ '^(.*)[/ ]\1$';
 
 
 -- libellés: 0 à la place des O
@@ -54,7 +54,7 @@ update libelles set court=regexp_replace(replace(regexp_replace(court,'(^| )(CD 
 update libelles set court = regexp_replace(court,'^(CH|CHE|CHEM|CHEMIN) (CD|RD) ','CD ') where court ~ '^(CH|CHE|CHEM|CHEMIN) (CD|RD) ' and long !~ 'DU.* (A|AU) ';
 
 -- abbreviation des types de voies dans les libelles court (environ 1.7 millions de lignes) (remarque on ne met pas l'option g car autrement on risque de remplacer les chaines de caractères de milieu de mot)
-with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,u.txt_long, u.txt_court) from u where court ~ (txt_long||' ') and regexp_replace(court,u.txt_long, u.txt_court) <> court;
+with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,'([A-Z])'||u.txt_long, '\1'||u.txt_court) from u where court ~ ('([A-Z])'||txt_long||' ') and regexp_replace(court,u.txt_long, u.txt_court) <> court;
 
 -- une deuxième fois pour les doubles abbréviations (environ 126 000 lignes)
 with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,u.txt_long, u.txt_court) from u where court ~ (txt_long||' ') and regexp_replace(court,u.txt_long, u.txt_court) <> court;
