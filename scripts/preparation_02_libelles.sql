@@ -93,7 +93,7 @@ update libelles set court = regexp_replace(court,' HAMEAU$','') where court ~' H
 update libelles set court = regexp_replace(court,'^HAM ','') where court ~'^HAM ';
 
 -- traitement des xxxxC'H bretons
-update libelles set court = regexp_replace(court,'C H$','CH') where court ~'C H$';
+update libelles set court = regexp_replace(court, '([A-Z]C) H( |$)','\1H\2','g') where court ~'[A-Z]C H( |$)';
 
 -- chiffres romains
 UPDATE libelles set court=regexp_replace(court,' (HENRI|LOUIS|NAPOLEON) I( |$)',' \1 1\2') where court ~ ' (HENRI|LOUIS|NAPOLEON) I( |$)';
