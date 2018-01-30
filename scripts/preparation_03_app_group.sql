@@ -6,6 +6,37 @@
 \timing
 
 
+----------------------------------------------------------------------
+-- FONCTION PERMETTANT DE PREPARER LES GROUPES FANTOIR ET IGN NON ENCORE APPARIES
+CREATE OR REPLACE FUNCTION prepa_non_app_fantoir_ign() RETURNS void AS $$
+BEGIN
+	-- table candidat fantoir
+	DROP TABLE IF exists dgfip_fantoir_candidat;
+	CREATE TABLE dgfip_fantoir_candidat AS SELECT f.code_insee, f.nom_maj, f.fantoir_9 from dgfip_fantoir f
+	left join ign_group_app a on (f.fantoir_9 = a.id_fantoir)
+	where a.id_fantoir is null;
+	CREATE INDEX idx_dgfip_fantoir_candidat_code_insee on dgfip_fantoir_candidat(code_insee);
+	-- table candidat ign
+	DROP TABLE IF exists ign_group_candidat;
+	CREATE TABLE ign_group_candidat AS SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.code_insee FROM ign_group i
+	LEFT JOIN ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
+	where a.id_pseudo_fpb is null;
+	CREATE INDEX idx_ign_group_candidat_code_inse on ign_group_candidat(code_insee);
+	
+END;
+$$ LANGUAGE plpgsql;
+
+------------------------------------------------------------------------
+-- FONCTION PERMETTANT D'AJOUTER LES GROUPES IGN APPARIES de ign_group_app2 DANS les appariemenst généraux de ign_group_app avec le bon commentaire 
+CREATE OR REPLACE FUNCTION insert_app_fantoir_ign(commentaire text) RETURNS void AS $$
+BEGIN
+INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire,id_fantoir_old)
+SELECT a.id_fantoir,a.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, $1, fantoir_ign from ign_group_app2 a
+LEFT JOIN ign_group i ON (i.id_pseudo_fpb = a.id_pseudo_fpb);
+END;
+$$ LANGUAGE plpgsql;
+
+
 -----------------------------------------------------------------------------------------------------------------------------------
 -- APPARIEMENT Groupes FANTOIR - IGN
 
@@ -41,47 +72,26 @@ and ab1.nom_court is not null and ab1.nom_court = ab2.nom_court
 and regexp_replace(l1.court,'^.* ', '') = regexp_replace(l2.court,'^.* ', '')
 and regexp_replace(l1.court,'^.* ', '') != ab1.nom_court;
 
+
 -- groupe ign (avec ou sans fantoir) et groupe fantoir non apparié précédemment.
 -- --> appariement par les nom maj (on ne fait que les cas 1-1)
 -- Par exemple :
 --    si le fantoir (sans id ign) contient une seule "RUE DE L'EGLISE" et l'IGN (sans fantoir) un seule "RUE DE L'EGLISE", OK
 --    si le fantoir (sans id ign) contient deux "RUE DE L'EGLISE" et l'IGN (sans fantoir) un seule "RUE DE L'EGLISE", appariement NOK
 --    si le fantoir (sans id ign) contient une "RUE DE L'EGLISE" et l'IGN (sans fantoir) deux "RUE DE L'EGLISE", appariement NOK
-DROP TABLE IF exists dgfip_fantoir_candidat;
--- table candidat fantoir
-CREATE TABLE dgfip_fantoir_candidat AS SELECT f.code_insee, f.nom_maj, f.fantoir_9 from dgfip_fantoir f
-left join ign_group_app a on (f.fantoir_9 = a.id_fantoir)
-where a.id_fantoir is null;
-CREATE INDEX idx_dgfip_fantoir_candidat_code_insee on dgfip_fantoir_candidat(code_insee);
--- table candidat ign
-DROP TABLE IF exists ign_group_candidat;
-CREATE TABLE ign_group_candidat AS SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.code_insee FROM ign_group i
-LEFT JOIN ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
-where a.id_pseudo_fpb is null;
-CREATE INDEX idx_ign_group_candidat_code_inse on ign_group_candidat(code_insee);
+-- Préparatiobn des tables des objets ign et fantoir non encore apparies
+SELECT prepa_non_app_fantoir_ign();
 -- appariement
 DROP TABLE IF exists ign_group_app2;
 CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,f.nom_maj from dgfip_fantoir_candidat as f, ign_group_candidat as i where f.code_insee = i.code_insee and f.nom_maj = i.nom_maj group by f.code_insee,f.nom_maj having count(*) = 1;
 -- injection dans la table des groupes ign appariés
-INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire,id_fantoir_old)
-SELECT a.id_fantoir,a.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'nom maj ign = nom maj fantoir, appariement 1-1', fantoir_ign from ign_group_app2 a
-LEFT JOIN ign_group i ON (i.id_pseudo_fpb = a.id_pseudo_fpb);
+select insert_app_fantoir_ign('nom maj ign = nom maj fantoir, appariement 1-1');
 
 
 -- groupe ign (avec ou sans fantoir) et groupe fantoir non apparié précédemment.
 -- --> appariement par les nom court (on ne fait que les cas 1-1)
-DROP TABLE IF exists dgfip_fantoir_candidat;
---i table candidat fantoir
-CREATE TABLE dgfip_fantoir_candidat AS SELECT f.code_insee, f.nom_maj, f.fantoir_9 from dgfip_fantoir f
-left join ign_group_app a on (f.fantoir_9 = a.id_fantoir)
-where a.id_fantoir is null;
-CREATE INDEX idx_dgfip_fantoir_candidat_code_insee on dgfip_fantoir_candidat(code_insee);
--- table candidat ign
-DROP TABLE IF exists ign_group_candidat;
-CREATE TABLE ign_group_candidat AS SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.code_insee FROM ign_group i
-LEFT JOIN ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
-where a.id_pseudo_fpb is null;
-CREATE INDEX idx_ign_group_candidat_code_inse on ign_group_candidat(code_insee);
+-- Préparatiobn des tables des objets ign et fantoir non encore apparies
+SELECT prepa_non_app_fantoir_ign();
 -- appariement
 DROP TABLE IF exists ign_group_app2;
 CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court
@@ -89,20 +99,67 @@ from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles
 where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj and l1.court = l2.court
 group by f.code_insee,l1.court having count(*) = 1;
 -- injection dans la table des groupes ign appariés
-INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire,id_fantoir_old)
-SELECT a.id_fantoir,a.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'nom court ign = nom court fantoir, appariement 1-1', fantoir_ign from ign_group_app2 a
-LEFT JOIN ign_group i ON (i.id_pseudo_fpb = a.id_pseudo_fpb);
+select insert_app_fantoir_ign('nom court ign = nom court fantoir, appariement 1-1');
+
+
+-- groupe ign avec fantoir, nom court ign = nom court fantoir + (E|S|X) (EGLISE STE AGATHE <-> EGLISE STE AGATH) 
+-- Préparatiobn des tables des objets ign et fantoir non encore apparies
+SELECT prepa_non_app_fantoir_ign();
+-- appariement
+DROP TABLE IF exists ign_group_app2;
+CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb from ign_group_candidat i
+LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
+where (l1.court = l2.court || 'E' or l1.court = l2.court || 'S' or l1.court = l2.court || 'X' or l2.court = l1.court || 'E' or l2.court = l1.court || 'S' or l2.court = l1.court || 'X') and f.nom_maj is not null and f.nom_maj <> '';
+-- injection dans la table des groupes ign appariés
+select insert_app_fantoir_ign('fantoir = id fantoir ign, nom court fantoir + (E|S|X) = nom court ign + (E|S|X)');
+
+-- groupe ign avec fantoir, trigram (nom court ign = nom court fantoir) = 0 (RUE VERCRAZ BAS <-> RUE BAS VERCRAZ)
+-- Préparatiobn des tables des objets ign et fantoir non encore apparies
+SELECT prepa_non_app_fantoir_ign();
+-- appariement
+DROP TABLE IF exists ign_group_app2;
+CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb from ign_group_candidat i
+LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
+where l1.court <-> l2.court = 0 and length(l1.court) > 6 
+and f.nom_maj is not null and f.nom_maj <> '';
+-- injection dans la table des groupes ign appariés
+select insert_app_fantoir_ign('fantoir = id fantoir ign, trigram (nom court ign = nom court fantoir) = 0');
+
+
+
+
+-- group ign avec fantoir,  nom court ign = nom court fantoir au mot directeur près (Ex RUE VERDUN <-> RTE VERDUN)
+-- pas d'autres candidats dans la commune avec le même type d'appariement
+-- Préparatiobn des tables des objets ign et fantoir non encore apparies
+SELECT prepa_non_app_fantoir_ign();
+-- appariement entre les groupes ign candidats et les groupes fantoir candidat (nom court ign = nom court fantoir au mot directeur près) (Ex RUE VERDUN <-> RTE VERDUN)
+-- On ne retient que les candidats 1-1 dont le fantoir ign est egal au fantoir du fantoir
+DROP TABLE IF exists ign_group_app2;
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir
+from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2,
+(select nom_court from abbrev_type_voie group by nom_court) as ab1, (select nom_court from abbrev_type_voie group by nom_court) as ab2
+where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
+and l1.court like ab1.nom_court || ' %' and l2.court like ab2.nom_court || ' %'
+and ab1.nom_court is not null and ab2.nom_court is not null and ab1.nom_court <> ab2.nom_court
+and regexp_replace(l1.court,ab1.nom_court,' ') = regexp_replace(l2.court,ab2.nom_court,' ')
+group by f.code_insee,l1.court having count(*) = 1;
+DELETE FROM ign_group_app2 WHERE id_fantoir <> fantoir_ign or fantoir_ign is null;
+-- injection dans la table des groupes ign appariés
+select insert_app_fantoir_ign('fantoir = id fantoir ign, nom court ign = nom court fantoir au mot directeur près, pas d''autres candidats sur la commune');
 
 
 -- groupe ign avec fantoir et groupe fantoir non apparié précédemment
+SELECT prepa_non_app_fantoir_ign();
 DROP TABLE IF EXISTS ign_group_non_app_with_fantoir;
-CREATE TABLE ign_group_non_app_with_fantoir AS SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, f.nom_maj as nom_maj_fantoir, l1.court as court_ign, l2.court as court_fantoir from ign_group i
-left join ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
-left join dgfip_fantoir f on (fantoir_9 = i.id_fantoir)
+CREATE TABLE ign_group_non_app_with_fantoir AS SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,f.nom_maj as nom_maj_fantoir, l1.court as court_ign, l2.court as court_fantoir from ign_group_candidat i
+left join dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
 LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
 LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
-where a.id_pseudo_fpb is null and i.id_fantoir is not null
-and fantoir_9 is not null and fantoir_9 <> '';
+where fantoir_9 is not null and fantoir_9 <> '';
 
 -- groupe ign avec fantoir et groupe fantoir non apparié précédemment
 DROP TABLE IF EXISTS ign_group_non_app;
@@ -344,4 +401,4 @@ ALTER TABLE group_fnal ADD column nom_ign_retenu varchar;
 UPDATE group_fnal SET nom_ign_retenu = upper(unaccent(nom_ign)) where nom_ign is not null and nom_ign <> '';
 
 CREATE INDEX idx_group_fnal_code_insee on group_fnal(code_insee);
-CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);
+CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);*/
