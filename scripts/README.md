@@ -31,22 +31,38 @@ Ces objets proviennent de l'import du fichier du COG donc d'une seule source.
 ### Postcode
 
 Ces objets proviennent de l'import du fichier de la Poste donc d'une seule source.
+Si un postcode ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune, on met préalablement à jour l'insee du postcode.
 
 ### Group
 
 Pour Group, nous utilisons 4 sources: les fichiers fantoir de la DGFiP, noms_cadatre.csv de la DGFiP/BANO, ran_group.csv de La Poste et ban.group.csv de l'IGN.
+Si un groupe ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune, on met préalablement à jour l'insee du groupe.
 
 Les premières étapes de l'initialisation sont les suivantes :
 - chargement de tous les groupes du FANTOIR
 - ajout des groupes IGN manquants (en utilisant l'identifiant FANTOIR contenu dans les données IGN)
 - ajout des groupes Poste manquants (en utilisant l'identifiant Poste contenu dans les données IGN)
-- Remplacement des noms de groupes par les noms DGFIP/BANO (clé d'appariement = identifiant FANTOIR) (fait sur certains départements mais pas tous)
 
-A ce stade, les noms des groupes sont issus majoritairement du fantoir et sont donc en majuscules sans accent.
-Les groupes provenant uniquement de l'IGN sont souvent en minuscules accentuées.
-Les groupes appariés avec les données DGFIP/BANO sont en minuscules accentuées capitaliseés (fait sur certains départements mais pas tous)
 
-Dans une seconde étape, on calcule le kind des groupes (way ou area). Pour cela, on utilise le fichier abbre.csv qui donne le types des groupes en fonction du premier mot du groupe.  
+Le nom conservé sur les groupes est par ordre de priorité :
+- le libellé de La Poste
+- le nom IGN
+- le nom fantoir
+
+De plus, si le nom retenu est identique au nom DGFIP/BANO (après normalisation), on retient le nom DGFIP/BANO.
+
+Le champ attributes contient :
+- les sources du groupe 
+- la source du nom retenu 
+- les noms dans les sources d'origine. 
+Exemple : "attributes":{"source_init":"{FANTOIR,IGN,LAPOSTE}","source_name_init":"CADASTRE" ,"fantoir_name_init":"RUE DU LIEUTENANT MULLER" ,"ign_name_init":"rue du capitaine muller" ,"laposte_name_init":"RUE DU LIEUTENANT MULLER"}
+
+On notera que:
+- les noms provenant uniquement de l'IGN sont souvent en minuscules accentuées.
+- les noms provenant de la DGFIP/BANO sont en minuscules accentuées capitaliseés
+- les noms fantoir et la poste sont en majuscule
+
+Le kind des groupes (way ou area) est calculé à partir du nom retenu et de la liste des abbréviations du fichier abbre.csv qui donne le types des groupes en fonction du premier mot du groupe.  
 Exemples: RUE, BOULEVARD, AVENUE ont un kind="way"; LOTISSEMENT, ZONE COMMERCIALE, CENTRE ont un kind="area"
 
 
@@ -61,10 +77,16 @@ Les étapes de l'initialisation sont les suivantes :
 
 Puis des housenumber sans numéro sont créés pour chaque groupe "La Poste" pour stocker le cea.
 
+Le champ attributes contient les sources du groupe.
+Exemple : 
+
 
 ### Position
 
 Pour Position, nous utilisons 2 sources : cadastre.csv de la DGFiP/BANO et ban.house_numbe.csv de l'IGN.
+
+Le champ attributes contient les sources du groupe.
+Exemple : 
 
 Au préalable, on notera que les positions provenant de l'IGN ont un champ indiquant leur qualité géométrique qui peut prendre les valeurs suivantes:
 - "à la plaque"
@@ -120,6 +142,8 @@ Dans <base_temp> :
 - create extension postgis;
 - create extension hstore;
 - create extension unaccent;
+- create extension fuzzystrmatch;
+- create extension pg_trgm;
 
 Exporter les variables d'environnement :
 - export PGDATABASE=<base_temp>
@@ -139,8 +163,9 @@ Lancer les shells :
 - import_ign.sh : importe les données IGN dans les tables ign_municipality, ign_group, ign_housenumber
 - import_la_poste.sh : importe les données La Poste dans les tables poste_cp, ran_group, ran_housenumber
 
-### Préparation des données et export en json
-Lancer le shell export_json.sh
+### Préparation des données et export en json 
+Pour chaque département, Lancer le shell export_json.sh <OutputPath> <dep>
 
 ### Intégration des jsons dans la ban
-Dans un répertoire qui a accès aux commandes de l'API (avec le banenv activé), lancer le shell import_json_in_ban.sh
+Activer le banenv (pour avoir accès aux commandes de l'API).
+Pour chaque département, lancer le shell import_json_in_ban.sh <JsonPathDep>
