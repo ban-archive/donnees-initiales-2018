@@ -103,6 +103,24 @@ group by f.code_insee,l1.court having count(*) = 1;
 select insert_app_fantoir_ign('nom court ign = nom court fantoir, appariement 1-1');
 
 
+-- groupe ign avec fantoir, fantoir = id fantoir ign, nom court ign like 'ENCEINTE xxx' et nom court fantoir ='EN xxx' 
+-- Préparatiobn des tables des objets ign et fantoir non encore apparies
+SELECT prepa_non_app_fantoir_ign();
+-- appariement
+DROP TABLE IF exists ign_group_app2;
+CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb,null::real as trigram from ign_group_candidat i
+LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir) 
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
+where l1.court like 'ENCEINTE %'  and l2.court like 'EN %' 
+and regexp_replace(l1.court,'^ENCEINTE ','') = regexp_replace(l2.court,'^EN ','')
+and f.nom_maj is not null and f.nom_maj <> '' and length(l1.court) > 11;
+-- injection dans la table des groupes ign appariés
+select insert_app_fantoir_ign('fantoir = id fantoir ign,  nom court ign like ''ENCEINTE xxx'' et nom court fantoir =''EN xxx''');
+-- Pour ces cas, on remplace ENCEINTE PAR EN dans le nom_maj_ign
+update ign_group_app set nom_maj = regexp_replace(nom_maj,'^ENCEINTE ','EN ') where nom_maj like 'ENCEINTE %' and commentaire like '%ENCEINTE%'; 
+
+
 -- groupe ign avec fantoir, fantoir = id fantoir ign, nom court ign = nom court fantoir + (E|S|X) (EGLISE STE AGATHE <-> EGLISE STE AGATH) 
 -- Préparatiobn des tables des objets ign et fantoir non encore apparies
 SELECT prepa_non_app_fantoir_ign();
@@ -129,6 +147,30 @@ where l1.court <-> l2.court = 0 and length(l1.court) > 6
 and f.nom_maj is not null and f.nom_maj <> '';
 -- injection dans la table des groupes ign appariés
 select insert_app_fantoir_ign('fantoir = id fantoir ign, trigram (nom court ign = nom court fantoir) = 0');
+
+
+-- groupe ign avec fantoir, fantoir = id fantoir ign, nom court ign = EN + nom court fantoir ou EN nom court ign = EN (collé) nom court fantoir
+-- pas d'autres candidats dans la commune avec le même type d'appariement
+-- Préparatiobn des tables des objets ign et fantoir non encore apparies
+SELECT prepa_non_app_fantoir_ign();
+-- On ne retient que les candidats 1-1 dont le fantoir ign est egal au fantoir du fantoir
+DROP TABLE IF exists ign_group_app2;
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,null::real as trigram
+from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2
+where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
+and l2.court like 'EN %' and l1.court = regexp_replace(l2.court,'^EN ','')
+group by f.code_insee,l1.court having count(*) = 1;
+INSERT INTO ign_group_app2(id_fantoir,fantoir_ign,id_pseudo_fpb,court_ign,court_fantoir,trigram)
+select max(fantoir_9), max(id_fantoir),max(id_pseudo_fpb),l1.court, max(l2.court),null
+from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2
+where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
+and l1.court like 'EN %' and regexp_replace(l1.court,'^EN ','EN') = l2.court
+group by f.code_insee,l1.court having count(*) = 1;
+
+DELETE FROM ign_group_app2 WHERE id_fantoir <> fantoir_ign or fantoir_ign is null;
+-- injection dans la table des groupes ign appariés
+select insert_app_fantoir_ign('fantoir = id fantoir ign, nom court ign = nom court fantoir au EN près, pas d''autres candidats sur la commune');
+
 
 
 -- group ign avec fantoir,  fantoir = id fantoir ign, nom court ign = nom court fantoir au type de voie près (Ex RUE VERDUN <-> RTE VERDUN)
@@ -460,6 +502,8 @@ WHERE group_fnal.id = a.id;
 -- ajout du champ ign retenu (passage en majuscules simple et autres ...)
 ALTER TABLE group_fnal ADD column nom_ign_retenu varchar;
 UPDATE group_fnal SET nom_ign_retenu = upper(unaccent(nom_ign)) where nom_ign is not null and nom_ign <> '';
+-- Pour ces cas, on remplace ENCEINTE PAR EN dans le nom_maj_ign
+update group_fnal set nom_ign_retenu = regexp_replace(nom_ign_retenu,'^ENCEINTE ','EN ') where nom_ign_retenu like 'ENCEINTE %' and commentaire_app_ign like '%ENCEINTE%';
 
 CREATE INDEX idx_group_fnal_code_insee on group_fnal(code_insee);
 CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);*/
