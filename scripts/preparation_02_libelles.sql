@@ -21,21 +21,27 @@ INSERT INTO libelles SELECT nom_maj AS long, trim(nom_maj) AS court FROM dgfip_f
 -- libellés RAN
 INSERT INTO libelles SELECT lb_voie AS long, trim(lb_voie) AS court FROM ran_group LEFT JOIN libelles ON (long=lb_voie) WHERE long IS NULL GROUP BY 1,2;
 
--- index par trigram sur le libellé court
-create index libelle_trigram on libelles using gin (court gin_trgm_ops);
-analyze libelles;
-
 -- nettoyage pour ne conserver que les chiffres et lettres
 UPDATE libelles SET court = regexp_replace(regexp_replace(court,'[^A-Z 0-9]',' ','g'),'  *',' ','g') WHERE court ~ '[^A-Z 0-9]';
 
 -- suppression des articles
-UPDATE libelles SET court = regexp_replace(court,'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g') WHERE court ~ '(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*';
+DROP TABLE IF EXISTS libelles2;
+CREATE TABLE libelles2 AS SELECT long,trim(regexp_replace(court,'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g')) as court FROM libelles WHERE court ~ '(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*';
+DROP TABLE libelles;
+ALTER TABLE libelles2 RENAME TO libelles;
 
-UPDATE libelles SET court = regexp_replace(replace(court,'Œ','OE'),'^(LIEU DIT|LD) ','');
+-- index par trigram sur le libellé court
+create index libelle_trigram on libelles using gin (court gin_trgm_ops);
+analyze libelles;
+
+-- oe
+UPDATE libelles SET court = replace(court,'Œ','OE') where court ~ 'Œ'; 
+
+-- LD
+UPDATE libelles SET court = regexp_replace(court,'^(LIEU DIT|LD) ','') where court ~ '^(LIEU DIT|LD) ';
 
 -- élimination des libélés répétés XXX/XXX
 UPDATE libelles SET court = regexp_replace(court,'^(.*)[/ ]\1$','\1') WHERE court ~ '^(.*)[/ ]\1$';
-
 
 -- libellés: 0 à la place des O
 update libelles set court = replace(replace(replace(replace(replace(replace(replace(replace(court,'0S','OS'),'0N','ON'),'0U','OU'),'0I','OI'),'0R','OR'),'C0','CO'),'N0','NO'),'L0','L ') where court ~ '[^0-9 ][0][^0-9 ]';
@@ -53,31 +59,29 @@ update libelles set court=regexp_replace(replace(regexp_replace(court,'(^| )(CD 
 -- CH/CHE/CHEM/CHEMIN CD/RD... sans les DU xxx AU yyy
 update libelles set court = regexp_replace(court,'^(CH|CHE|CHEM|CHEMIN) (CD|RD) ','CD ') where court ~ '^(CH|CHE|CHEM|CHEMIN) (CD|RD) ' and long !~ 'DU.* (A|AU) ';
 
--- abbreviation des types de voies dans les libelles court (environ 1.7 millions de lignes) (remarque on ne met pas l'option g car autrement on risque de remplacer les chaines de caractères de milieu de mot)
-with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,'([A-Z])'||u.txt_long, '\1'||u.txt_court) from u where court ~ ('([A-Z])'||txt_long||' ') and regexp_replace(court,u.txt_long, u.txt_court) <> court;
+-- abbreviation (des types de voies et autres) dans les libelles court  
+-- passe 1 (environ 1.85 millions d'occurences)
+--with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,'([A-Z])'||u.txt_long, '\1'||u.txt_court) from u where court ~ ('([A-Z])'||txt_long||' ') and regexp_replace(court,u.txt_long, u.txt_court) <> court;
+--with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,'(^| )'||u.txt_long || ' ', '\1'||u.txt_court || ' ') from u where court ~ ('(^| )'||u.txt_long || ' ') and regexp_replace(court,'(^| )'||u.txt_long || ' ', '\1'||u.txt_court || ' ') <> court;
+with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,'\y'||u.txt_long || '\y',u.txt_court) from u where court ~ ('\y'||u.txt_long || '\y') and regexp_replace(court,'\y'||u.txt_long || '\y', ''||u.txt_court || '') <> court;
 
--- une deuxième fois pour les doubles abbréviations (environ 126 000 lignes)
-with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,u.txt_long, u.txt_court) from u where court ~ (txt_long||' ') and regexp_replace(court,u.txt_long, u.txt_court) <> court;
+-- une deuxième fois pour les doubles abbréviations (environ 226 000 lignes)
+with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,'\y'||u.txt_long || '\y',u.txt_court) from u where court ~ ('\y'||u.txt_long || '\y') and regexp_replace(court,'\y'||u.txt_long || '\y', ''||u.txt_court || '') <> court;
 
--- une troisième fois (environ 2860 lignes)
-with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,u.txt_long, u.txt_court) from u where court ~ (txt_long||' ') and regexp_replace(court,u.txt_long, u.txt_court) <> court;
+-- une troisième fois (environ 13 000 lignes)
+with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,'\y'||u.txt_long || '\y',u.txt_court) from u where court ~ ('\y'||u.txt_long || '\y') and regexp_replace(court,'\y'||u.txt_long || '\y', ''||u.txt_court || '') <> court;
 
--- une quatrième fois (environ 136 lignes)
-with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,u.txt_long, u.txt_court) from u where court ~ (txt_long||' ') and regexp_replace(court,u.txt_long, u.txt_court) <> court;
+-- une quatrième fois (environ 518 lignes)
+with u as (select * from abbrev order by length(txt_long) desc) update libelles set court = regexp_replace(court,'\y'||u.txt_long || '\y',u.txt_court) from u where court ~ ('\y'||u.txt_long || '\y') and regexp_replace(court,'\y'||u.txt_long || '\y', ''||u.txt_court || '') <> court;
 
--- correction de quelques scories
+-- correction de quelques scories 
 update libelles set court = 'GR' where court = 'GD RUE';
+update libelles set court = 'GR' where court = 'GDE GR';
 update libelles set court = 'GR' where court = 'GDE RUE';
-update libelles set court = 'GR' where court = 'GRD RUE';
 update libelles set court = 'GR' where court = 'GR GRD RUE';
-update libelles set court = 'GR' where court = 'GR GD RUE';
-update libelles set court = 'GR' where court = 'GR RUE';
-update libelles set court = 'GR' where court = 'RUE GDE RUE';
-update libelles set court = 'GR' where court = 'RUE GRANDE';
-update libelles set court = 'PTR' where court = 'PETITE RUE';
-update libelles set court = 'PTR' where court = 'PTR PETITE RUE';
+update libelles set court = 'ZA' where court = 'ZA ZA';
+update libelles set court = 'ZI' where court = 'ZI ZI';
 update libelles set court = regexp_replace (court,'^R ','RUE ') where court ~ '^R ';
-update libelles set court = 'PETITE IMPASSE' where court = 'IMP PETITE IMPASSE';
 
 -- simplification anciens CHEMINS de différentes natures (ruraux, communaux, ordinaires, vicinaux, etc)
 update libelles set court = regexp_replace(court,'^AN(C|) (CH|CHE|CHEM|CHEMIN|C R|CR|C C|CC|CV|C V|CVO|C V O)( RURAL| COMMUNAL| VICINAL| ORDINAIRE|)( DIT |) ','ACH ')
@@ -153,8 +157,10 @@ update libelles set court=regexp_replace(court,' (SECOND|SECONDAI|SECONDAIR|SECO
 -- quantièmes... cas généraux jusqu'à 999 !
 -- la requête génère toutes les combinaisons des quantièmes par unité, dizaine, centaine
 -- certaines sont incorrectes (QUATRE VING DIX SEIZIEME), mais ne seront jamais trouvées
-WITH u AS (SELECT cent+diz+num as quantieme,format(' (%s EM|%sEM|%s EME|%sEME|%s)(E|ES|S|)( |$)',cent+diz+num,cent+diz+num,cent+diz+num,cent+diz+num,trim(txt_cent||' '||txt_diz||' '||txt)) AS re FROM (SELECT regexp_split_to_table(',CENT,DEUX CENT,TROIS CENT,QUATRE CENT,CINQ CENT,SIX CENT,SEPT CENT,HUIT CENT,NEUF CENT',',') AS txt_cent, generate_series(0,9)*100 AS cent) centaine, (SELECT regexp_split_to_table(',DIX,VINGT,TRENTE,QUARANTE,CINQUANTE,SOIXANTE,SOIXANTE DIX,QUATRE VINGT,QUATRE VINGT DIX',',') AS txt_diz, generate_series(0,90,10) AS diz) dizaine, (SELECT regexp_split_to_table('UNIEME,DEUXIEME,TROISIEME,QUATRIEME,CINQUIEME,SIXIEME,SEPTIEME,HUITIEME,NEUVIEME,DIXIEME,ONZIEME,DOUZIEME,TREIZIEME,QUATORZIEME,QUINZIEME,SEIZIEME',',') AS txt, generate_series(1,16) AS num) AS q ORDER BY quantieme DESC)
-  UPDATE libelles SET court = regexp_replace(court,re,format(' %sE\3',quantieme)) FROM u WHERE court ~ re;
+DROP TABLE IF EXISTS regex_tantieme;
+CREATE TABLE regex_tantieme as select cent+diz+num as quantieme,format(' (%s EM|%sEM|%s EME|%sEME|%s)(E|ES|S|)( |$)',cent+diz+num,cent+diz+num,cent+diz+num,cent+diz+num,trim(txt_cent||' '||txt_diz||' '||txt)) AS re FROM (SELECT regexp_split_to_table(',CENT,DEUX CENT,TROIS CENT,QUATRE CENT,CINQ CENT,SIX CENT,SEPT CENT,HUIT CENT,NEUF CENT',',') AS txt_cent, generate_series(0,9)*100 AS cent) centaine, (SELECT regexp_split_to_table(',DIX,VINGT,TRENTE,QUARANTE,CINQUANTE,SOIXANTE,SOIXANTE DIX,QUATRE VINGT,QUATRE VINGT DIX',',') AS txt_diz, generate_series(0,90,10) AS diz) dizaine, (SELECT regexp_split_to_table('UNIEME,DEUXIEME,TROISIEME,QUATRIEME,CINQUIEME,SIXIEME,SEPTIEME,HUITIEME,NEUVIEME,DIXIEME,ONZIEME,DOUZIEME,TREIZIEME,QUATORZIEME,QUINZIEME,SEIZIEME',',') AS txt, generate_series(1,16) AS num) AS q ORDER BY quantieme DESC;
+CREATE INDEX idx_regex_tantieme_re ON regex_tantieme using gin (re gin_trgm_ops);
+UPDATE libelles SET court = regexp_replace(court,re,format(' %sE\3',quantieme)) FROM regex_tantieme WHERE court ~ re;
 
 -- nombres au pluriel -> singulier
 UPDATE libelles SET court = regexp_replace(court,' (UN|QUATRE|CINQ|SEPT|HUIT|NEUF|ONZE|DOUZE|TREIZE|QUATORZE|QUINZE|SEIZE|VINGT|TRENTE|QUARANTE|CINQUANTE|SOIXANTE|CENT)S( |$)',' \1\2','g') where court ~ ' (UN|QUATRE|CINQ|SEPT|HUIT|NEUF|ONZE|DOUZE|TREIZE|QUATORZE|QUINZE|SEIZE|VINGT|TRENTE|QUARANTE|CINQUANTE|SOIXANTE|CENT)S( |$)';
