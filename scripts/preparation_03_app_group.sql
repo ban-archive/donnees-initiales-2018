@@ -30,12 +30,23 @@ $$ LANGUAGE plpgsql;
 -- FONCTION PERMETTANT D'AJOUTER LES GROUPES IGN APPARIES de ign_group_app2 DANS les appariemenst généraux de ign_group_app avec le bon commentaire 
 CREATE OR REPLACE FUNCTION insert_app_fantoir_ign(commentaire text) RETURNS void AS $$
 BEGIN
-INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire,id_fantoir_old,trigram,levenshtein)
-SELECT a.id_fantoir,a.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, $1, fantoir_ign,trigram,levenshtein from ign_group_app2 a
-LEFT JOIN ign_group i ON (i.id_pseudo_fpb = a.id_pseudo_fpb);
+	INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire,id_fantoir_old,trigram,levenshtein)
+	SELECT a.id_fantoir,a.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, $1, fantoir_ign,trigram,levenshtein from ign_group_app2 a
+	LEFT JOIN ign_group i ON (i.id_pseudo_fpb = a.id_pseudo_fpb);
 END;
 $$ LANGUAGE plpgsql;
 
+----------------------------------------------------------------------
+-- FONCTION PERMETTANT DE PREPARER LES GROUPES RAN NON ENCORE APPARIES
+CREATE OR REPLACE FUNCTION prepa_non_app_ran() RETURNS void AS $$
+BEGIN
+	DROP TABLE IF exists ran_group_candidat;
+	CREATE TABLE ran_group_candidat AS SELECT p.* FROM ran_group p
+	LEFT JOIN group_fnal g on (g.co_voie = p.co_voie)
+	where g.co_voie is null;
+	CREATE INDEX idx_ran_group_candidat_co_insee on ran_group_candidat(co_insee);
+END;
+$$ LANGUAGE plpgsql;
 
 -----------------------------------------------------------------------------------------------------------------------------------
 -- APPARIEMENT Groupes FANTOIR - IGN
@@ -410,11 +421,7 @@ CREATE INDEX idx_group_fnal_code_insee on group_fnal(code_insee);
 -- groupe laposte et groupe fnal non apparié précédemment.
 -- --> appariement par les nom maj (poste et fantoir). On ne fait que les cas 1-1)
 -- table candidat laposte
-DROP TABLE IF exists ran_group_candidat;
-CREATE TABLE ran_group_candidat AS SELECT p.* FROM ran_group p
-LEFT JOIN group_fnal g on (g.co_voie = p.co_voie)
-where g.co_voie is null;
-CREATE INDEX idx_ran_group_candidat_co_insee on ran_group_candidat(co_insee);
+select prepa_non_app_ran();
 -- appariement
 DROP TABLE IF exists ran_group_app;
 CREATE TABLE ran_group_app as select max(id_fantoir) as id_fantoir, max(p.co_voie) as co_voie, p.lb_voie , max(p.kind) as kind, 'nom maj poste = nom maj fantoir'::varchar as commentaire from group_fnal g, ran_group_candidat p where g.code_insee = p.co_insee and g.nom_maj_fantoir = p.lb_voie and g.co_voie is null group by g.code_insee, p.lb_voie having count(*) = 1;
@@ -453,13 +460,10 @@ UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a
 FROM ran_group_app a
 WHERE group_fnal.id_fantoir = a.id_fantoir;
 
+
 -- groupe laposte et groupe fnal non apparié précédemment.
 -- --> appariement par les nom maj ign et la poste (on ne fait que les cas 1-1)
-DROP TABLE IF exists ran_group_candidat;
-CREATE TABLE ran_group_candidat AS SELECT p.* FROM ran_group p
-LEFT JOIN group_fnal g on (g.co_voie = p.co_voie)
-where g.co_voie is null;
-CREATE INDEX idx_ran_group_candidat_co_insee on ran_group_candidat(co_insee);
+select prepa_non_app_ran();
 -- appariement
 DROP TABLE IF exists ran_group_app;
 CREATE TABLE ran_group_app as select max(id_pseudo_fpb) as id_pseudo_fpb, max(p.co_voie) as co_voie, p.lb_voie , max(p.kind) as kind, 'nom maj poste = nom maj ign'::varchar as commentaire from group_fnal g, ran_group_candidat p where g.code_insee = p.co_insee and g.nom_maj_ign = p.lb_voie and g.co_voie is null group by g.code_insee, p.lb_voie having count(*) = 1;
@@ -471,11 +475,7 @@ WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
 
 -- groupe laposte et groupe fnal non apparié précédemment.
 -- --> appariement par les nom court ign et la poste (on ne fait que les cas 1-1)
-DROP TABLE IF exists ran_group_candidat;
-CREATE TABLE ran_group_candidat AS SELECT p.* FROM ran_group p
-LEFT JOIN group_fnal g on (g.co_voie = p.co_voie)
-where g.co_voie is null;
-CREATE INDEX idx_ran_group_candidat_co_insee on ran_group_candidat(co_insee);
+select prepa_non_app_ran();
 -- appariement
 DROP TABLE IF exists ran_group_app;
 CREATE TABLE ran_group_app as select max(id_pseudo_fpb) as id_pseudo_fpb, max(p.co_voie) as co_voie, max(p.lb_voie) as lb_voie , max(p.kind) as kind, 'nom court poste = nom court ign'::varchar as commentaire
@@ -489,6 +489,7 @@ UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a
 FROM ran_group_app a
 WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
 
+/*
 -- groupe laposte non apparié ni avec fantoir et ign
 DROP TABLE IF EXISTS ran_group_non_app;
 CREATE TABLE ran_group_non_app AS SELECT p.* FROM ran_group p
