@@ -85,7 +85,7 @@ and regexp_replace(l1.court,'^.* ', '') != ab1.nom_court;
 SELECT prepa_non_app_fantoir_ign();
 -- appariement
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,f.nom_maj, null::real as trigram, null:real as levenshtein from dgfip_fantoir_candidat as f, ign_group_candidat as i where f.code_insee = i.code_insee and f.nom_maj = i.nom_maj group by f.code_insee,f.nom_maj having count(*) = 1;
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,f.nom_maj, null::real as trigram, null::real as levenshtein from dgfip_fantoir_candidat as f, ign_group_candidat as i where f.code_insee = i.code_insee and f.nom_maj = i.nom_maj group by f.code_insee,f.nom_maj having count(*) = 1;
 -- injection dans la table des groupes ign appariés
 select insert_app_fantoir_ign('nom maj ign = nom maj fantoir, appariement 1-1');
 
@@ -96,7 +96,7 @@ select insert_app_fantoir_ign('nom maj ign = nom maj fantoir, appariement 1-1');
 SELECT prepa_non_app_fantoir_ign();
 -- appariement
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court, null::real as trigram, null:real as levenshtein
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court, null::real as trigram, null::real as levenshtein
 from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2
 where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj and l1.court = l2.court
 group by f.code_insee,l1.court having count(*) = 1;
@@ -109,7 +109,7 @@ select insert_app_fantoir_ign('nom court ign = nom court fantoir, appariement 1-
 SELECT prepa_non_app_fantoir_ign();
 -- appariement
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb,null::real as trigram, null:real as levenshtein from ign_group_candidat i
+CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb,null::real as trigram, null::real as levenshtein from ign_group_candidat i
 LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir) 
 LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
 LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
@@ -127,7 +127,7 @@ update ign_group_app set nom_maj = regexp_replace(nom_maj,'^ENCEINTE ','EN ') wh
 SELECT prepa_non_app_fantoir_ign();
 -- appariement
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb,null::real as trigram, null:real as levenshtein from ign_group_candidat i
+CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb,null::real as trigram, null::real as levenshtein from ign_group_candidat i
 LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
 LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
 LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
@@ -140,7 +140,7 @@ select insert_app_fantoir_ign('fantoir = id fantoir ign, nom court fantoir + (E|
 SELECT prepa_non_app_fantoir_ign();
 -- appariement
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb,0::real as trigram,null:real as levenshtein from ign_group_candidat i
+CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb,0::real as trigram,null::real as levenshtein from ign_group_candidat i
 LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
 LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
 LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
@@ -156,7 +156,7 @@ select insert_app_fantoir_ign('fantoir = id fantoir ign, trigram (nom court ign 
 SELECT prepa_non_app_fantoir_ign();
 -- On ne retient que les candidats 1-1 dont le fantoir ign est egal au fantoir du fantoir
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,null::real as trigram, null:real as levenshtein
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,null::real as trigram, null::real as levenshtein
 from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2
 where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
 and l2.court like 'EN %' and l1.court = regexp_replace(l2.court,'^EN ','')
@@ -181,7 +181,7 @@ SELECT prepa_non_app_fantoir_ign();
 -- appariement entre les groupes ign candidats et les groupes fantoir candidat (nom court ign = nom court fantoir au mot directeur près) (Ex RUE VERDUN <-> RTE VERDUN)
 -- On ne retient que les candidats 1-1 dont le fantoir ign est egal au fantoir du fantoir
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,null::real as trigram, null:real as levenshtein
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,null::real as trigram, null::real as levenshtein
 from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2,
 (select nom_court from abbrev_type_voie group by nom_court) as ab1, (select nom_court from abbrev_type_voie group by nom_court) as ab2
 where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
@@ -200,7 +200,7 @@ select insert_app_fantoir_ign('fantoir = id fantoir ign, nom court ign = nom cou
 SELECT prepa_non_app_fantoir_ign();
 -- On ne retient que les candidats 1-1 dont le fantoir ign est egal au fantoir du fantoir
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,null::real as trigram,null:real as levenshtein
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,null::real as trigram,null::real as levenshtein
 from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2,
 (select nom_court from abbrev_type_voie group by nom_court) as ab1
 where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
@@ -213,7 +213,7 @@ select insert_app_fantoir_ign('fantoir = id fantoir ign, nom court ign = nom cou
 SELECT prepa_non_app_fantoir_ign();
 -- On ne retient que les candidats 1-1 dont le fantoir ign est egal au fantoir du fantoir
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,null::real as trigram,null:real as levenshtein
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,null::real as trigram,null::real as levenshtein
 from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2,
 (select nom_court from abbrev_type_voie group by nom_court) as ab1
 where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
@@ -229,7 +229,7 @@ select insert_app_fantoir_ign('fantoir = id fantoir ign, nom court ign = nom cou
 SELECT prepa_non_app_fantoir_ign();
 -- appariement
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb, l1.court<->l2.court as trigram, null:real as levenshtein from ign_group_candidat i
+CREATE TABLE ign_group_app2 as SELECT id_fantoir,id_fantoir as fantoir_ign,id_pseudo_fpb, l1.court<->l2.court as trigram, null::real as levenshtein from ign_group_candidat i
 LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
 LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
 LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
@@ -245,7 +245,7 @@ select insert_app_fantoir_ign('fantoir = id fantoir ign, trigram (nom court ign 
 SELECT prepa_non_app_fantoir_ign();
 -- On ne retient que les candidats 1-1 dont le fantoir ign est egal au fantoir du fantoir
 DROP TABLE IF exists ign_group_app2;
-CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,max(l1.court <-> l2.court) as trigram, null:real as levenshtein
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,max(l1.court <-> l2.court) as trigram, null::real as levenshtein
 from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2
 where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
 and l1.court <-> l2.court < 0.4 and length(l1.court) > 6
