@@ -80,11 +80,11 @@ echo "\COPY (select format('{\"type\":\"housenumber\", \"cia\": \"\", \"group:la
 
 ####################################################################################
 # POSITION
-# Export des positions liees au hn via cia
-echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\" %s, \"positioning\":\"%s\", \"housenumber:cia\": \"%s\", \"ign\": \"%s\",\"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]}, \"source\":\"%s\"}',kind, case when name is not null then ',\"name\":\"'||name||'\"' end, positioning, cia, ign, lon, lat,source_init) from position where cia is not null and cia <> '' and (insee1 like '${dep}%' OR insee2 like '${dep}%')) to '${data_path}/${dep}/07_positions.json';" >> commandeTemp.sql
+# Export des positions DGFIP
+echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\" %s, \"positioning\":\"%s\", \"housenumber:cia\": \"%s\", \"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]}, \"source\":\"%s\"}',kind, case when name is not null then ',\"name\":\"'||name||'\"' end, positioning, cia, lon, lat,source_init) from position where source_init = 'DGFIP' and (insee1 like '${dep}%' OR insee2 like '${dep}%')) to '${data_path}/${dep}/07_positions.json';" >> commandeTemp.sql
 
-# Export des positions liees au hn via l'id ign (cia vide)
-echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\" %s, \"positioning\":\"%s\", \"housenumber:ign\": \"%s\",\"ign\": \"%s\",\"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]}, \"source\":\"%s\"}',kind, case when name is not null then ',\"name\":\"'||name||'\"' end, positioning, housenumber_ign, ign, lon, lat,source_init) from position where (cia is null or cia = '') and (insee1 like '${dep}%' OR insee2 like '${dep}%')) to '${data_path}/${dep}/08_positions.json';" >> commandeTemp.sql
+# Export des positions IGN
+echo "\COPY (select format('{\"type\":\"position\", \"kind\":\"%s\" %s, \"positioning\":\"%s\", \"housenumber:ign\": \"%s\",\"ign\": \"%s\",\"geometry\": {\"type\":\"Point\",\"coordinates\":[%s,%s]}, \"source\":\"%s\"}',kind, case when name is not null then ',\"name\":\"'||name||'\"' end, positioning, housenumber_ign, ign, lon, lat,source_init) from position where (source_init = 'IGN') and (insee1 like '${dep}%' OR insee2 like '${dep}%')) to '${data_path}/${dep}/08_positions.json';" >> commandeTemp.sql
 
 psql -e -f commandeTemp.sql
 

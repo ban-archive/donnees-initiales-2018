@@ -29,7 +29,7 @@ CREATE TABLE dgfip_housenumbers_temp AS SELECT
 	upper(trim(right(numero||' ',-strpos(numero||' ',' ')))) AS ordinal
 FROM dgfip_housenumbers;
 DROP TABLE IF EXISTS dgfip_housenumbers_temp2;
-CREATE TABLE dgfip_housenumbers_temp2 AS SELECT *,CASE WHEN fantoir is not null or fantoir <> '' THEN upper(format('%s_%s_%s_%s',left(fantoir,5),left(right(fantoir,5),4),number,ordinal)) ELSE '' AS cia FROM dgfip_housenumbers_temp;
+CREATE TABLE dgfip_housenumbers_temp2 AS SELECT *,CASE WHEN fantoir is not null or fantoir <> '' THEN upper(format('%s_%s_%s_%s',left(fantoir,5),left(right(fantoir,5),4),number,ordinal)) ELSE '' END AS cia FROM dgfip_housenumbers_temp;
 DROP TABLE dgfip_housenumbers;
 ALTER TABLE dgfip_housenumbers_temp2 RENAME TO dgfip_housenumbers;
 DROP TABLE dgfip_housenumbers_temp;
@@ -59,7 +59,7 @@ DROP TABLE IF EXISTS ran_housenumber_temp;
 ALTER TABLE ran_housenumber DROP COLUMN IF EXISTS co_voie_bis;
 ALTER TABLE ran_housenumber DROP COLUMN IF EXISTS lb_ext_bis;
 ALTER TABLE ran_housenumber DROP COLUMN IF EXISTS lb_l5;
-CREATE TABLE ran_housenumber_temp AS SELECT h.*,right('0000000'||co_voie,8) as co_voie_bis,coalesce(lb_ext,'') as lb_ext_bis, lb_l5 FROM ran_housenumber AS h
+CREATE TABLE ran_housenumber_temp AS SELECT h.*,right('0000000'||h.co_voie,8) as co_voie_bis,coalesce(lb_ext,'') as lb_ext_bis, lb_l5 FROM ran_housenumber AS h
 LEFT JOIN ran_group g ON (h.co_voie = g.co_voie);
 DROP TABLE IF EXISTS ran_housenumber;
 ALTER TABLE ran_housenumber_temp RENAME TO ran_housenumber;
@@ -163,46 +163,17 @@ ALTER TABLE ign_position_temp RENAME TO ign_position;
 -- REGROUPEMENT DES POSITIONS DANS UNE MËME TABLE
 DROP TABLE IF EXISTS position;
 
--- insertion des positions ign de type entrance
+-- insertion des positions ign sauf les kind unkown (centre commune)
 -- au passage on tronque les coordonnées à 6 chiffres après la virgule ( => 1 dm au max environ)
-CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::numeric,6) as lat,id as ign,id_hn as housenumber_ign,kind,positioning, designation_de_l_entree as name, 'IGN'::varchar AS source_init FROM ign_position WHERE kind = 'entrance';
+CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::numeric,6) as lat,id as ign,id_hn as housenumber_ign,kind,positioning, designation_de_l_entree as name, 'IGN'::varchar AS source_init FROM ign_position WHERE kind <> 'unknown' ;
 
--- Insertion dans la table position des positions dgfip pour les hn qui n'ont pas encore de positions 
+-- Insertion dans la table position des positions dgfip  
 INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), 'entrance','other', 'DGFIP' FROM dgfip_housenumbers d 
-LEFT join position p ON (p.cia = d.cia)
-WHERE p.cia is null and insee_com like '90%';
+WHERE insee_com like '90%';
 
 CREATE INDEX idx_position_cia ON position(cia);
 CREATE INDEX idx_position_ign ON position(ign);
 CREATE INDEX idx_position_housenumber_ign ON position(housenumber_ign);
-
--- Insertion dans la table position des positions dgfip si elles sont eloignees de plus de 5 m des positions déjà existantes 
-INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), 'entrance','other', 'DGFIP' FROM dgfip_housenumbers d
-LEFT join position p ON (p.cia = d.cia)
-WHERE p.cia is not null AND d.cia is not null AND d.cia <> '' AND ign is not null 
-AND st_distance(ST_GeographyFromText('POINT('||p.lon||' '||p.lat||')'),ST_GeographyFromText('POINT('||d.lon||' '||d.lat||')'))>5
-and insee_com like '90%';
-
--- Ajout des positions ign "segment" et "area" pour les housenumbers qui n'ont pas de position
-DROP TABLE IF EXISTS housenumber_without_entrance;
-CREATE TABLE housenumber_without_entrance as SELECT h.ign FROM housenumber h 
-LEFT JOIN position p1 ON (p1.housenumber_ign = h.ign)
-LEFT JOIN position p2 ON (p2.cia = h.cia)
-WHERE p1.ign is null and p2.cia is null;
-
-CREATE INDEX idx_housenumber_without_entrance_ign ON housenumber_without_entrance(ign);
-
-INSERT INTO position(cia,lon,lat,ign,housenumber_ign,kind,positioning,name,source_init) 
-SELECT cia,round(lon::numeric,6),round(lat::numeric,6),id,id_hn,kind,positioning,designation_de_l_entree,'IGN' FROM ign_position p
-LEFT JOIN housenumber_without_entrance h ON (h.ign = p.id_hn)
-WHERE (kind = 'segment' OR kind = 'area') AND h.ign is not null;
-
--- Ajout des positions ign non présentes de type segment ou area et qui ont un nom
-INSERT INTO position(cia,lon,lat,ign,housenumber_ign,kind,positioning,name,source_init)
-SELECT i.cia,round(i.lon::numeric,6),round(i.lat::numeric,6),i.id,i.id_hn,i.kind,i.positioning,i.designation_de_l_entree,'IGN' FROM ign_position i
-LEFT JOIN position p ON (i.id = p.ign)
-WHERE p.ign is null and i.designation_de_l_entree is not null and i.designation_de_l_entree <> '' 
-and (i.kind = 'segment' or i.kind = 'area');
 
 -- on rabbat le code insee de hn
 DROP TABLE IF EXISTS position_temp;
