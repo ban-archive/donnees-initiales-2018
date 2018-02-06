@@ -355,6 +355,14 @@ LEFT JOIN ign_group_app a on (a.id_fantoir = f.fantoir_9);
 INSERT INTO group_fnal(code_insee,id_pseudo_fpb,nom_ign,nom_maj_ign,alias_ign,kind_ign,addressing,id_fantoir_ign)
 SELECT code_insee,id_pseudo_fpb,nom,nom_maj,alias,kind,addressing,id_fantoir from ign_group_non_app;
 
+
+-- ajout du champ nom ign si rempli autrement fantoir
+DROP TABLE IF EXISTS group_fnal2;
+CREATE TABLE group_fnal2 AS SELECT *, CASE WHEN nom_maj_ign is not null THEN nom_maj_ign ELSE nom_maj_fantoir END as nom_maj_ign_fantoir FROM group_fnal;
+DROP TABLE group_fnal;
+ALTER TABLE group_fnal2 RENAME to group_fnal;
+
+
 -- indexes
 CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);
 
@@ -489,11 +497,165 @@ UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a
 FROM ran_group_app a
 WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
 
-/*
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement id poste = id poste ign et nom court ign et la poste apres ajout E|S|X
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as  SELECT p.co_voie,i.id_pseudo_fpb,p.lb_voie,p.kind, 'id poste = id poste ign, nom court laposte + (E|S|X) = nom court ign + (E|S|X)'::varchar as commentaire from ran_group p
+left join group_fnal g on (p.co_voie = g.co_voie)
+LEFT JOIN ign_group i on (p.co_voie = i.id_poste)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = p.lb_voie)
+where g.co_voie is null and i.id_poste is not null and i.id_poste <> ''
+and (l1.court = l2.court || 'E' or l1.court = l2.court || 'S' or l1.court = l2.court || 'X' or l2.court = l1.court || 'E' or l2.court = l1.court || 'S' or l2.court = l1.court || 'X');
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement id poste = id poste ign et trigram (nom court ign,nom court laposte) = 0 (RUE VERCRAZ BAS <-> RUE BAS VERCRAZ)
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as  SELECT p.co_voie,i.id_pseudo_fpb,p.lb_voie,p.kind, 'id poste = id poste ign, trigram (nom court ign, nom court poste) = 0'::varchar as commentaire from ran_group p
+left join group_fnal g on (p.co_voie = g.co_voie)
+LEFT JOIN ign_group i on (p.co_voie = i.id_poste)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = p.lb_voie)
+where g.co_voie is null and i.id_poste is not null and i.id_poste <> ''
+and l1.court <-> l2.court = 0 and length(l1.court) > 6;
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+-- groupe laposte et groupe fnal non apparié précédemment
+-- --> appariement nom court ign = nom court la poste au type de voie près) (Ex RUE VERDUN <-> RTE VERDUN)
+-- On ne retient que les candidats 1-1 dont id poste = id poste ign
+select prepa_non_app_ran();
+-- appariement
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as select max(g.id_pseudo_fpb) as id_pseudo_fpb, max(p.co_voie) as co_voie, max(p.lb_voie) as lb_voie , max(p.kind) as kind, max(i.id_pseudo_fpb) as id_pseudo_fpb2, 'id poste = id poste ign,nom court ign = nom court laposte au type de voie près, les 2 types de voie sont remplis, pas d''autres candidats sur la commune'::varchar as commentaire, l1.court as court_lp, max(l2.court) as court_autre
+FROM group_fnal g, ran_group_candidat p, ign_group as i, libelles l1, libelles l2,(select nom_court from abbrev_type_voie group by nom_court) as ab1, (select nom_court from abbrev_type_voie group by nom_court) as ab2
+WHERE g.code_insee = p.co_insee and l1.long = p.lb_voie and l2.long = g.nom_maj_ign_fantoir 
+and ab1.nom_court is not null and ab2.nom_court is not null and ab1.nom_court <> ab2.nom_court
+and l1.court like ab1.nom_court || ' %' and l2.court like ab2.nom_court || ' %'
+and regexp_replace(l1.court,ab1.nom_court,' ') = regexp_replace(l2.court,ab2.nom_court,' ')
+and g.co_voie is null and g.nom_maj_ign_fantoir is not null and g.nom_maj_ign_fantoir <> '' 
+and i.id_poste = p.co_voie 
+group by g.code_insee, l1.court having count(*) = 1;
+DELETE FROM ran_group_app WHERE id_pseudo_fpb <> id_pseudo_fpb2;
+DELETE FROM ran_group_app WHERE id_pseudo_fpb is null or id_pseudo_fpb = '';
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+-- groupe laposte et groupe fnal non apparié précédemment
+-- --> appariement nom court ign = nom court la poste au type de voie près, un seul de type de voie est rempli (Ex RUE VERDUN <-> VERDUN)
+-- On ne retient que les candidats 1-1 dont id poste = id poste ign
+select prepa_non_app_ran();
+-- appariement
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as select max(g.id_pseudo_fpb) as id_pseudo_fpb, max(p.co_voie) as co_voie, max(p.lb_voie) as lb_voie , max(p.kind) as kind, max(i.id_pseudo_fpb) as id_pseudo_fpb2, 'id poste = id poste ign,nom court ign = nom court laposte au type de voie près, un seul type de voie rempli, pas d''autres candidats sur la commune'::varchar as commentaire, l1.court as court_lp, max(l2.court) as court_autre
+FROM group_fnal g, ran_group_candidat p, ign_group as i, libelles l1, libelles l2,(select nom_court from abbrev_type_voie group by nom_court) as ab1
+WHERE g.code_insee = p.co_insee and l1.long = p.lb_voie and l2.long = g.nom_maj_ign_fantoir
+and l2.court like ab1.nom_court || ' %' and regexp_replace(l2.court,ab1.nom_court || ' ','') = l1.court
+and g.co_voie is null and g.nom_maj_ign_fantoir is not null and g.nom_maj_ign_fantoir <> ''
+and i.id_poste = p.co_voie
+group by g.code_insee, l1.court having count(*) = 1;
+
+INSERT INTO ran_group_app select max(g.id_pseudo_fpb) as id_pseudo_fpb, max(p.co_voie) as co_voie, max(p.lb_voie) as lb_voie , max(p.kind) as kind, max(i.id_pseudo_fpb) as id_pseudo_fpb2, 'id poste = id poste ign,nom court ign = nom court laposte au type de voie près, un seul type de voie rempli, pas d''autres candidats sur la commune'::varchar as commentaire, l1.court as court_lp, max(l2.court) as court_autre
+FROM group_fnal g, ran_group_candidat p, ign_group as i, libelles l1, libelles l2,(select nom_court from abbrev_type_voie group by nom_court) as ab1
+WHERE g.code_insee = p.co_insee and l1.long = p.lb_voie and l2.long = g.nom_maj_ign_fantoir
+and l1.court like ab1.nom_court || ' %' and regexp_replace(l1.court,ab1.nom_court || ' ','') = l2.court
+and g.co_voie is null and g.nom_maj_ign_fantoir is not null and g.nom_maj_ign_fantoir <> ''
+and i.id_poste = p.co_voie
+group by g.code_insee, l1.court having count(*) = 1;
+
+DELETE FROM ran_group_app WHERE id_pseudo_fpb <> id_pseudo_fpb2;
+DELETE FROM ran_group_app WHERE id_pseudo_fpb is null or id_pseudo_fpb = '';
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement id poste = id poste ign et trigram (nom court ign,nom court laposte) < 0.15 (RUE VERCRAZ BAS <-> RUE BAS VERCRA)
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as  SELECT p.co_voie,i.id_pseudo_fpb,p.lb_voie,p.kind, 'id poste = id poste ign, trigram (nom court ign, nom court poste) < 0.15'::varchar as commentaire, i.nom_maj as nom_maj from ran_group p
+left join group_fnal g on (p.co_voie = g.co_voie)
+LEFT JOIN ign_group i on (p.co_voie = i.id_poste)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = p.lb_voie)
+where g.co_voie is null and i.id_poste is not null and i.id_poste <> ''
+and l1.court <-> l2.court < 0.15 and length(l1.court) > 6;
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement id poste = id poste ign et trigram (nom court ign,nom court laposte) < 0.4, pas d'autres candidats
+select prepa_non_app_ran();
+-- appariement
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as select max(g.id_pseudo_fpb) as id_pseudo_fpb, max(p.co_voie) as co_voie, max(p.lb_voie) as lb_voie , max(p.kind) as kind, max(i.id_pseudo_fpb) as id_pseudo_fpb2, 'id poste = id poste ign, trigram (nom court ign, nom court poste) < 0.4, pas d''autres candidats sur la commune'::varchar as commentaire, l1.court as court_lp, max(l2.court) as court_autre, max(l1.court <-> l2.court) as trigram
+FROM group_fnal g, ran_group_candidat p, ign_group as i, libelles l1, libelles l2
+WHERE g.code_insee = p.co_insee and l1.long = p.lb_voie and l2.long = g.nom_maj_ign_fantoir
+and l1.court <-> l2.court < 0.4 and length(l1.court) > 6
+and g.co_voie is null and g.nom_maj_ign_fantoir is not null and g.nom_maj_ign_fantoir <> ''
+and i.id_poste = p.co_voie
+group by g.code_insee, l1.court having count(*) = 1;
+DELETE FROM ran_group_app WHERE id_pseudo_fpb is null or id_pseudo_fpb = '';
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+ALTER TABLE group_fnal add column trigram_court_lp real;
+UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire, trigram_court_lp = trigram
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement id poste = id poste ign, levenshtein <= 1 et pas d'autres candidats
+select prepa_non_app_ran();
+-- appariement
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as select max(g.id_pseudo_fpb) as id_pseudo_fpb, max(p.co_voie) as co_voie, max(p.lb_voie) as lb_voie , max(p.kind) as kind, max(i.id_pseudo_fpb) as id_pseudo_fpb2, 'id poste = id poste ign, levenshtein (nom court ign, nom court poste) <= 1, pas d''autres candidats sur la commune'::varchar as commentaire, l1.court as court_lp, max(l2.court) as court_autre
+FROM group_fnal g, ran_group_candidat p, ign_group as i, libelles l1, libelles l2
+WHERE g.code_insee = p.co_insee and l1.long = p.lb_voie and l2.long = g.nom_maj_ign_fantoir
+and length(l1.court) < 254 and levenshtein(l1.court, l2.court) < 2 and length(l1.court) > 6 and length(l2.court) > 6
+and g.co_voie is null and g.nom_maj_ign_fantoir is not null and g.nom_maj_ign_fantoir <> ''
+and i.id_poste = p.co_voie
+group by g.code_insee, l1.court having count(*) = 1;
+DELETE FROM ran_group_app WHERE id_pseudo_fpb is null or id_pseudo_fpb = '';
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+-- groupe laposte et groupe fnal non apparié précédemment.
+-- --> appariement levenshtein <= 1 et pas d'autres candidats
+select prepa_non_app_ran();
+-- appariement
+DROP TABLE IF exists ran_group_app;
+CREATE TABLE ran_group_app as select max(id_pseudo_fpb) as id_pseudo_fpb, max(p.co_voie) as co_voie, max(p.lb_voie) as lb_voie , max(p.kind) as kind, 'levenshtein (nom court ign, nom court poste) <= 1, pas d''autres candidats sur la commune'::varchar as commentaire
+FROM group_fnal g, ran_group_candidat p, libelles l1, libelles l2
+WHERE g.code_insee = p.co_insee and l1.long = p.lb_voie and l2.long = g.nom_maj_ign 
+and length(l1.court) < 254 and length(l2.court) < 254 and levenshtein(l1.court, l2.court) < 2 and length(l1.court) > 6 and length(l2.court) > 6
+and g.co_voie is null
+group by g.code_insee, l1.court having count(*) = 1;
+DELETE FROM ran_group_app WHERE id_pseudo_fpb is null or id_pseudo_fpb = '';
+CREATE INDEX idx_ran_group_app_id_pseudo_fpb ON ran_group_app(id_pseudo_fpb);
+-- On ajoute les infos la poste dans la table group_fnal pour les groupes appariés de ran_group_app
+UPDATE group_fnal SET co_voie = a.co_voie, lb_voie = a.lb_voie, kind_laposte = a.kind, commentaire_app_lp = a.commentaire
+FROM ran_group_app a
+WHERE group_fnal.id_pseudo_fpb = a.id_pseudo_fpb;
+
+
 -- groupe laposte non apparié ni avec fantoir et ign
 DROP TABLE IF EXISTS ran_group_non_app;
-CREATE TABLE ran_group_non_app AS SELECT p.* FROM ran_group p
+CREATE TABLE ran_group_non_app AS SELECT p.*,i.id_pseudo_fpb, g.id_pseudo_fpb as id_pseudo_fpb_fnal FROM ran_group p
 LEFT JOIN group_fnal g on (g.co_voie = p.co_voie)
+LEFT JOIN ign_group i on (p.co_voie = i.id_poste)
 where g.co_voie is null;
 
 -- insertion des groupes laposte non appariés dans la table des groupes fnal
@@ -568,4 +730,4 @@ UPDATE group_fnal SET nom_ign_retenu = upper(unaccent(nom_ign)) where nom_ign is
 update group_fnal set nom_ign_retenu = regexp_replace(nom_ign_retenu,'^ENCEINTE ','EN ') where nom_ign_retenu like 'ENCEINTE %' and commentaire_app_ign like '%ENCEINTE%';
 
 CREATE INDEX idx_group_fnal_code_insee on group_fnal(code_insee);
-CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);*/
+CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);
