@@ -131,6 +131,19 @@ CREATE INDEX idx_housenumber_cia ON housenumber(cia);
 CREATE INDEX idx_housenumber_ign ON housenumber(ign);
 CREATE INDEX idx_housenumber_laposte ON housenumber(laposte);
 
+-- on vide les liens codes postaux -> hn non cohérents, cad qui ne pointent pas vers un cp existants ou unique au sens (code insee, code postal, ligne 5)
+-- 2 cas observés :
+-- hn ign avec cp, mais la poste pour ce cp a plusieurs lignes 5 et aucune vide. On ne sait pas vers quel cp faire pointer
+-- hn avec incohérence entre l'insee poste te l'insee ign
+create index idx_poste_cp_co_insee on poste_cp(co_insee);
+create index idx_poste_cp_co_postal on poste_cp(co_postal);
+create table housenumber_cp_error as select h.*,lb_l5_nn from housenumber h left join (select * from poste_cp where lb_l5_nn is null) p on (h.code_insee = p.co_insee and h.co_postal = p.co_postal ) where h.co_postal is not null and p.co_insee is null and lb_l5 is null;
+create index idx_housenumber_cp_error_ign on housenumber_cp_error(ign);
+create index idx_housenumber_cp_error_laposte on housenumber_cp_error(laposte);
+update housenumber h set co_postal = null from housenumber_cp_error h2 where h.ign is not null and h.ign <> '' and h.ign = h2.ign;
+update housenumber h set co_postal = null from housenumber_cp_error h2 where h.co_postal is not null and h.laposte is not null and h.laposte <> '' and h.laposte = h2.laposte;
+
+
 -- ajout d'un hn null pour chaque groupe laposte pour stocker le cea des voies poste
 INSERT INTO housenumber (group_laposte, laposte, co_postal, code_insee, lb_l5)
 SELECT r.co_voie, r.cea, r.co_postal, r.co_insee, r.lb_l5 from ran_group r ;

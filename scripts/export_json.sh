@@ -111,27 +111,6 @@ exit
 
 
 
-#################################################################################
-# HOUSENUMBER
-
-########################################
-# PREPARATION HOUSENUMBER IGN
-
-
-
-######################################
-# Creation d'un housenumber null pour chaque group laposte, pour stoker le cea de la voie poste
-# Insertion dans la table housenumber${dep}
-echo "INSERT INTO housenumber${dep} (group_laposte, laposte, postcode_code, insee)
-SELECT g.laposte, r.cea, r.co_postal, r.co_insee from group_ran${dep} r, group${dep} g where g.laposte=r.laposte and lb_l5 is null;" >> commandeTemp.sql
-
-
-
-
-# Ligne 5
-# à partir de l'insee old des groupes que l'on retrouve dans postecode (on remonte par l'identitiant ign)
-echo "UPDATE housenumber${dep} h SET lb_l5=c.lb_l5_nn FROM postcode${dep} c, group${dep} g WHERE h.group_ign = g.ign and g.insee_old = c.co_insee_anc and g.insee_old is not null and lb_l5 is not null and c.lb_l5_nn is not null ;" >> commandeTemp.sql
-
 # traitement des fusions de communes : les anciennes communes sont mis en groupe secondaire des hn (ancestors) : 3 jointures différentes (hn -> group fantoir, hn -> group ign, hn -> group la poste)
 echo "update housenumber${dep} h set ancestor_ign=s.ign from group${dep} g, group_secondary${dep} s where h.group_fantoir=g.fantoir and g.insee_old||'####'=s.ign;" >> commandeTemp.sql 
 echo "update housenumber${dep} h set ancestor_ign=s.ign from group${dep} g, group_secondary${dep} s where h.group_ign=g.ign and g.insee_old||'####'=s.ign;" >> commandeTemp.sql
