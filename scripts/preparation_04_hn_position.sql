@@ -41,7 +41,8 @@ DROP TABLE dgfip_housenumbers_temp;
 -- Ménage des doublons parfaits, suppression des detruits et passage en majuscules de l'indice de repetition
 UPDATE ign_housenumber SET rep = '' WHERE rep is null;
 DROP TABLE IF EXISTS ign_housenumber_temp;
-CREATE TABLE ign_housenumber_temp AS SELECT distinct on(numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree) id, id_poste, numero,upper(rep) as rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree FROM ign_housenumber where detruit is null and code_insee like '90%';
+CREATE TABLE ign_housenumber_temp AS SELECT distinct on(numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree) id, id_poste, numero,upper(rep) as rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree FROM ign_housenumber where detruit is null;
+-- and code_insee like '90%';
 
 -- ajout du champ rank qui indiquera le rang des hn ign au sein d'une même pile sémantique (même groupe ign, numero et indice de répetition, mais géométrie ou indice_de_positionnement ou methode ou designation_de_l_entree différents)
 DROP TABLE IF EXISTS ign_housenumber_temp2;
@@ -79,7 +80,8 @@ DROP TABLE IF EXISTS housenumber;
 -- dgfip bano
 CREATE TABLE housenumber AS SELECT g.id_fantoir as group_fantoir, g.id_pseudo_fpb as group_ign, g.co_voie as group_laposte, h.number, h.ordinal, g.code_insee, true::bool as source_dgfip 
 FROM dgfip_housenumbers h, group_fnal g 
-WHERE fantoir_hn=g.id_fantoir and h.insee_com like '90%' 
+WHERE fantoir_hn=g.id_fantoir
+-- and h.insee_com like '90%' 
 GROUP BY g.id_fantoir, g.id_pseudo_fpb, g.co_voie, h.number, h.ordinal, g.code_insee;
 
 -- mise à jour de l'id ign sur housenumber pour les hn dont le group ign, le numero et l'ordinal sont deja présents
@@ -112,8 +114,8 @@ INSERT INTO housenumber(laposte,group_fantoir,group_ign,group_laposte,number,ord
 SELECT p.co_cea, g.id_fantoir, g.id_pseudo_fpb,p.co_voie, p.no_voie, p.lb_ext, g.code_insee, p.co_postal, p.lb_l5 from ran_housenumber p
 left join housenumber h on (h.laposte = p.co_cea)
 LEFT JOIN group_fnal g ON (g.co_voie = p.co_voie)
-WHERE h.laposte is null and g.co_voie is not null
-AND co_insee like '90%';
+WHERE h.laposte is null and g.co_voie is not null;
+--AND co_insee like '90%';
 
 -- si le co_postal est vide, on le remplit avec le code postal ign
 UPDATE housenumber SET co_postal = code_post_ign WHERE (co_postal is null or co_postal = '') and (code_post_ign is not null and code_post_ign <> '');
@@ -131,7 +133,8 @@ CREATE INDEX idx_housenumber_laposte ON housenumber(laposte);
 
 -- ajout d'un hn null pour chaque groupe laposte pour stocker le cea des voies poste
 INSERT INTO housenumber (group_laposte, laposte, co_postal, code_insee, lb_l5)
-SELECT r.co_voie, r.cea, r.co_postal, r.co_insee, r.lb_l5 from ran_group r where co_insee like '90%';
+SELECT r.co_voie, r.cea, r.co_postal, r.co_insee, r.lb_l5 from ran_group r ;
+--where co_insee like '90%';
 
 -------------- TODO 
 -- ajout ancestor ign vide
@@ -174,8 +177,8 @@ DROP TABLE IF EXISTS position;
 CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::numeric,6) as lat,id as ign,id_hn as housenumber_ign,kind,positioning, designation_de_l_entree as name, 'IGN'::varchar AS source_init FROM ign_position WHERE kind <> 'unknown' ;
 
 -- Insertion dans la table position des positions dgfip  
-INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), 'entrance','other', 'DGFIP' FROM dgfip_housenumbers d 
-WHERE insee_com like '90%';
+INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), 'entrance','other', 'DGFIP' FROM dgfip_housenumbers d;
+--WHERE insee_com like '90%';
 
 CREATE INDEX idx_position_cia ON position(cia);
 CREATE INDEX idx_position_ign ON position(ign);
@@ -190,11 +193,5 @@ WHERE (h1.cia is not null and h1.cia <> '') OR
 (h2.ign is not null and h2.ign <> '');
 DROP TABLE position;
 ALTER TABLE position_temp RENAME TO position;
-
-
-
-
-
-
 
 
