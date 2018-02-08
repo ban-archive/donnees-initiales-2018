@@ -126,6 +126,12 @@ CREATE TABLE housenumber_temp AS SELECT *, CASE WHEN group_fantoir is not null T
 DROP TABLE housenumber;
 ALTER TABLE housenumber_temp RENAME TO housenumber;
 
+-- marquage/suppression des hn IGN pointant vers des groupes ign sans nom
+drop table if exists ign_housenumber_sans_nom;
+create table ign_housenumber_sans_nom as select h.* from housenumber h left join ign_group_sans_nom g on (h.group_ign = g.id_pseudo_fpb) where h.group_ign is not null and h.group_ign <> '' and g.id_pseudo_fpb is not null;
+delete from housenumber h using ign_group_sans_nom g where (h.group_ign = g.id_pseudo_fpb) and h.group_ign is not null and h.group_ign <> '' and g.id_pseudo_fpb is not null;
+create index idx_ign_housenumber_sans_nom_ign on ign_housenumber_sans_nom(ign);
+
 -- quelques indexes
 CREATE INDEX idx_housenumber_cia ON housenumber(cia);
 CREATE INDEX idx_housenumber_ign ON housenumber(ign);
@@ -206,5 +212,8 @@ WHERE (h1.cia is not null and h1.cia <> '') OR
 (h2.ign is not null and h2.ign <> '');
 DROP TABLE position;
 ALTER TABLE position_temp RENAME TO position;
+
+-- marquage/suppression des hn IGN pointant vers des groupes ign sans nom
+delete from position p using ign_housenumber_sans_nom h where p.housenumber_ign = h.ign and p.ign is not null and p.ign <> '' and h.ign is not null;
 
 

@@ -728,6 +728,11 @@ ALTER TABLE group_fnal ADD column nom_ign_retenu varchar;
 UPDATE group_fnal SET nom_ign_retenu = upper(unaccent(nom_ign)) where nom_ign is not null and nom_ign <> '';
 -- Pour ces cas, on remplace ENCEINTE PAR EN dans le nom_maj_ign
 update group_fnal set nom_ign_retenu = regexp_replace(nom_ign_retenu,'^ENCEINTE ','EN ') where nom_ign_retenu like 'ENCEINTE %' and commentaire_app_ign like '%ENCEINTE%';
+-- marquage/suppression des groupes IGN sans nom
+drop table if exists ign_group_sans_nom;
+create table ign_group_sans_nom as select * from group_fnal where (id_pseudo_fpb is not null and nom_ign is null or nom_ign = '');
+create index idx_ign_group_sans_nom_id_pseudo_fpb on ign_group_sans_nom(id_pseudo_fpb);
+delete from group_fnal where (id_pseudo_fpb is not null and nom_ign is null or nom_ign = '');
 
 CREATE INDEX idx_group_fnal_code_insee on group_fnal(code_insee);
 CREATE INDEX idx_group_fnal_id_pseudo_fpb on group_fnal(id_pseudo_fpb);
