@@ -24,9 +24,9 @@ done
 ban import:init init_cog insee ${json_path}/01_municipalities.json
 ban import:init init_laposte laposte ${json_path}/02_postcodes.json
 ban import:init init_dgfip dgfip ${json_path}/03_A_groups.json 
-ban import:init init_ign ign ${json_path}/03_B_groups.json
-ban import:init init_laposte laposte ${json_path}/03_C_groups.json
-ban import:init init_dgfip dgfip ${json_path}/03_D_groups.json
+ban import:init init_ign ign ${json_path}/03_B_groups.json -vv
+ban import:init init_laposte laposte ${json_path}/03_C_groups.json -vv
+ban import:init init_dgfip dgfip ${json_path}/03_D_groups.json -vv
 ban import:init init admin ${json_path}/04_housenumbers.json
 ban import:init init admin ${json_path}/05_housenumbers.json --workers 1
 ban import:init init admin ${json_path}/06_housenumbers.json

@@ -151,8 +151,8 @@ update housenumber h set co_postal = null from housenumber_cp_error h2 where h.c
 
 
 -- ajout d'un hn null pour chaque groupe laposte pour stocker le cea des voies poste
-INSERT INTO housenumber (group_laposte, laposte, co_postal, code_insee, lb_l5)
-SELECT r.co_voie, r.cea, r.co_postal, r.co_insee, r.lb_l5 from ran_group r ;
+INSERT INTO housenumber (group_laposte, laposte, co_postal, code_insee, lb_l5, source_init)
+SELECT r.co_voie, r.cea, r.co_postal, r.co_insee, r.lb_l5, 'LAPOSTE' from ran_group r ;
 --where co_insee like '90%';
 
 -------------- TODO 
