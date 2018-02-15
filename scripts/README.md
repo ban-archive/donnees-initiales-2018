@@ -96,57 +96,34 @@ Pour Housenumber, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_h
 
 Les étapes de l'initialisation sont les suivantes :
 - chargement de toutes les données DGFIP/BANO
-- ajout des données IGN manquantes (utilisation du CIA = concaténation du fantoir, du numéro et de l'indice de répétition)
-- ajout des données La Poste manquantes (utilisation du CIA et de l'identifiant La Poste contenu dans les données IGN)
+- ajout des données IGN manquantes (numéro non présents). On complète aussi l'identifiant ign si le hn est déjà présent.
+- ajout des données La Poste manquantes (numéro non présents). On complète aussi l'identifiant La Poste si le hn est déjà présent.
 
-Puis des housenumber sans numéro sont créés pour chaque groupe "La Poste" pour stocker le cea.
+Puis des housenumber sans numéro sont créés pour chaque groupe "La Poste" pour stocker le cea du groupe La Poste.
 
-Le champ attributes contient les sources du groupe.
-Exemple : 
+On met ensuite entre le lien entre les hns et les postcodes en utilisant les données de La Poste (dont les lignes 5). Si La Poste ne fournit pas l'info, on va chercher le code postal dans les données IGN.
+
+Le champ attributes (dans la clé "source_init") contient les sources du housenumber. Exemple pour un hn contenu dans les 3 sources : attributes = "source_init"=>"DGFIP|IGN|LAPOSTE"
 
 
 ### Position
 
 Pour Position, nous utilisons 2 sources : cadastre.csv de la DGFiP/BANO et ban.house_numbe.csv de l'IGN.
 
-Le champ attributes contient les sources du groupe.
-Exemple : 
+Toutes les positions des 2 sources sont conservés (sauf les centres communes IGN).
 
-Au préalable, on notera que les positions provenant de l'IGN ont un champ indiquant leur qualité géométrique qui peut prendre les valeurs suivantes:
-- "à la plaque"
-- "projetée du centre parcelle"
-- "interpolée"
-- "A la zone d'adressage"
-- "Au centre commune"
+La source est précisée dans les champs :
+- source =>  valeurs possibles = "DGFIP/BANO (12/2016)" et "IGN (12/2017)"
+- source_kind => valeurs possibles = "dgfip" et "ign"
 
-La première étape de l'inialisation consiste à sélectionner ou non les positions des différentes sources. Les règles sont les suivantes :
-- Les positions IGN "Au centre commune" ne sont pas retenues.
-- Les positions IGN "à la plaque" sont systèmatiquement retenues.
-- Les positions IGN "projetée du centre parcelle", "interpolée" et "A la zone d'adressage" sont retenues pour un housenumber uniquement si il n'y a pas de positions DGFIP/BANO pour ce housenumber. 
-- Les positions DGFIP/BANO sont donc retenues pour un housenumber s'il n'y a pas de position IGN "à la plaque" pour ce housenumber ou si la position IGN "à la plaque" est située à plus de 5 mètres.
+Toutes les positions DGFIP/BANO sont montées en kind "entrance".
 
-Un housenumber peut donc avoir 0, 1 ou n positions si l'on se réfère à ces règles.
-
-Par exemple :
-- O position s'il n'y a pas de position pour ce housenumber dans les données IGN et DGFIP/BANO ou s'il y a uniquement une position IGN "au centre commune"
-- une position si une seule source référence ce hn ou si la position IGN "à la plaque" et DGFIP/BANO sont distances de moins de 5 mètres ...
-- plusieurs positions si c'est aussi le cas dans les 2 sources ou si la position IGN "à la plaque" et DGFIP/BANO sont distances de plus de 5 mètres ...
-
-Pour les positions provenant de DGFIP/BANO, le kind est mis à "entrance", tandis pour les positions provenant de l'IGN, les règles suivantes sont appliquées : 
-- les positions IGN "à la plaque" deviennent des kind = "entrance"
-- les positions IGN "projetée du centre parcelle" deviennent des kind = "segment" avec positioning = "projection"
-- les positions IGN = "interpolée" deviennent des kind = "segment" avec positioning = "interpolation"
-- les positions IGN = "A la zone d'adressage" deviennent des kind = "area"
-
-
-### Note sur les fusions de communes
-
-Les sources utilisées dans l'initialisation sont d'actualité différentes et toutes n'ont pas impactées les fusions de communes de l'année dernière.
-
-Dans l'initialisation de fin juin 2017, le programme n'a pas tenu compte de cette hétérogéniété et cela est source d'incohérences et de données non chargées dans la BAN.
-
-Dans la future initialisation, le script prendra en compte cette hétérogéniété notamment en utilisant la liste des fusions de commune et la correspondance entre les anciens codes insee et les nouveaux. Il conservera aussi le nom des anciennes communes dans les groupes secondaires.
-
+Pour les positions IGN, le champ IGN type_de_localisation est utilisé pour remplir le kind ban suivant les règles suivantes :
+"à la plaque" => entrance
+"projetée du centre parcelle" => segment
+"interpolée" => segment
+"A la zone d'adressage" => area
+"Au centre commune" => non chargée dans la BAN
 
 ## Comment faire fonctionner les programmes d'initialisation
 
