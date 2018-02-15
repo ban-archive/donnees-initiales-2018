@@ -32,17 +32,26 @@ echo "DROP TABLE IF EXISTS ran_group;" >> commandeTemp.sql
 echo "CREATE TABLE ran_group (co_insee varchar, co_voie varchar, co_postal varchar, lb_type_voie varchar, lb_voie varchar, cea varchar,lb_l5 varchar, co_insee_l5 varchar);" >> commandeTemp.sql
 echo "\COPY ran_group FROM '${data_path}/ran_group.csv' WITH CSV HEADER DELIMITER ';'" >> commandeTemp.sql
 
+# on ne conserve qu'un groupe par identifiant la poste (il y a quelques voies avec le même identifiant la poste mais pas le même CEA et code poste) -> voies multi CP. Exemple :
+#  co_insee | co_voie  | co_postal | lb_type_voie |   lb_voie    |    cea     | lb_l5 | co_insee_l5 | insee_cog | laposte  | kind
+#----------+----------+-----------+--------------+--------------+------------+-------+-------------+-----------+----------+------
+# 66136    | 04377322 | 66000     |              | RUE DE BERGA | 6613624CCZ |       |             | 66136     | 04377322 | way
+# 66136    | 04377322 | 66100     |              | RUE DE BERGA | 6613624CCZ |       |             | 66136     | 04377322 | way
+echo "DROP TABLE IF EXISTS ran_group_unique;" >> commandeTemp.sql
+echo "CREATE TABLE ran_group_unique AS SELECT distinct on(laposte) * FROM ran_group order by laposte, co_postal ASC;" >> commandeTemp.sql
+
+# on fait une table avec les voies multi-CP
+echo "DROP TABLE IF EXISTS ran_group_multi_cp;" >> commandeTemp.sql
+echo "CREATE TABLE ran_group_multi_cp AS SELECT p.* FROM ran_group p LEFT JOIN (SELECT laposte FROM ran_group GROUP BY laposte HAVING count(*) > 1) as ss ON (ss.laposte = p.laposte) WHERE ss.laposte is not null;" >> commandeTemp.sql
+echo "DROP TABLE ran_group;" >> commandeTemp.sql
+echo "ALTER TABLE ran_group_unique RENAME TO ran_group;" >> commandeTemp.sql
+echo "" >> commandeTemp.sql
+ 
+
 # import des housenumbers
 echo "DROP TABLE IF EXISTS ran_housenumber;" >> commandeTemp.sql
 echo "CREATE TABLE ran_housenumber (co_insee varchar, co_voie varchar, co_postal varchar, no_voie varchar, lb_ext varchar, co_cea varchar);" >> commandeTemp.sql
 echo "\COPY ran_housenumber FROM '${data_path}/ran_housenumber.csv' WITH CSV HEADER DELIMITER ';'" >> commandeTemp.sql
-
-# prise en compte des fusions de communes : si un group ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune :
-# alors on met a jour son code insee et on bascule le code insee d'origine dans l'insee old
-#on l'ajoute ici à cause des changements de départements autrement on aurait pu l'ajouter dans export_json.sh
-echo "alter table ran_group add column insee_cog varchar;" >> commandeTemp.sql
-echo "update ran_group set insee_cog = insee_cog.insee FROM insee_cog where insee_cog.insee = ran_group.co_insee;" >> commandeTemp.sql
-echo "update ran_group set co_insee = f.insee_new, co_insee_l5 = f.insee_old from fusion_commune as f where ran_group.co_insee = f.insee_old and ran_group.insee_cog is null;" >> commandeTemp.sql
 
 psql -f commandeTemp.sql
 if [ $? -ne 0 ]

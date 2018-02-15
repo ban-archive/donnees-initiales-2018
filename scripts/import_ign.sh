@@ -93,15 +93,6 @@ for f in ${csvRep}/ban.house_number*.csv ; do
   fi
 done
 
-# prise en compte des fusions de communes : si un group ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune :
-# alors on met a jour son code insee et on bascule le code insee d'origine dans l'insee old
-#on l'ajoute ici à cause des changements de départements autrement on aurait pu l'ajouter dans export_json.sh
-echo "Mise a jour insee groupe suite au fusion de communes"
-psql -c "
-alter table ign_group add column insee_cog varchar;
-update ign_group set insee_cog = insee_cog.insee FROM insee_cog where insee_cog.insee = ign_group.code_insee;
-update ign_group set code_insee = f.insee_new, insee_obs = f.insee_old from fusion_commune as f where ign_group.code_insee = f.insee_old and ign_group.insee_cog is null;"
-
 # Création des indexes
 echo "Création des indexes"
 psql -e -c '
