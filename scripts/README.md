@@ -153,6 +153,7 @@ Si besoin exporter, les variables d'environnement PGUSER, PGPORT, PGPASSWORD ...
 
 Lancer le script, preparation_base_temp.sh : il importe :
 - le fichier des abbréviations dans la table abbrev 
+- le fichier des abbréviations de type de voie dans la table abbrev_type_voie 
 - le fichier des fusions de communes dans la table fusion_commune
  
 ### Importation des données dans l'environnement de travail
@@ -164,7 +165,14 @@ Lancer les shells :
 - import_ign.sh : importe les données IGN dans les tables ign_municipality, ign_group, ign_housenumber
 - import_la_poste.sh : importe les données La Poste dans les tables poste_cp, ran_group, ran_housenumber
 
-### Préparation des données et export en json 
+### Préparation des données
+Lancer le shell preparation.sh. Celui-ci enchaine les fichiers sql suivant :
+- preparation_01_generalites.sql : ajoute des champs supplémentaires dans les données initiales et normalisation de certains champs
+- preparation_02_libelles.sql : prépare la table des libellés courts des groupes des différentes sources (passage en majuscules désaccentuées, abbréviations, suppression des articles, normalisation des nombres ...)
+- preparation_03_app_group.sql : apparie les groupes des différentes sources et rassemble les groupes des différentes sources dans une même table.
+- preparation_04_hn_position.sql : apparie et regroupe les hn et positions des différentes sources dans une même table. Supprime les doublons IGN. Met en forme les champs pour la BAN à partir des champs sources (kind, source_init)
+
+### export en json 
 Pour chaque département, Lancer le shell export_json.sh <OutputPath> <dep>
 
 ### Intégration des jsons dans la ban
