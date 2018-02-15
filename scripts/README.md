@@ -40,27 +40,39 @@ Si un groupe ne pointe pas vers l'insee du cog et pointe vers un insee_old de la
 
 Les premières étapes de l'initialisation sont les suivantes :
 - chargement de tous les groupes du FANTOIR
-- ajout des groupes IGN manquants (en utilisant l'identifiant FANTOIR contenu dans les données IGN)
-- ajout des groupes Poste manquants (en utilisant l'identifiant Poste contenu dans les données IGN)
+- chargement de tous les groupes IGN (appariement au préalable avec les groupes fantoir : pour les groupes appariés, on complète l'identifiant ign et on garde le nom IGN (mis en majuscules désaccentuées). On ajoute les groupes non appariés.
+- chargement de tous les groupes La Poste (appariement au préalable avec les groupes fantoir/IGN : pour les groupes appariés, on complète l'identifiant La poste et on garde le nom La Poste. On ajoute les groupes non appariés.
+- on essaye ensuite d'apparier les noms cadastre (minuscules accentuées capitalisés) après normalistion avec les groupes déjà chargés. Pour les groupes appariés, on conserve les noms du cadastre.
+
+L'appariement des groupes entre les différentes sources suit globalement les règles suivantes:
+- vérification des appariements en place dans les données IGN : 
+    - même noms majuscules (passages en majuscules désaccentuées)
+    - même noms courts (passage en majuscules désaccentuées, suppression des articles, abbréviations des types de voies et autres mots clés, normalisation des chiffres ...)
+  - même noms courts (restreints au type de voie et au mot directeur)
+- même noms majuscules (+ pas d'autres candidats sur la commune)
+- même noms courts (+ pas d'autres candidats sur la commune)
+- vérification des appariements en place dans les données IGN :
+  - même noms 
 
 
-Le nom conservé sur les groupes est par ordre de priorité :
+Le nom conservé sur les groupes appariés est par ordre de priorité décroissante :
+- nom du cadastre
 - le libellé de La Poste
 - le nom IGN
 - le nom fantoir
 
-De plus, si le nom retenu est identique au nom DGFIP/BANO (après normalisation), on retient le nom DGFIP/BANO.
+Les données sont versionnées : c'est à dire que si un groupe est présent dans les 4 sources et que l'appariement s'est bien fait, il y aura 4 versions du groupe:
+- version 1 = groupe fantoir
+- version 2 = groupe IGN
+- version 3 = groupe La Poste
+- version 4 (version courante) = groupe nom cadastre.
 
-Le champ attributes contient :
-- les sources du groupe 
-- la source du nom retenu 
-- les noms dans les sources d'origine. 
-Exemple : "attributes":{"source_init":"{FANTOIR,IGN,LAPOSTE}","source_name_init":"CADASTRE" ,"fantoir_name_init":"RUE DU LIEUTENANT MULLER" ,"ign_name_init":"rue du capitaine muller" ,"laposte_name_init":"RUE DU LIEUTENANT MULLER"}
+Le champ attributes contient la source du nom retenu (dans la clé init_source_name). Exemple : "attributes":{"init_source_name"=>"fantoir"}
 
-On notera que:
-- les noms provenant uniquement de l'IGN sont souvent en minuscules accentuées.
-- les noms provenant de la DGFIP/BANO sont en minuscules accentuées capitaliseés
-- les noms fantoir et la poste sont en majuscule
+On notera que la graphie des noms diffèrent suivant les sources:
+- les noms provenant uniquement de l'IGN et le fantoir sont en majuscules déssaccentuées abbrégées.
+- les noms fantoir et la poste sont en majuscule déssaccentuées non abbrégées.
+- les noms provenant du cadastre sont en minuscules accentuées capitalisées
 
 Le kind des groupes (way ou area) est calculé à partir du nom retenu et de la liste des abbréviations du fichier abbre.csv qui donne le types des groupes en fonction du premier mot du groupe.  
 Exemples: RUE, BOULEVARD, AVENUE ont un kind="way"; LOTISSEMENT, ZONE COMMERCIALE, CENTRE ont un kind="area"
