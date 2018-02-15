@@ -170,6 +170,8 @@ Lancer le shell preparation.sh (compter environ 5-6 h de traitement). Celui-ci e
 - preparation_03_app_group.sql : apparie et rassemble les groupes des différentes sources dans une même table.
 - preparation_04_hn_position.sql : apparie et regroupe les hn et positions des différentes sources dans une même table. Supprime les doublons IGN. Met en forme les champs pour la BAN à partir des champs sources (kind, source_init)
 
+On peut aussi lancer à la main chaque fichier sql. On peut relancer le fichier n plusieurs fois. Il faut alors relancer le n+1, n +2 ...
+
 ### Export en json 
 Lancer le shell export_json_rafale.sh qui exporte par département les données préalablement préparées en json (compter environ 5-6 h de traitement).  
 Vous pouvez utiliser export_json.sh pour exporter un seul département.
