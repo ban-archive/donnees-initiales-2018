@@ -52,8 +52,14 @@ L'appariement des groupes entre les différentes sources suit globalement les r�
 - même noms majuscules (+ pas d'autres candidats sur la commune)
 - même noms courts (+ pas d'autres candidats sur la commune)
 - vérification des appariements en place dans les données IGN :
-  - même noms 
-
+  - même noms courts (au E, S, X final)
+  - trigram = 0 sur les noms courts
+  - même noms courts au type de voie près et pas d'autres candidats sur la commune
+  - trigram < 0.15 sur les noms courts
+  - trigram < 0.4 sur les noms courts et pas d'autres candidats sur la commune
+  - levenshtein <= 2 sur les noms courts et longueur > 10
+- trigram < 0.15 sur les noms courts et pas d'autres candidats sur la commune
+- levenshtein <= 2 sur les noms courts et longueur > 10 et pas d'autres candidats sur la commune
 
 Le nom conservé sur les groupes appariés est par ordre de priorité décroissante :
 - nom du cadastre
