@@ -6,13 +6,13 @@ Les programmes contenus dans ce répertoire "scripts" permettent d'initialiser l
 
 Ces données sont:
 
-- COG (INSEE): les données sont téléchargées par le programme sur le site de l'INSEE 
-- FANTOIR (DGFiP): les données sont téléchargées par le programme sur www.data.gouv.fr
-- DGFiP/BANO : 
+- COG (INSEE 2017): les données sont téléchargées par le programme sur le site de l'INSEE. 
+- FANTOIR (DGFiP oct 2017): les données sont téléchargées par le programme sur www.data.gouv.fr
+- DGFiP/BANO (nov 2016): 
   - fichier noms_cadastre.csv des noms de voies/lieux-dits 
   - fichier cadastre.csv des adresses (housenumber + position)
-- La Poste : fichiers hexavia et hexacle. Ces fichiers doivent être transformés en ran_postcode.csv, ran_group.csv et ran_housenumber.csv. Pour cela, on utilisera le script hexa_to_csv.py
-- IGN : (découpage par départements)
+- La Poste (sept 2017): fichiers hexavia et hexacle. Ces fichiers doivent être transformés en ran_postcode.csv, ran_group.csv et ran_housenumber.csv. Pour cela, on utilisera le script hexa_to_csv.py
+- IGN (déc 2017): (découpage par départements)
   - fichier ban.group.csv des voies/lieux-dits
   - fichier ban.house_number.csv des points adresses (housenumber + position)
 - Divers :
@@ -24,23 +24,23 @@ Ces données sont:
 
 ### Municipality
 
-Ces objets proviennent de l'import du fichier du COG donc d'une seule source.
+Ces objets proviennent de l'import du fichier du COG donc d'une seule source. 
 
 ### Postcode
 
 Ces objets proviennent de l'import du fichier de la Poste donc d'une seule source.
-Si un postcode ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune, on met préalablement à jour l'insee du postcode.
+Si un postcode ne pointe pas vers l'insee du COG et pointe vers un insee_old de la table de fusion de commmune, on met préalablement à jour l'insee du postcode.
 
 ### Group
 
 Pour Group, nous utilisons 4 sources: les fichiers fantoir de la DGFiP, noms_cadastre.csv de la DGFiP/BANO, ran_group.csv de La Poste et ban.group.csv de l'IGN.
-Si un groupe ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune, on met préalablement à jour l'insee du groupe.
+Si un groupe ne pointe pas vers l'insee du COG et pointe vers un insee_old de la table de fusion de commmune, on met préalablement à jour l'insee du groupe.
 
 Les premières étapes de l'initialisation sont les suivantes :
 - chargement de tous les groupes du FANTOIR
-- chargement de tous les groupes IGN (appariement au préalable avec les groupes fantoir : pour les groupes appariés, on complète l'identifiant ign et on garde le nom IGN (mis en majuscules désaccentuées)). On ajoute les groupes non appariés.
-- chargement de tous les groupes La Poste (appariement au préalable avec les groupes fantoir/IGN : pour les groupes appariés, on complète l'identifiant La poste et on garde le nom La Poste. On ajoute les groupes non appariés).
-- on essaye ensuite d'apparier les noms cadastre (minuscules accentuées capitalisés) après normalistion avec les groupes déjà chargés. Pour les groupes appariés, on conserve les noms du cadastre.
+- chargement de tous les groupes IGN (appariement au préalable avec les groupes fantoir : pour les groupes appariés, on complète l'identifiant IGN et on garde le nom IGN (mis en majuscules désaccentuées)). On ajoute les groupes non appariés.
+- chargement de tous les groupes La Poste (appariement au préalable avec les groupes fantoir/IGN : pour les groupes appariés, on complète l'identifiant La Poste et on garde le nom La Poste. On ajoute les groupes non appariés).
+- on essaye ensuite d'apparier les noms du cadastre (minuscules accentuées capitalisés) après normalisation des libellés avec les groupes déjà chargés. Pour les groupes appariés, on conserve les noms du cadastre.
 
 
 Le nom conservé sur les groupes appariés est par ordre de priorité décroissante :
@@ -60,10 +60,10 @@ Les données sont versionnées : c'est à dire que si un groupe est présent dan
 Le champ attributes contient la source du nom retenu (dans la clé init_source_name). Exemple : "attributes":{"init_source_name"=>"fantoir"}
 
 
-On notera que la graphie des noms diffèrent suivant les sources:
-- les noms provenant uniquement de l'IGN et le fantoir sont en général en majuscules déssaccentuées abbrégées.
-- les noms la poste sont en majuscule déssaccentuées non abbrégées.
-- les noms provenant du cadastre sont en minuscules accentuées capitalisées
+On notera que la graphie des noms diffère suivant les sources:
+- les noms provenant uniquement de l'IGN et le fantoir sont en général en majuscules désaccentuées abrégées.
+- les noms La Poste sont en majuscules désaccentuées non abrégées.
+- les noms provenant du cadastre sont en minuscules accentuées capitalisées.
 
 Le kind des groupes (way ou area) est calculé à partir du nom retenu et de la liste des abbréviations du fichier abbre_type_voie.csv qui donne le types des groupes en fonction du premier mot du groupe.  
 Exemples: RUE, BOULEVARD, AVENUE ont un kind="way"; LOTISSEMENT, ZONE COMMERCIALE, CENTRE ont un kind="area"
@@ -90,7 +90,7 @@ L'appariement des groupes entre les différentes sources suit les règles suivan
 
 ### Housenumber
 
-Pour Housenumber, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_housenumber.csv de La Poste et ban.house_number.csv de l'IGN
+Pour Housenumber, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_housenumber.csv de La Poste et ban.house_number.csv de l'IGN.
 
 Les étapes de l'initialisation sont les suivantes :
 - chargement de toutes les données DGFIP/BANO
