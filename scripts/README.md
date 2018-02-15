@@ -4,22 +4,20 @@ Les programmes contenus dans ce répertoire "scripts" permettent d'initialiser l
 
 ## Données en entrée 
 
-Les producteurs de données nous fournissent des données en entrée, les plus récentes possibles:
+Ces données sont:
 
 - COG (INSEE): les données sont téléchargées par le programme sur le site de l'INSEE 
 - FANTOIR (DGFiP): les données sont téléchargées par le programme sur www.data.gouv.fr
 - DGFiP/BANO : 
   - fichier noms_cadastre.csv des noms de voies/lieux-dits 
   - fichier cadastre.csv des adresses (housenumber + position)
-- La Poste :  
-  - fichier ran_postcode.csv des codes postaux
-  - fichier ran_group.csv des voies/lieux-dits
-  - fichier ran_housenumber.csv des adresses
+- La Poste : fichiers hexavia et hexacle. Ces fichiers doivent être transformés en ran_postcode.csv, ran_group.csv et ran_housenumber.csv. Pour cela, on utilisera le script hexa_to_csv.py
 - IGN : (découpage par départements)
   - fichier ban.group.csv des voies/lieux-dits
   - fichier ban.house_number.csv des points adresses (housenumber + position)
 - Divers :
- - le fichier abbre.csv avec le dictionnaire (abbréviation, type de groupes ...)
+ - le fichier abbre.sql avec les abbréviations les plus courantes
+ - fichier abbrev_type_voie.csv avec les abbréviations des types de voie qui précise si le type est "way" ou "area"
  - le fichier fusion_commune.sql avec les fusions de commune (insee_new , insee_old ...)
 
 ## Règles d'import
@@ -35,13 +33,13 @@ Si un postcode ne pointe pas vers l'insee du cog et pointe vers un insee_old de 
 
 ### Group
 
-Pour Group, nous utilisons 4 sources: les fichiers fantoir de la DGFiP, noms_cadatre.csv de la DGFiP/BANO, ran_group.csv de La Poste et ban.group.csv de l'IGN.
+Pour Group, nous utilisons 4 sources: les fichiers fantoir de la DGFiP, noms_cadastre.csv de la DGFiP/BANO, ran_group.csv de La Poste et ban.group.csv de l'IGN.
 Si un groupe ne pointe pas vers l'insee du cog et pointe vers un insee_old de la table de fusion de commmune, on met préalablement à jour l'insee du groupe.
 
 Les premières étapes de l'initialisation sont les suivantes :
 - chargement de tous les groupes du FANTOIR
-- chargement de tous les groupes IGN (appariement au préalable avec les groupes fantoir : pour les groupes appariés, on complète l'identifiant ign et on garde le nom IGN (mis en majuscules désaccentuées). On ajoute les groupes non appariés.
-- chargement de tous les groupes La Poste (appariement au préalable avec les groupes fantoir/IGN : pour les groupes appariés, on complète l'identifiant La poste et on garde le nom La Poste. On ajoute les groupes non appariés.
+- chargement de tous les groupes IGN (appariement au préalable avec les groupes fantoir : pour les groupes appariés, on complète l'identifiant ign et on garde le nom IGN (mis en majuscules désaccentuées)). On ajoute les groupes non appariés.
+- chargement de tous les groupes La Poste (appariement au préalable avec les groupes fantoir/IGN : pour les groupes appariés, on complète l'identifiant La poste et on garde le nom La Poste. On ajoute les groupes non appariés).
 - on essaye ensuite d'apparier les noms cadastre (minuscules accentuées capitalisés) après normalistion avec les groupes déjà chargés. Pour les groupes appariés, on conserve les noms du cadastre.
 
 
@@ -63,23 +61,23 @@ Le champ attributes contient la source du nom retenu (dans la clé init_source_n
 
 
 On notera que la graphie des noms diffèrent suivant les sources:
-- les noms provenant uniquement de l'IGN et le fantoir sont en majuscules déssaccentuées abbrégées.
-- les noms fantoir et la poste sont en majuscule déssaccentuées non abbrégées.
+- les noms provenant uniquement de l'IGN et le fantoir sont en général en majuscules déssaccentuées abbrégées.
+- les noms la poste sont en majuscule déssaccentuées non abbrégées.
 - les noms provenant du cadastre sont en minuscules accentuées capitalisées
 
-Le kind des groupes (way ou area) est calculé à partir du nom retenu et de la liste des abbréviations du fichier abbre.csv qui donne le types des groupes en fonction du premier mot du groupe.  
+Le kind des groupes (way ou area) est calculé à partir du nom retenu et de la liste des abbréviations du fichier abbre_type_voie.csv qui donne le types des groupes en fonction du premier mot du groupe.  
 Exemples: RUE, BOULEVARD, AVENUE ont un kind="way"; LOTISSEMENT, ZONE COMMERCIALE, CENTRE ont un kind="area"
 
 
-L'appariement des groupes entre les différentes sources suit globalement les règles suivantes:
+L'appariement des groupes entre les différentes sources suit les règles suivantes:
 - vérification des appariements en place dans les données IGN : 
     - même noms majuscules (passages en majuscules désaccentuées)
     - même noms courts (passage en majuscules désaccentuées, suppression des articles, abbréviations des types de voies et autres mots clés, normalisation des chiffres ...)
-  - même noms courts (restreints au type de voie et au mot directeur)
+    - même noms courts (restreints au type de voie et au mot directeur)
 - même noms majuscules (+ pas d'autres candidats sur la commune)
 - même noms courts (+ pas d'autres candidats sur la commune)
 - vérification des appariements en place dans les données IGN :
-  - même noms courts (au E, S, X final)
+  - même noms courts (au E, S, X final près)
   - trigram = 0 sur les noms courts
   - même noms courts au type de voie près et pas d'autres candidats sur la commune
   - trigram < 0.15 sur les noms courts
@@ -92,7 +90,7 @@ L'appariement des groupes entre les différentes sources suit globalement les r�
 
 ### Housenumber
 
-Pour Housenumber, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_housenumber.csv de La Poste et ban.house_number<Dep>.csv de l'IGN
+Pour Housenumber, nous utilisons 3 sources: cadastre.csv de la DGFiP/BANO, ran_housenumber.csv de La Poste et ban.house_number.csv de l'IGN
 
 Les étapes de l'initialisation sont les suivantes :
 - chargement de toutes les données DGFIP/BANO
@@ -110,9 +108,9 @@ Le champ attributes (dans la clé "source_init") contient les sources du housenu
 
 Pour Position, nous utilisons 2 sources : cadastre.csv de la DGFiP/BANO et ban.house_numbe.csv de l'IGN.
 
-Toutes les positions des 2 sources sont conservés (sauf les centres communes IGN).
+Toutes les positions des 2 sources sont conservées (sauf les centres communes IGN).
 
-La source est précisée dans les champs :
+La source est précisée dans les champs suivants :
 - source =>  valeurs possibles = "DGFIP/BANO (12/2016)" et "IGN (12/2017)"
 - source_kind => valeurs possibles = "dgfip" et "ign"
 
@@ -149,7 +147,7 @@ Dans <base_temp> :
 Exporter les variables d'environnement :
 - export PGDATABASE=<base_temp>
 
-Si besoin exporter, les variables d'environnement PGUSER, PGPORT, PGPASSWORD ...
+Si besoin exporter les variables d'environnement PGUSER, PGPORT, PGPASSWORD ...
 
 Lancer le script, preparation_base_temp.sh : il importe :
 - le fichier des abbréviations dans la table abbrev 
@@ -166,15 +164,17 @@ Lancer les shells :
 - import_la_poste.sh : importe les données La Poste dans les tables poste_cp, ran_group, ran_housenumber
 
 ### Préparation des données
-Lancer le shell preparation.sh. Celui-ci enchaine les fichiers sql suivant :
+Lancer le shell preparation.sh (compter environ 5-6 h de traitement). Celui-ci enchaine les fichiers sql suivant :
 - preparation_01_generalites.sql : ajoute des champs supplémentaires dans les données initiales et normalisation de certains champs
-- preparation_02_libelles.sql : prépare la table des libellés courts des groupes des différentes sources (passage en majuscules désaccentuées, abbréviations, suppression des articles, normalisation des nombres ...)
-- preparation_03_app_group.sql : apparie les groupes des différentes sources et rassemble les groupes des différentes sources dans une même table.
+- preparation_02_libelles.sql : prépare de la table des libellés courts des groupes des différentes sources (passage en majuscules désaccentuées, abbréviations, suppression des articles, normalisation des nombres ...)
+- preparation_03_app_group.sql : apparie et rassemble les groupes des différentes sources dans une même table.
 - preparation_04_hn_position.sql : apparie et regroupe les hn et positions des différentes sources dans une même table. Supprime les doublons IGN. Met en forme les champs pour la BAN à partir des champs sources (kind, source_init)
 
-### export en json 
-Pour chaque département, Lancer le shell export_json.sh <OutputPath> <dep>
+### Export en json 
+Lancer le shell export_json_rafale.sh qui exporte par département les données préalablement préparées en json (compter environ 5-6 h de traitement).  
+Vous pouvez utiliser export_json.sh pour exporter un seul département.
 
 ### Intégration des jsons dans la ban
 Activer le banenv (pour avoir accès aux commandes de l'API).
-Pour chaque département, lancer le shell import_json_in_ban.sh <JsonPathDep>
+Lancer le shell import_json_in_ban_rafale.sh pour importer tous les jsons départementaux dans la BAN.
+Pour charger uniquement un département lancé : import_json_in_ban.sh.
