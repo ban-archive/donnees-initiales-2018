@@ -15,7 +15,7 @@ fi
 
 
 base1="ban_temp"
-base2="ban90"
+base2="ban33"
 
 
 # extraction cog 
