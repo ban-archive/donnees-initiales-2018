@@ -57,7 +57,7 @@ Les données sont versionnées : c'est à dire que si un groupe est présent dan
 - version 4 (version courante) = groupe nom cadastre.
 
 
-Le champ attributes contient la source du nom retenu (dans la clé init_source_name). Exemple : "attributes":{"init_source_name"=>"fantoir"}
+Le champ attributes contient la source du nom retenu (dans la clé source_init_name). Exemple : "attributes":{"source_init_name"=>"FANTOIR"}
 
 
 On notera que la graphie des noms diffère suivant les sources:
