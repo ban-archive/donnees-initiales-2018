@@ -56,16 +56,16 @@ echo "\COPY (select format('{\"type\":\"postcode\",\"postcode\":\"%s\",\"name\":
 #####################################################################################
 # GROUP
 # Export des groupes fantoirs
-echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"fantoir\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"attributes\":{\"init_source_name\":\"fantoir\"}}',kind_fantoir,id_fantoir,code_insee, nom_maj_fantoir) from group_fnal WHERE code_insee like '${dep}%' and id_fantoir is not null) to '${data_path}/${dep}/03_A_groups.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"fantoir\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"attributes\":{\"source_init_name\":\"FANTOIR\"}}',kind_fantoir,id_fantoir,code_insee, nom_maj_fantoir) from group_fnal WHERE code_insee like '${dep}%' and id_fantoir is not null) to '${data_path}/${dep}/03_A_groups.json';" >> commandeTemp.sql
 
 # Export des groupes ign
-echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"ign\":\"%s\",\"attributes\":{\"init_source_name\":\"ign\"} %s %s %s}',kind_ign,code_insee,nom_ign_retenu,id_pseudo_fpb, case when id_fantoir is not null then ',\"fantoir\": \"'||id_fantoir||'\"' end, case when alias_ign is not null then ',\"alias\": \"'||alias_ign||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end) from group_fnal where code_insee like '${dep}%' and id_pseudo_fpb is not null) to '${data_path}/${dep}/03_B_groups.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"ign\":\"%s\",\"attributes\":{\"source_init_name\":\"IGN\"} %s %s %s}',kind_ign,code_insee,nom_ign_retenu,id_pseudo_fpb, case when id_fantoir is not null then ',\"fantoir\": \"'||id_fantoir||'\"' end, case when alias_ign is not null then ',\"alias\": \"'||alias_ign||'\"' end, case when addressing is not null then ',\"addressing\": \"'||addressing||'\"' end) from group_fnal where code_insee like '${dep}%' and id_pseudo_fpb is not null) to '${data_path}/${dep}/03_B_groups.json';" >> commandeTemp.sql
 
 # Export des groupes La Poste
-echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"laposte\":\"%s\", \"attributes\":{\"init_source_name\":\"laposte\"} %s %s}',kind_laposte, code_insee, lb_voie, co_voie, case when id_fantoir is not null then ',\"fantoir\": \"'||id_fantoir||'\"' end, case when id_pseudo_fpb is not null then ',\"ign\": \"'||id_pseudo_fpb||'\"' end) from group_fnal where code_insee like '${dep}%' and co_voie is not null) to '${data_path}/${dep}/03_C_groups.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"group\",\"group\":\"%s\",\"municipality:insee\":\"%s\",\"name\":\"%s\",\"laposte\":\"%s\", \"attributes\":{\"source_init_name\":\"LAPOSTE\"} %s %s}',kind_laposte, code_insee, lb_voie, co_voie, case when id_fantoir is not null then ',\"fantoir\": \"'||id_fantoir||'\"' end, case when id_pseudo_fpb is not null then ',\"ign\": \"'||id_pseudo_fpb||'\"' end) from group_fnal where code_insee like '${dep}%' and co_voie is not null) to '${data_path}/${dep}/03_C_groups.json';" >> commandeTemp.sql
 
 # Export des groupes cadastre
-echo "\COPY (select format('{\"type\":\"group\",\"fantoir\":\"%s\",\"name\":\"%s\", \"attributes\":{\"init_source_name\":\"dgfip\"}}',id_fantoir, voie_cadastre) from group_fnal where code_insee like '${dep}%' and voie_cadastre is not null) to '${data_path}/${dep}/03_D_groups.json';" >> commandeTemp.sql
+echo "\COPY (select format('{\"type\":\"group\",\"fantoir\":\"%s\",\"name\":\"%s\", \"attributes\":{\"source_init_name\":\"DGFIP\"}}',id_fantoir, voie_cadastre) from group_fnal where code_insee like '${dep}%' and voie_cadastre is not null) to '${data_path}/${dep}/03_D_groups.json';" >> commandeTemp.sql
 
 ####################################################################################
 # HOUSENUMBER
