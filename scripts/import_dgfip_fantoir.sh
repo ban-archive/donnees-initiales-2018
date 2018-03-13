@@ -9,7 +9,7 @@
 # import dans SQL en format fixe (delimiter et quote spéciaux pour ignorer)
 echo "copy ..."
 psql -c "create table if not exists dgfip_fantoir_temp (raw text); truncate dgfip_fantoir_temp;"
-psql -c "\copy dgfip_fantoir_temp from 'FANTOIR1017' with csv delimiter '#' quote '>';"
+psql -c "\copy dgfip_fantoir_temp from 'FANTOIR0118' with csv delimiter '#' quote '>';"
 
 echo "Mise en forme"
 psql -c "

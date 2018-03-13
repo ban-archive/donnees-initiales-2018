@@ -15,7 +15,6 @@
 --    number
 --    ordinal
 --    cia
-ALTER TABLE dgfip_housenumbers DROP COLUMN IF EXISTS fantoir_hn;
 ALTER TABLE dgfip_housenumbers DROP COLUMN IF EXISTS number;
 ALTER TABLE dgfip_housenumbers DROP COLUMN IF EXISTS ordinal;
 ALTER TABLE dgfip_housenumbers DROP COLUMN IF EXISTS cia;
@@ -23,7 +22,6 @@ ALTER TABLE dgfip_housenumbers DROP COLUMN IF EXISTS cia;
 DROP TABLE IF EXISTS dgfip_housenumbers_temp;
 CREATE TABLE dgfip_housenumbers_temp AS SELECT 
 	*, 
-	left(fantoir,5)||left(right(fantoir,5),4) AS fantoir_hn,
 	left(numero||' ',strpos(numero||' ',' ')-1) AS number,
 	upper(trim(right(numero||' ',-strpos(numero||' ',' ')))) AS ordinal
 FROM dgfip_housenumbers;
@@ -77,10 +75,10 @@ CREATE INDEX idx_ran_housenumber_co_cea ON ran_housenumber(co_cea);
 --  RASSEMBLEMENT des hns des differentes sources
 DROP TABLE IF EXISTS housenumber;
 
--- dgfip bano
-CREATE TABLE housenumber AS SELECT g.id_fantoir as group_fantoir, g.id_pseudo_fpb as group_ign, g.co_voie as group_laposte, h.number, h.ordinal, g.code_insee, true::bool as source_dgfip 
+-- dgfip 
+CREATE TABLE housenumber AS SELECT g.id_fantoir as group_fantoir, g.id_pseudo_fpb as group_ign, g.co_voie as group_laposte, h.number, h.ordinal, g.code_insee, true::bool as source_dgfip, max(destination) as destination 
 FROM dgfip_housenumbers h, group_fnal g 
-WHERE fantoir_hn=g.id_fantoir
+WHERE fantoir=g.id_fantoir
 and h.insee_com like '90%' 
 GROUP BY g.id_fantoir, g.id_pseudo_fpb, g.co_voie, h.number, h.ordinal, g.code_insee;
 
@@ -200,9 +198,9 @@ DROP TABLE IF EXISTS position;
 CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::numeric,6) as lat,id as ign,id_hn as housenumber_ign,kind,positioning, designation_de_l_entree as name, 'IGN'::varchar AS source_init FROM ign_position WHERE kind <> 'unknown' ;
 
 -- Insertion dans la table position des positions dgfip  
-INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), 'entrance','other', 'DGFIP' FROM dgfip_housenumbers d
+INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), CASE WHEN position_type = 'parcel' THEN 'parcel' ELSE 'entrance' END,'other', 'DGFIP' FROM dgfip_housenumbers d where position_type is not null
 --;
-WHERE insee_com like '90%';
+AND insee_com like '90%';
 
 CREATE INDEX idx_position_cia ON position(cia);
 CREATE INDEX idx_position_ign ON position(ign);
