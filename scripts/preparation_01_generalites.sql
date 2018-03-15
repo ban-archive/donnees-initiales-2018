@@ -63,6 +63,10 @@ UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where nature_voie like
 UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where libelle_voie like abbrev_type_voie.nom_court || ' %' and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
 UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where libelle_voie like nom_long and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
 
+-- Remise à palt du code insee de Saint-Martin et Saint-Barth
+UPDATE dgfip_fantoir SET code_insee = '97701' WHERE code_insee = '97123';
+UPDATE dgfip_fantoir SET code_insee = '97801' WHERE code_insee = '97127';
+
 -- ajout des champs suivants :
 --   - fantoir sur 9 caracteres
 --   - nom complet concaténation de la nature et du libelle

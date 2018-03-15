@@ -10,6 +10,10 @@
 -------------------------------------------------------------------------
 --  HOUSENUMBER dgfip bano
 
+-- changement du code insee de saint-barth et saint martin
+UPDATE dgfip_housenumbers SET insee_com = '97701' WHERE insee_com = '97123';
+UPDATE dgfip_housenumbers SET insee_com = '97801' WHERE insee_com = '97127';
+
 -- Ajout des colonnes suivantes : 
 --    fantoir_hn (sur 9 caracteres)
 --    number
