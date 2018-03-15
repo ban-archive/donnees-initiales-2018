@@ -26,7 +26,7 @@ CREATE TABLE dgfip_housenumbers_temp AS SELECT
 	upper(trim(right(numero||' ',-strpos(numero||' ',' ')))) AS ordinal
 FROM dgfip_housenumbers;
 DROP TABLE IF EXISTS dgfip_housenumbers_temp2;
-CREATE TABLE dgfip_housenumbers_temp2 AS SELECT *,CASE WHEN fantoir is not null or fantoir <> '' THEN upper(format('%s_%s_%s_%s',left(fantoir,5),left(right(fantoir,5),4),number,ordinal)) ELSE '' END AS cia FROM dgfip_housenumbers_temp;
+CREATE TABLE dgfip_housenumbers_temp2 AS SELECT *,CASE WHEN fantoir is not null or fantoir <> '' THEN upper(format('%s_%s_%s_%s',left(fantoir,5),right(fantoir,4),number,ordinal)) ELSE '' END AS cia FROM dgfip_housenumbers_temp;
 DROP TABLE dgfip_housenumbers;
 ALTER TABLE dgfip_housenumbers_temp2 RENAME TO dgfip_housenumbers;
 DROP TABLE dgfip_housenumbers_temp;
@@ -76,11 +76,11 @@ CREATE INDEX idx_ran_housenumber_co_cea ON ran_housenumber(co_cea);
 DROP TABLE IF EXISTS housenumber;
 
 -- dgfip 
-CREATE TABLE housenumber AS SELECT g.id_fantoir as group_fantoir, g.id_pseudo_fpb as group_ign, g.co_voie as group_laposte, h.number, h.ordinal, g.code_insee, true::bool as source_dgfip, max(destination) as destination 
+CREATE TABLE housenumber AS SELECT g.id_fantoir as group_fantoir, g.id_pseudo_fpb as group_ign, g.co_voie as group_laposte, h.number, h.ordinal, g.code_insee, true::bool as source_dgfip, max(destination) as destination, h.code_postal as code_post_dgfip
 FROM dgfip_housenumbers h, group_fnal g 
 WHERE fantoir=g.id_fantoir
 and h.insee_com like '90%' 
-GROUP BY g.id_fantoir, g.id_pseudo_fpb, g.co_voie, h.number, h.ordinal, g.code_insee;
+GROUP BY g.id_fantoir, g.id_pseudo_fpb, g.co_voie, h.number, h.ordinal, g.code_insee, h.code_postal;
 
 -- mise à jour de l'id ign sur housenumber pour les hn dont le group ign, le numero et l'ordinal sont deja présents
 -- on récupère aussi le code postal sur la table ign
@@ -119,6 +119,9 @@ AND co_insee like '90%';
 -- si le co_postal est vide, on le remplit avec le code postal ign
 UPDATE housenumber SET co_postal = code_post_ign WHERE (co_postal is null or co_postal = '') and (code_post_ign is not null and code_post_ign <> '');
 
+-- si le co_postal est vide, on le remplit avec le code postal dgfip
+UPDATE housenumber SET co_postal = code_post_dgfip WHERE (co_postal is null or co_postal = '') and (code_post_dgfip is not null and code_post_dgfip <> '');
+
 -- ajout CIA, source_init
 DROP TABLE IF EXISTS housenumber_temp;
 CREATE TABLE housenumber_temp AS SELECT *, CASE WHEN group_fantoir is not null THEN upper(format('%s_%s_%s_%s',left(group_fantoir,5),right(group_fantoir,4),number, coalesce(ordinal,''))) ELSE null END as cia, array_to_string(array[CASE WHEN source_dgfip is true THEN 'DGFIP' ELSE null END,CASE WHEN ign is null THEN null ELSE 'IGN' END,CASE WHEN laposte is null THEN null ELSE 'LAPOSTE' END],'|') as source_init FROM housenumber;
@@ -141,9 +144,10 @@ CREATE INDEX idx_housenumber_laposte ON housenumber(laposte);
 -- on vide les liens codes postaux -> hn non cohérents, cad qui ne pointent pas vers un cp existants ou unique au sens (code insee, code postal, ligne 5)
 -- 2 cas observés :
 -- hn ign avec cp, mais la poste pour ce cp a plusieurs lignes 5 et aucune vide. On ne sait pas vers quel cp faire pointer
--- hn avec incohérence entre l'insee poste te l'insee ign
+-- hn avec incohérence entre l'insee poste et l'insee ign
 create index idx_poste_cp_co_insee on poste_cp(co_insee);
 create index idx_poste_cp_co_postal on poste_cp(co_postal);
+DROP TABLE IF EXISTS housenumber_cp_error;
 create table housenumber_cp_error as select h.*,lb_l5_nn from housenumber h left join (select * from poste_cp where lb_l5_nn is null) p on (h.code_insee = p.co_insee and h.co_postal = p.co_postal ) where h.co_postal is not null and p.co_insee is null and lb_l5 is null;
 create index idx_housenumber_cp_error_ign on housenumber_cp_error(ign);
 create index idx_housenumber_cp_error_laposte on housenumber_cp_error(laposte);

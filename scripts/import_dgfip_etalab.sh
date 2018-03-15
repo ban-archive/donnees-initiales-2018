@@ -19,10 +19,13 @@ if [ $# -ne 1 ]; then
         exit 1
 fi
 
+# grep -v csv adresses-dgfip-etalab-full.csv > adresses-dgfip-etalab-full2.csv
+# grep -v "^$" adresses-dgfip-etalab-full.csv > adresses-dgfip-etalab-full2.csv
+
 # import des hn
 echo "DROP TABLE IF EXISTS dgfip_housenumbers;" > commandeTemp.sql
 echo "CREATE TABLE dgfip_housenumbers (lon double precision,lat double precision,position_type varchar,numero varchar, libelle_voie varchar, libelle_voie_type varchar, fantoir varchar, libelle_fantoir varchar, code_postal varchar, libelle_acheminement varchar, insee_com varchar, destination varchar);" >> commandeTemp.sql
-echo "\COPY dgfip_housenumbers FROM '${data_path}/cadastre-dgfip-90.csv' WITH CSV HEADER DELIMITER ','" >> commandeTemp.sql
+echo "\COPY dgfip_housenumbers FROM '${data_path}/adresses-dgfip-etalab-full.csv' WITH CSV HEADER DELIMITER ','" >> commandeTemp.sql
 
 # les voies cadatre 
 echo "DROP TABLE IF EXISTS dgfip_noms_cadastre;" >> commandeTemp.sql
@@ -32,7 +35,7 @@ psql -f commandeTemp.sql
 
 if [ $? -ne 0 ]
 then
-   echo "Erreur lors de l import des fichiers dgfip - bano"
+   echo "Erreur lors de l import des fichiers dgfip - etalab"
    exit 1
 fi
 
