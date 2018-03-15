@@ -203,7 +203,7 @@ DROP TABLE IF EXISTS position;
 
 -- insertion des positions ign sauf les kind unkown (centre commune)
 -- au passage on tronque les coordonnées à 6 chiffres après la virgule ( => 1 dm au max environ)
-CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::numeric,6) as lat,id as ign,id_hn as housenumber_ign,kind,positioning, designation_de_l_entree as name, 'IGN'::varchar AS source_init FROM ign_position WHERE kind <> 'unknown' ;
+CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::numeric,6) as lat,id as ign,id_hn as housenumber_ign,kind,positioning, designation_de_l_entree as name, 'IGN'::varchar AS source_init FROM ign_position WHERE kind <> 'unknown' and indice_de_positionnement <> '6';
 
 -- Insertion dans la table position des positions dgfip  
 INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), CASE WHEN position_type = 'parcel' THEN 'parcel' ELSE 'entrance' END,'other', 'DGFIP' FROM dgfip_housenumbers d where position_type is not null
