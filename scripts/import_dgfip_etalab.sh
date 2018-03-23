@@ -15,12 +15,12 @@
 data_path=$1
 
 if [ $# -ne 1 ]; then
-        echo "Usage : import_dgfip.sh <DataPath> "
+        echo "Usage : import_dgfip_etalab.sh <DataPath> "
         exit 1
 fi
 
 # grep -v csv adresses-dgfip-etalab-full.csv > adresses-dgfip-etalab-full2.csv
-# grep -v "^$" adresses-dgfip-etalab-full.csv > adresses-dgfip-etalab-full2.csv
+# grep -v "^$" adresses-dgfip-etalab-full2.csv > adresses-dgfip-etalab-full3.csv
 
 # import des hn
 echo "DROP TABLE IF EXISTS dgfip_housenumbers;" > commandeTemp.sql

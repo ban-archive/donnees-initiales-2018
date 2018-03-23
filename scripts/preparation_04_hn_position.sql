@@ -42,13 +42,13 @@ DROP TABLE dgfip_housenumbers_temp;
 -- Ménage des doublons parfaits, suppression des detruits et passage en majuscules de l'indice de repetition
 UPDATE ign_housenumber SET rep = '' WHERE rep is null;
 DROP TABLE IF EXISTS ign_housenumber_temp;
-CREATE TABLE ign_housenumber_temp AS SELECT distinct on(numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree) id, id_poste, numero,upper(rep) as rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree FROM ign_housenumber where detruit is null
-;
---and code_insee like '90%';
+CREATE TABLE ign_housenumber_temp AS SELECT distinct on(numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree) id, id_poste, numero,upper(rep) as rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree FROM ign_housenumber where detruit is null 
+and code_insee like '90%'
+order by numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree,id DESC;
 
 -- ajout du champ rank qui indiquera le rang des hn ign au sein d'une même pile sémantique (même groupe ign, numero et indice de répetition, mais géométrie ou indice_de_positionnement ou methode ou designation_de_l_entree différents)
 DROP TABLE IF EXISTS ign_housenumber_temp2;
-CREATE TABLE ign_housenumber_temp2 AS SELECT id,numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree, rank() OVER (PARTITION BY numero,rep,id_pseudo_fpb order by id,lon,lat,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree,code_post,code_insee) FROM ign_housenumber_temp;
+CREATE TABLE ign_housenumber_temp2 AS SELECT id,numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree, rank() OVER (PARTITION BY numero,rep,id_pseudo_fpb order by id,lon,lat,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree,code_post,code_insee) FROM ign_housenumber_temp order by id DESC;
 
 -- creation des hn unique ign (même groupe ign, numero et indice de répetition
 DROP TABLE IF EXISTS ign_housenumber_unique ;
@@ -157,7 +157,6 @@ create index idx_housenumber_cp_error_ign on housenumber_cp_error(ign);
 create index idx_housenumber_cp_error_laposte on housenumber_cp_error(laposte);
 update housenumber h set co_postal = null from housenumber_cp_error h2 where h.ign is not null and h.ign <> '' and h.ign = h2.ign;
 update housenumber h set co_postal = null from housenumber_cp_error h2 where h.co_postal is not null and h.laposte is not null and h.laposte <> '' and h.laposte = h2.laposte;
-
 
 -- ajout d'un hn null pour chaque groupe laposte pour stocker le cea des voies poste
 INSERT INTO housenumber (group_laposte, laposte, co_postal, code_insee, lb_l5, source_init)
