@@ -43,7 +43,7 @@ DROP TABLE dgfip_housenumbers_temp;
 UPDATE ign_housenumber SET rep = '' WHERE rep is null;
 DROP TABLE IF EXISTS ign_housenumber_temp;
 CREATE TABLE ign_housenumber_temp AS SELECT distinct on(numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree) id, id_poste, numero,upper(rep) as rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree FROM ign_housenumber where detruit is null 
-and code_insee like '90%'
+and code_insee like '94%'
 order by numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree,id DESC;
 
 -- ajout du champ rank qui indiquera le rang des hn ign au sein d'une même pile sémantique (même groupe ign, numero et indice de répetition, mais géométrie ou indice_de_positionnement ou methode ou designation_de_l_entree différents)
@@ -83,7 +83,7 @@ DROP TABLE IF EXISTS housenumber;
 CREATE TABLE housenumber AS SELECT g.id_fantoir as group_fantoir, g.id_pseudo_fpb as group_ign, g.co_voie as group_laposte, h.number, h.ordinal, g.code_insee, true::bool as source_dgfip, max(destination) as destination, h.code_postal as code_post_dgfip
 FROM dgfip_housenumbers h, group_fnal g 
 WHERE fantoir=g.id_fantoir
-and h.insee_com like '90%' 
+and h.insee_com like '94%' 
 GROUP BY g.id_fantoir, g.id_pseudo_fpb, g.co_voie, h.number, h.ordinal, g.code_insee, h.code_postal;
 
 -- mise à jour de l'id ign sur housenumber pour les hn dont le group ign, le numero et l'ordinal sont deja présents
@@ -118,7 +118,7 @@ left join housenumber h on (h.laposte = p.co_cea)
 LEFT JOIN group_fnal g ON (g.co_voie = p.co_voie)
 WHERE h.laposte is null and g.co_voie is not null
 --;
-AND co_insee like '90%';
+AND co_insee like '94%';
 
 -- si le co_postal est vide, on le remplit avec le code postal ign
 UPDATE housenumber SET co_postal = code_post_ign WHERE (co_postal is null or co_postal = '') and (code_post_ign is not null and code_post_ign <> '');
@@ -155,14 +155,23 @@ DROP TABLE IF EXISTS housenumber_cp_error;
 create table housenumber_cp_error as select h.*,lb_l5_nn from housenumber h left join (select * from poste_cp where lb_l5_nn is null) p on (h.code_insee = p.co_insee and h.co_postal = p.co_postal ) where h.co_postal is not null and p.co_insee is null and lb_l5 is null;
 create index idx_housenumber_cp_error_ign on housenumber_cp_error(ign);
 create index idx_housenumber_cp_error_laposte on housenumber_cp_error(laposte);
+
+drop table if exists anomalies_cp_insee;
+create table anomalies_cp_insee as select a.*, co_insee as co_insee_lp 
+   from (select h.ign,h.laposte,h.code_insee,h.co_postal, h.lb_l5, 'insee, code postal, l5 pas trouve dans post code'::varchar as libelle, ''::varchar as libelle2 from housenumber h
+   	left join  housenumber_cp_error h2 on (h.ign = h2.ign)
+   	where h.ign is not null and h.ign <> '' and h2.ign is not null) as a
+   left join ran_housenumber p on (a.laposte = p.co_cea) ;
+update anomalies_cp_insee set libelle2 = 'insee ign-lp incoherent' where co_insee_lp <> code_insee;
+
 update housenumber h set co_postal = null from housenumber_cp_error h2 where h.ign is not null and h.ign <> '' and h.ign = h2.ign;
-update housenumber h set co_postal = null from housenumber_cp_error h2 where h.co_postal is not null and h.laposte is not null and h.laposte <> '' and h.laposte = h2.laposte;
+update housenumber h set co_postal = null from housenumber_cp_error h2 where h.co_postal is not null and h.laposte is not null and h.laposte <> '' and h.laposte = h2.laposte ;
 
 -- ajout d'un hn null pour chaque groupe laposte pour stocker le cea des voies poste
 INSERT INTO housenumber (group_laposte, laposte, co_postal, code_insee, lb_l5, source_init)
 SELECT r.co_voie, r.cea, r.co_postal, r.co_insee, r.lb_l5, 'LAPOSTE' from ran_group r 
 -- ;
-where co_insee like '90%';
+where co_insee like '94%';
 
 -------------- TODO 
 -- ajout ancestor ign vide
@@ -202,12 +211,12 @@ DROP TABLE IF EXISTS position;
 
 -- insertion des positions ign sauf les kind unkown (centre commune)
 -- au passage on tronque les coordonnées à 6 chiffres après la virgule ( => 1 dm au max environ)
-CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::numeric,6) as lat,id as ign,id_hn as housenumber_ign,kind,positioning, designation_de_l_entree as name, 'IGN'::varchar AS source_init FROM ign_position WHERE kind <> 'unknown' and indice_de_positionnement <> '6';
+CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::numeric,6) as lat,id as ign,id_hn as housenumber_ign,kind,positioning, designation_de_l_entree as name, 'IGN (2018)'::varchar AS source_init FROM ign_position WHERE kind <> 'unknown' and indice_de_positionnement <> '6';
 
 -- Insertion dans la table position des positions dgfip  
-INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), CASE WHEN position_type = 'parcel' THEN 'parcel' ELSE 'entrance' END,'other', 'DGFIP' FROM dgfip_housenumbers d where position_type is not null
+INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), CASE WHEN position_type = 'parcel' THEN 'parcel' ELSE 'entrance' END,'other', 'DGFIP/ETALAB (2018)' FROM dgfip_housenumbers d where position_type is not null
 --;
-AND insee_com like '90%';
+AND insee_com like '94%';
 
 CREATE INDEX idx_position_cia ON position(cia);
 CREATE INDEX idx_position_ign ON position(ign);
