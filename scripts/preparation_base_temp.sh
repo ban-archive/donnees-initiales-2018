@@ -41,25 +41,6 @@ then
    exit 1
 fi
 
-# creation de la table des autres abbreviations
-echo "DROP TABLE IF EXISTS abbrev_divers;" > commandeTemp.sql
-echo "CREATE TABLE abbrev_divers
-(
-  nom_court character varying,
-  nom_long character varying,
-  nom_min character varying,
-  code character varying
-); " >> commandeTemp.sql
-echo "\COPY abbrev_divers FROM '${Rep}/abbrev_divers.csv' WITH CSV HEADER DELIMITER ';';" >> commandeTemp.sql
-
-psql -f commandeTemp.sql
-
-if [ $? -ne 0 ]
-then
-   echo "Erreur lors de l import des fichiers csv des abbreviations diverses"
-   exit 1
-fi
-
 # création de la table des abbréviations pour le pasage libelle long -> libelle court
 psql -f ${Rep}/abbrev.sql
 if [ $? -ne 0 ]

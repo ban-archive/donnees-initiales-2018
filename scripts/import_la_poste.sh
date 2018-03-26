@@ -32,7 +32,9 @@ echo "DROP TABLE IF EXISTS ran_group;" >> commandeTemp.sql
 echo "CREATE TABLE ran_group (co_insee varchar, co_voie varchar, co_postal varchar, lb_type_voie varchar, lb_voie varchar, cea varchar,lb_l5 varchar, co_insee_l5 varchar);" >> commandeTemp.sql
 echo "\COPY ran_group FROM '${data_path}/ran_group.csv' WITH CSV HEADER DELIMITER ';'" >> commandeTemp.sql
 
-# on ne conserve qu'un groupe par identifiant la poste (il y a quelques voies avec le même identifiant la poste mais pas le même CEA et code poste) -> voies multi CP. Exemple :
+# on ne conserve qu'un groupe par identifiant la poste (il y a quelques voies avec le même identifiant la poste et même CEA mais code poste différent) -> voies multi CP. La Poste ne livre pas les bons cea et co_voie pour ces cas la. 
+# cf https://github.com/BaseAdresseNationale/donnees-initiales/issues/6
+#Exemple :
 #  co_insee | co_voie  | co_postal | lb_type_voie |   lb_voie    |    cea     | lb_l5 | co_insee_l5 | insee_cog | laposte  | kind
 #----------+----------+-----------+--------------+--------------+------------+-------+-------------+-----------+----------+------
 # 66136    | 04377322 | 66000     |              | RUE DE BERGA | 6613624CCZ |       |             | 66136     | 04377322 | way
