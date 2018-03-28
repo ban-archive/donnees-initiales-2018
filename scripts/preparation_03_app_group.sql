@@ -310,6 +310,8 @@ from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles
 where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj 
 and l1.court <-> l2.court < 0.15 and length(l1.court) > 6
 group by f.code_insee,l1.court having count(*) = 1;
+delete from ign_group_app2 where id_fantoir in (select id_fantoir from ign_group_app2 group by id_fantoir having count(*) > 1);
+delete from ign_group_app2 where id_pseudo_fpb in (select id_pseudo_fpb from ign_group_app2 group by id_pseudo_fpb having count(*) > 1);
 -- injection dans la table des groupes ign appariés
 select insert_app_fantoir_ign('trigram(nom court ign,nom court fantoir) < 0.15, appariement 1-1');
 
@@ -323,6 +325,8 @@ from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles
 where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
 and length(l1.court) < 254 and levenshtein(l1.court, l2.court) < 2 and length(l1.court) > 6 and length(l2.court) > 6
 group by f.code_insee,l1.court having count(*) = 1;
+delete from ign_group_app2 where id_fantoir in (select id_fantoir from ign_group_app2 group by id_fantoir having count(*) > 1);
+delete from ign_group_app2 where id_pseudo_fpb in (select id_pseudo_fpb from ign_group_app2 group by id_pseudo_fpb having count(*) > 1);
 -- injection dans la table des groupes ign appariés
 select insert_app_fantoir_ign('levenshtein(nom court ign,nom court fantoir) < 2, appariement 1-1');
 
