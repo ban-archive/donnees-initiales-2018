@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------
--- PREPARATION DES DONNEES DANS LA BASE TEMP AVANT L'EXPORT JSON : GENERALITES :
+-- PREPARATION DES DONNEES DANS LA BASE TEMP : pour les municipality, cp et group 
 --   quelques menages basiques sur les libellés
 --   fusion de communes (on fait pointer les objets les vers les bonnes communes
 --   remplissage du champ kind sur les groupes
@@ -91,6 +91,8 @@ UPDATE dgfip_fantoir SET code_insee=f.insee_new FROM fusion_commune AS f, insee_
 -- GROUP IGN
 -- Suppression des detruits
 DELETE FROM ign_group WHERE detruit is not null;
+-- Suppression des noms vides
+DELETE FROM ign_group WHERE nom is null or nom = '';
 -- création d'un champ nom en majuscule, desaccentue
 ALTER TABLE ign_group DROP COLUMN IF EXISTS nom_maj;
 ALTER TABLE ign_group ADD COLUMN nom_maj varchar;
@@ -171,7 +173,7 @@ CREATE INDEX idx_ran_group_co_voie ON ran_group(co_voie);
 -- création d'un champ nom en majuscule, desaccentue
 ALTER TABLE dgfip_noms_cadastre DROP COLUMN IF EXISTS nom_maj;
 ALTER TABLE dgfip_noms_cadastre ADD COLUMN nom_maj varchar;
-UPDATE dgfip_noms_cadastre SET nom_maj=upper(unaccent(voie_cadastre));
+UPDATE dgfip_noms_cadastre SET nom_maj=upper(unaccent(libelle_voie));
 UPDATE dgfip_noms_cadastre SET nom_maj=regexp_replace(nom_maj,E'([\'-]|  *)',' ','g') WHERE nom_maj ~ E'([\'-]|  )';
 UPDATE dgfip_noms_cadastre SET nom_maj=regexp_replace(nom_maj,E'([\'-]|  *)',' ','g') WHERE nom_maj ~ E'([\'-]|  )';
 CREATE INDEX idx_dgfip_noms_cadastre_nom_maj on dgfip_noms_cadastre(nom_maj);

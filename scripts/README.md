@@ -157,7 +157,7 @@ Les données sont importées dans la base PostgreSQL <basetemp> --> Bien initial
 Lancer les shells :
 - import_cog.sh : importe les communes du COG dans la table insee_cog
 - import_dgfip_fantoir.sh : importe les groupes fantoir dans la table dgfip_fantoir
-- import_dgfip_bano.sh : importe les groupes dgfip bano dans la table dgfip_noms_cadastre et les adresses dans dgfip_housenumbers
+- import_dgfip_etalab.sh : importe les groupes dgfip etalab dans la table dgfip_noms_cadastre et les adresses dans dgfip_housenumbers
 - import_ign.sh : importe les données IGN dans les tables ign_municipality, ign_group, ign_housenumber
 - import_la_poste.sh : importe les données La Poste dans les tables poste_cp, ran_group, ran_housenumber
 
