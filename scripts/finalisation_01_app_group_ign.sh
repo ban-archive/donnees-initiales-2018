@@ -16,10 +16,11 @@
 #  d'environnement)
 #############################################################################
 appPath=$1
-finalisation=$2
+import=$2
+finalisation=$3
 set -x
-if [ $# -ne 1 ]; then
-        echo "Usage :  finalisation_01_app_group_ign.sh <appPath> "
+if [ $# -ne 3 ]; then
+        echo "Usage :  finalisation_01_app_group_ign.sh <appPath> <import> <finalisation>"
         exit 1
 fi
 
@@ -27,15 +28,17 @@ psql -e -c "DROP TABLE IF EXISTS ign_group_app_fantoir_interactif;"
 psql -e -c "CREATE TABLE ign_group_app_fantoir_interactif (id_fantoir varchar, id_pseudo_fpb varchar, nom_maj varchar, nom_maj_fantoir varchar, court_ign varchar, court_fantoir varchar, app real, comm varchar);"
 
 
-psql -e -c "\COPY ign_group_app_fantoir_interactif FROM '${appPath}/ign_group_non_app_with_fantoir_app.csv' WITH CSV HEADER DELIMITER ';';"
+if [ $import -eq 1 ]; then
+	psql -e -c "\COPY ign_group_app_fantoir_interactif FROM '${appPath}/ign_group_non_app_with_fantoir_app.csv' WITH CSV HEADER DELIMITER ';';"
 
-if [ $? -ne 0 ]
-then
-  echo "Erreur lors de l'import des appariements interactifs ign-fantoir"
-  exit 1
+	if [ $? -ne 0 ]
+	then
+	  echo "Erreur lors de l'import des appariements interactifs ign-fantoir"
+	  exit 1
+	fi
+	psql -e -c "delete from ign_group_app_fantoir_interactif where app is null;"
 fi
 
-psql -e -c "delete from ign_group_app_fantoir_interactif where app is null;"
 
 if [ $finalisation -eq 1 ]; then
 
