@@ -176,17 +176,18 @@ On peut aussi lancer à la main chaque fichier sql. On peut relancer le fichier 
 ### Finalisation des données
 Cette partie consiste au regroupement/appariement des données des différentes sources. Compter environ 2-3 heures de traitement (sans compter la phase interactive)
 - Se placer dans un répertoire temporaire de travail xxx
-- finalisation_01_app_group_ign.sh xxx 0 0 : création de la table des appariements interactifs ign-fantoir. Si vous avez un fichier d'appariement resultant de l'appariement interactif ign_group_non_app_with_fantoir_app.csv, lancer finalisation_01_app_group_ign.sh xxx 1 0. Placer au préalable le fichier ign_group_non_app_with_fantoir_app.csv dans xxx
+- finalisation_01_app_group_ign.sh xxx 0 0 : création de la table des appariements interactifs ign-fantoir. 
+ Remarque : si vous avez un fichier d'appariement resultant de l'appariement interactif ign_group_non_app_with_fantoir_app.csv, placer ce fichier dans xxx et lancer plutôt finalisation_01_app_group_ign.sh xxx 1 0. 
 - psql -f finalisation_00_app_group_ign.sql : appariement automatique des groupes fantoir -ign
-- eventuellement traitement interactif des appariements ign-fantoir : 
-	-- récupérer le fichier xxx/ign_group_non_app_with_fantoir.csv. 
-	-- Renommer le ign_group_non_app_with_fantoir_app.csv. 
-	-- L'Ouvrir sous un tableur (attention à importer des différentes colonnes en texte). 
-	-- Mettre en place les appariements jugés sûrs en mettant 1 dans la colonne app. 
-	-- Replacer le fichier dans xxx
-	-- l'importer dans les données déjà appariées : finalisation_01_app_group_ign.sh xxx 0 1
-- finalisation_02_app_group_laposte.sql : appariement groupes la poste, appariement nom cadastre et mise en forme de la table group_fnal qui regroupe tous les groupes appariés ou non des différentes sources 
-- finalisation_03_hn_position.sql : appariement/regroupement des hns et positions des différentes sources
+- Eventuellement traitement interactif des appariements ign-fantoir : 
+	- récupérer le fichier xxx/ign_group_non_app_with_fantoir.csv. 
+	- Renommer le ign_group_non_app_with_fantoir_app.csv. 
+	- L'ouvrir sous un tableur (attention à importer des différentes colonnes en texte). 
+	- Mettre en place les appariements jugés sûrs en mettant 1 dans la colonne app. 
+	- Replacer le fichier dans xxx
+	- l'importer dans les données déjà appariées : finalisation_01_app_group_ign.sh xxx 0 1
+- Finalisation_02_app_group_laposte.sql : appariement groupes la poste, appariement nom cadastre et mise en forme de la table group_fnal qui regroupe tous les groupes appariés ou non des différentes sources 
+- Finalisation_03_hn_position.sql : appariement/regroupement des hns et positions des différentes sources
 
 ### Export des anomalies 
 Lancer export_anomalies.sh OutPath. 
