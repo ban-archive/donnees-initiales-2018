@@ -55,8 +55,5 @@ then
    exit 1
 fi
 
-rm commandeTemp.sql
-
-
 echo "FIN"
 

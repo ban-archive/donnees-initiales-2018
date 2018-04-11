@@ -5,7 +5,6 @@
 \set ON_ERROR_STOP 1
 \timing
 
-
 ----------------------------------------------------------------------
 -- FONCTION PERMETTANT DE PREPARER LES GROUPES FANTOIR ET IGN NON ENCORE APPARIES
 CREATE OR REPLACE FUNCTION prepa_non_app_fantoir_ign() RETURNS void AS $$
@@ -18,7 +17,7 @@ BEGIN
 	CREATE INDEX idx_dgfip_fantoir_candidat_code_insee on dgfip_fantoir_candidat(code_insee);
 	-- table candidat ign
 	DROP TABLE IF exists ign_group_candidat;
-	CREATE TABLE ign_group_candidat AS SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.nom_afnor,i.alias,i.kind,i.addressing,i.nom_maj,i.code_insee FROM ign_group i
+	CREATE TABLE ign_group_candidat AS SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.nom_afnor,i.alias,i.kind,i.addressing,i.nom_maj,i.code_insee,i.insee_obs FROM ign_group i
 	LEFT JOIN ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
 	where a.id_pseudo_fpb is null;
 	CREATE INDEX idx_ign_group_candidat_code_inse on ign_group_candidat(code_insee);
@@ -389,9 +388,78 @@ LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
 where l2.court = 'SOUS ' || l1.court and i.nom is not null and i.nom <> '';
 
 
+-- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir avec court_fantoir = court_ign + nom ancienne commune (utilisation inseee_obs ign)
+SELECT prepa_non_app_fantoir_ign();
+INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
+SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, court fantoir = court ign + nom commune (utilisation insee_obs ign)' from ign_group_candidat i
+LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
+left join fusion_commune fu on (i.insee_obs = fu.insee_old)
+where i.insee_obs is not null and i.nom is not null and i.nom <> '' and
+l2.court = regexp_replace(l1.court || ' ' || regexp_replace(regexp_replace(upper(unaccent(fu.nom_old)),'([A-Z ]*) \(([A-Z 1-9]*)\)','\1'),'(^| )((LE|LA|LES|L|D|DE|DE|DES|DU|A|AU|AUX|ET) )*',' ','g'),'  ',' ');
+
+
+-- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir avec court_ign = court_fantoir + nom ancienne commune (pris dans le nom ign)
+SELECT prepa_non_app_fantoir_ign();
+INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
+SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, court ign = court fantoir + nom commune (issue du nom ign)' from ign_group_candidat i
+LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
+where i.nom is not null and i.nom <> '' and
+l1.court = l2.court || ' ' || regexp_replace(i.nom_maj,'([A-Z ]*) \(([A-Z 1-9]*)\)','\2');
+
+
+-- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir avec court_fantoir = court_ign + nom ancienne commune (pris dans le nom fantoir)
+SELECT prepa_non_app_fantoir_ign();
+INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
+SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, court fantoir = court ign + nom commune (issue du nom fantoir)' from ign_group_candidat i
+LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
+where i.nom is not null and i.nom <> '' and
+l2.court = l1.court || ' ' || regexp_replace(f.nom_maj,'([A-Z ]*) \(([A-Z 1-9]*)\)','\2');
+
+
+-- groupe ign et groupe fantoir non apparié précédemment avec le même fantoir avec court_fantoir = court_ign (tronqué à la longueur du court fantoir) 
+SELECT prepa_non_app_fantoir_ign();
+INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
+SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, court fantoir = court ign tronqué à la longueur du court fantoir' from ign_group_candidat i
+LEFT JOIN dgfip_fantoir_candidat f on (fantoir_9 = i.id_fantoir)
+LEFT JOIN libelles l1 ON (l1.long = i.nom_maj)
+LEFT JOIN libelles l2 ON (l2.long = f.nom_maj)
+where i.nom is not null and i.nom <> '' and length(l2.court) > 9 and
+l2.court = substr(l1.court,1,length(l2.court));
+
+
+-- group ign avec fantoir,  fantoir = id fantoir ign, levenshtein ( nom_court_ign, nom_court_fantoir) <= 1 et length(court) > 4 (
+-- pas d'autres candidats dans la commune avec le même type d'appariement
+-- Préparation des tables des objets ign et fantoir non encore apparies
+SELECT prepa_non_app_fantoir_ign();
+-- On ne retient que les candidats 1-1 dont le fantoir ign est egal au fantoir du fantoir
+DROP TABLE IF exists ign_group_app2;
+CREATE TABLE ign_group_app2 as select max(fantoir_9) as id_fantoir, max(id_fantoir) as fantoir_ign,max(id_pseudo_fpb) as id_pseudo_fpb,l1.court as court_ign, max(l2.court) as court_fantoir,max(l1.court <-> l2.court) as trigram, max(levenshtein(l1.court, l2.court)) as levenshtein
+from dgfip_fantoir_candidat as f, ign_group_candidat as i, libelles l1, libelles l2
+where f.code_insee = i.code_insee and l1.long = i.nom_maj and l2.long = f.nom_maj
+and length(l1.court) < 254 and levenshtein(l1.court, l2.court) < 2 and length(l1.court) > 4 and length(l2.court) > 4
+and f.nom_maj is not null and f.nom_maj <> ''
+group by f.code_insee,l1.court having count(*) = 1;
+DELETE FROM ign_group_app2 WHERE id_fantoir <> fantoir_ign or fantoir_ign is null;
+-- injection dans la table des groupes ign appariés
+select insert_app_fantoir_ign('fantoir = id fantoir ign, leventshein (nom court ign = nom court fantoir) < 2, length > 4 , pas d''autres candidats sur la commune');
+
+
+-- Récupération des appariements interactifs
+--SELECT prepa_non_app_fantoir_ign();
+--INSERT INTO ign_group_app(id_fantoir,id_pseudo_fpb,nom,alias,kind,addressing,nom_maj,nom_afnor,commentaire)
+--SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.alias,i.kind,i.addressing,i.nom_maj,i.nom_afnor, 'fantoir = id fantoir ign, appariement interactif' from ign_group_candidat i
+--LEFT JOIN (select id_pseudo_fpb from ign_group_app_fantoir_interactif where app = '1') a ON (a.id_pseudo_fpb = i.id_pseudo_fpb) 
+--where a.id_pseudo_fpb is not null;
 
 --- Petit ménage final des doublons 
 DELETE FROM ign_group_app WHERE id_fantoir in (select id_fantoir from ign_group_app group by id_fantoir having count(*) > 1);
+
 
 -- groupe ign avec fantoir et groupe fantoir non apparié précédemment
 SELECT prepa_non_app_fantoir_ign();
@@ -408,7 +476,11 @@ CREATE TABLE ign_group_non_app AS SELECT i.id_fantoir,i.id_pseudo_fpb,i.nom,i.al
 LEFT JOIN ign_group_app a on (i.id_pseudo_fpb = a.id_pseudo_fpb)
 where a.id_pseudo_fpb is null;
 
+-- export des donnees IGN non apparies avec fantoir : au préalable on fait la jointure avec un éventuel appariement interactif précédent
+ALTER table ign_group_non_app_with_fantoir add column app varchar;
+ALTER table ign_group_non_app_with_fantoir add column comm varchar;
+update ign_group_non_app_with_fantoir a set app = ai.app from ign_group_app_fantoir_interactif ai where a.id_pseudo_fpb = ai.id_pseudo_fpb and ai.app is not null;
+update ign_group_non_app_with_fantoir a set comm = ai.comm from ign_group_app_fantoir_interactif ai where a.id_pseudo_fpb = ai.id_pseudo_fpb and ai.comm is not null;
 
-
--- \COPY (select id_fantoir,id_pseudo_fpb,nom_maj,nom_maj_fantoir,court_ign,court_fantoir,null as app from ign_group_non_app_with_fantoir order by id_fantoir ASC) TO '/home/bduni/ban/init/travail/ign_group_non_app_with_fantoir.csv' WITH CSV HEADER DELIMITER ';'
+\COPY (select id_fantoir,id_pseudo_fpb,nom_maj,nom_maj_fantoir,court_ign,court_fantoir,app,comm from ign_group_non_app_with_fantoir order by id_fantoir ASC) TO 'ign_group_non_app_with_fantoir.csv' WITH CSV HEADER DELIMITER ';'
 
