@@ -81,8 +81,11 @@ L'appariement des groupes entre les différentes sources suit les règles suivan
   - trigram < 0.15 sur les noms courts
   - trigram < 0.4 sur les noms courts et pas d'autres candidats sur la commune
   - levenshtein <= 2 sur les noms courts et longueur > 10
+  - même nom courts (après concaténation avec le nom de commune sur l'une des 2 sources)
+  - même nom courts (ign,fantoir) (après concaténation de NORD, SUD, EST ou OUEST sur la source IGN) 
 - trigram < 0.15 sur les noms courts et pas d'autres candidats sur la commune
 - levenshtein <= 2 sur les noms courts et longueur > 10 et pas d'autres candidats sur la commune
+
 
 
 
@@ -123,6 +126,11 @@ Pour les positions IGN, le champ IGN type_de_localisation est utilisé pour remp
 
 ## Comment faire fonctionner les programmes d'initialisation
 
+### Environnement / Machine
+Pour la dernière phase (import json dans la ban)
+- la base PG ban et l'instance de l'API doivent être sur la même machine pour des raisons de perfomances
+- prendre une machine avec au moins 20 Go de Ram et 8 coeurs
+
 ### Généralité sur le processus d'initialisation 
 Le processus d'initialisation comprend les étapes suivantes:
 - récupération des données utiles (COG, FANTOIR, Codes postaux, DGFIP/ETALAB, IGN, RAN)
@@ -157,28 +165,48 @@ Les données sont importées dans la base PostgreSQL <basetemp> --> Bien initial
 Lancer les shells :
 - import_cog.sh : importe les communes du COG dans la table insee_cog
 - import_dgfip_fantoir.sh : importe les groupes fantoir dans la table dgfip_fantoir
-- import_dgfip_bano.sh : importe les groupes dgfip bano dans la table dgfip_noms_cadastre et les adresses dans dgfip_housenumbers
+- import_dgfip_etalab.sh : importe les groupes dgfip etalab dans la table dgfip_noms_cadastre et les adresses dans dgfip_housenumbers
 - import_ign.sh : importe les données IGN dans les tables ign_municipality, ign_group, ign_housenumber
 - import_la_poste.sh : importe les données La Poste dans les tables poste_cp, ran_group, ran_housenumber
 
 ### Préparation des données
-Lancer le shell preparation.sh (compter environ 5-6 h de traitement). Celui-ci enchaine les fichiers sql suivant :
-- preparation_01_generalites.sql : ajoute des champs supplémentaires dans les données initiales et normalisation de certains champs
-- preparation_02_libelles.sql : prépare de la table des libellés courts des groupes des différentes sources (passage en majuscules désaccentuées, abbréviations, suppression des articles, normalisation des nombres ...)
-- preparation_03_app_group.sql : apparie et rassemble les groupes des différentes sources dans une même table.
-- preparation_04_hn_position.sql : apparie et regroupe les hn et positions des différentes sources dans une même table. Supprime les doublons IGN. Met en forme les champs pour la BAN à partir des champs sources (kind, source_init)
+Lancer le shell preparation.sh (compter environ 2-3 h de traitement). Celui-ci ajoute des champs et normalise/corrige les données initiales.
+Il enchaine les fichiers sql suivant :
+- preparation_01_municipality_cp_group.sql : traitement des municipalities, groupes et codes postaux
+- preparation_02_libelles.sql : prépare la table des libellés courts des groupes des différentes sources (passage en majuscules désaccentuées, abbréviations, suppression des articles, normalisation des nombres ...)
+- preparation_03_hn_position.sql : traitement des hns et positions. Supprime les doublons IGN. Met en forme les champs pour la BAN à partir des champs sources (kind, source_init)
 
 On peut aussi lancer à la main chaque fichier sql. On peut relancer le fichier n plusieurs fois. Il faut alors relancer le n+1, n +2 ...
 
-### Export des anomalies 
-Lancer export_anomalies.sh <OutPath>. 
-Ceci génère les fichiers d'anomalies suivants dans <OutPath>:
-- anomalies_cp_insee.csv: incohérences insee/cp/l5. Le hn BAN n'a pas pu être raccroché à un cp (en général souci d'insee ou de ligne 5)
+### Finalisation des données
+Cette partie consiste au regroupement/appariement des données des différentes sources. Compter environ 2-3 heures de traitement (sans compter la phase interactive)
+- Se placer dans un répertoire temporaire de travail xxx
+- finalisation_01_app_group_ign.sh xxx 0 0 : création de la table des appariements interactifs ign-fantoir. 
+ Remarque : si vous avez un fichier d'appariement resultant de l'appariement interactif ign_group_non_app_with_fantoir_app.csv, placer ce fichier dans xxx et lancer plutôt finalisation_01_app_group_ign.sh xxx 1 0. 
+- psql -f finalisation_00_app_group_ign.sql : appariement automatique des groupes fantoir -ign
+- Eventuellement traitement interactif des appariements ign-fantoir : 
+	- récupérer le fichier xxx/ign_group_non_app_with_fantoir.csv. 
+	- Renommer le ign_group_non_app_with_fantoir_app.csv. 
+	- L'ouvrir sous un tableur (attention à importer des différentes colonnes en texte). 
+	- Mettre en place les appariements jugés sûrs en mettant 1 dans la colonne app. 
+	- Replacer le fichier dans xxx
+	- l'importer dans les données déjà appariées : finalisation_01_app_group_ign.sh xxx 0 1
+- Finalisation_02_app_group_laposte.sql : appariement groupes la poste, appariement nom cadastre et mise en forme de la table group_fnal qui regroupe tous les groupes appariés ou non des différentes sources 
+- Finalisation_03_hn_position.sql : appariement/regroupement des hns et positions des différentes sources
 
+### Export des anomalies 
+Lancer export_anomalies.sh OutPath. 
+Ceci génère les fichiers d'anomalies suivants dans OutPath:
+- anomalies_cp_insee.csv: incohérences insee/cp/l5. Le hn BAN n'a pas pu être raccroché à un cp (en général souci d'insee ou de ligne 5)
 
 ### Export en json 
 Lancer le shell export_json_rafale.sh qui exporte par département les données préalablement préparées en json (compter environ 5-6 h de traitement).  
 Vous pouvez utiliser export_json.sh pour exporter un seul département.
+
+### Préparation de la base ban
+Créer la base ban tel que décrit dans https://github.com/BaseAdresseNationale/api-gestion
+Supprimer les indexes inutiles psql -d ban -f drop_index.sql
+Créer les clients d'init avec la commande ban::createclient : init_cog init_laposte init_dgfip init_ign init
 
 ### Intégration des jsons dans la ban
 Activer le banenv (pour avoir accès aux commandes de l'API).

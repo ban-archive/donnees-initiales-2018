@@ -21,6 +21,7 @@ fi
 
 # grep -v csv adresses-dgfip-etalab-full.csv > adresses-dgfip-etalab-full2.csv
 # grep -v "^$" adresses-dgfip-etalab-full2.csv > adresses-dgfip-etalab-full3.csv
+# cp adresses-dgfip-etalab-full3.csv adresses-dgfip-etalab-full.csv
 
 # import des hn
 echo "DROP TABLE IF EXISTS dgfip_housenumbers;" > commandeTemp.sql
