@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------
--- PREPARATION DES DONNEES DANS LA BASE TEMP AVANT L'EXPORT JSON : GENERALITES :
+-- PREPARATION DES DONNEES DANS LA BASE TEMP : pour les municipality, cp et group 
 --   quelques menages basiques sur les libellés
 --   fusion de communes (on fait pointer les objets les vers les bonnes communes
 --   remplissage du champ kind sur les groupes
@@ -58,10 +58,15 @@ UPDATE dgfip_fantoir set nature_voie = '' FROM abbrev_type_voie WHERE libelle_vo
 -- Croisement sur le champ nature_voie, puis sur le premier mot du libelle avec les noms long et nom court de la table abbrev_type_voie (tous les cas sont possibles dans le fantoir)
 ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS kind;
 ALTER TABLE dgfip_fantoir ADD COLUMN kind varchar DEFAULT 'area';
-UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where nature_voie like nom_court and abbrev_type_voie.kind = 'way';
+UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where nature_voie like nom_court and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
 UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where nature_voie like nom_long and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
 UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where libelle_voie like abbrev_type_voie.nom_court || ' %' and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
 UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where libelle_voie like nom_long and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
+UPDATE dgfip_fantoir SET kind='way' from abbrev_type_voie where libelle_voie like nom_long || ' %' and abbrev_type_voie.kind = 'way' and dgfip_fantoir.kind = 'area';
+
+-- Remise à palt du code insee de Saint-Martin et Saint-Barth
+UPDATE dgfip_fantoir SET code_insee = '97701' WHERE code_insee = '97123';
+UPDATE dgfip_fantoir SET code_insee = '97801' WHERE code_insee = '97127';
 
 -- ajout des champs suivants :
 --   - fantoir sur 9 caracteres
@@ -72,6 +77,11 @@ ALTER TABLE dgfip_fantoir_tmp RENAME TO dgfip_fantoir;
 CREATE INDEX idx_dgfip_fantoir_nom_maj on dgfip_fantoir(nom_maj);
 CREATE INDEX idx_dgfip_fantoir_fantoir_9 on dgfip_fantoir(fantoir_9);
 
+-- modification de quelques kind (RN RD)
+UPDATE dgfip_fantoir SET kind='way' WHERE nom_maj ~ '^N[0-9][0-9]* ';
+UPDATE dgfip_fantoir SET kind='way' WHERE nom_maj ~ '^N [0-9][0-9]* ';
+UPDATE dgfip_fantoir SET kind='way' WHERE nom_maj ~ '^D[0-9][0-9]* ';
+UPDATE dgfip_fantoir SET kind='way' WHERE nom_maj ~ '^D [0-9][0-9]* ';
 
 -- Fusion de commune : si le groupe fantoir ne pointe pas vers un insee du cog, mais vers un insee ancien impliquee dans une fusion de commune, on le redirige vers le nouvel insee
 UPDATE dgfip_fantoir SET code_insee=f.insee_new FROM fusion_commune AS f, insee_cog WHERE dgfip_fantoir.code_insee = f.insee_old AND code_insee NOT IN (SELECT insee from insee_cog);
@@ -81,6 +91,8 @@ UPDATE dgfip_fantoir SET code_insee=f.insee_new FROM fusion_commune AS f, insee_
 -- GROUP IGN
 -- Suppression des detruits
 DELETE FROM ign_group WHERE detruit is not null;
+-- Suppression des noms vides
+DELETE FROM ign_group WHERE nom is null or nom = '';
 -- création d'un champ nom en majuscule, desaccentue
 ALTER TABLE ign_group DROP COLUMN IF EXISTS nom_maj;
 ALTER TABLE ign_group ADD COLUMN nom_maj varchar;
@@ -112,6 +124,12 @@ UPDATE ign_group SET kind=abbrev_type_voie.kind from abbrev_type_voie where nom_
 UPDATE ign_group SET kind=abbrev_type_voie.kind from abbrev_type_voie where nom_maj like nom_court||' %';
 UPDATE ign_group SET kind='area' where kind is null;
 
+-- modification de quelques kind (RN RD)
+UPDATE ign_group SET kind='way' WHERE nom_maj ~ '^N[0-9][0-9]* ';
+UPDATE ign_group SET kind='way' WHERE nom_maj ~ '^N [0-9][0-9]* ';
+UPDATE ign_group SET kind='way' WHERE nom_maj ~ '^D[0-9][0-9]* ';
+UPDATE ign_group SET kind='way' WHERE nom_maj ~ '^D [0-9][0-9]* ';
+
 -- Fusion de commune : si le groupe ign ne pointe pas vers un insee du cog, mais vers un insee ancien impliquee dans une fusion de commune, on le redirige vers le nouvel insee
 UPDATE ign_group SET code_insee=f.insee_new FROM fusion_commune AS f, insee_cog WHERE ign_group.code_insee = f.insee_old AND code_insee NOT IN (SELECT insee from insee_cog);
 
@@ -134,7 +152,15 @@ UPDATE ran_group SET co_voie=right('0000000'||co_voie,8) where length(co_voie) <
 ALTER TABLE ran_group DROP COLUMN IF EXISTS kind;
 ALTER TABLE ran_group ADD COLUMN kind varchar;
 UPDATE ran_group SET kind=abbrev_type_voie.kind from abbrev_type_voie where lb_voie like nom_long||' %';
+UPDATE ran_group SET kind=abbrev_type_voie.kind from abbrev_type_voie where lb_voie like nom_court||' %' and ran_group.kind is null;
 UPDATE ran_group SET kind='area' WHERE kind is null;
+
+-- modification de quelques kind (RN RD)
+UPDATE ran_group SET kind='way' WHERE lb_voie ~ '^N[0-9][0-9]* ';
+UPDATE ran_group SET kind='way' WHERE lb_voie ~ '^N [0-9][0-9]* ';
+UPDATE ran_group SET kind='way' WHERE lb_voie ~ '^D[0-9][0-9]* ';
+UPDATE ran_group SET kind='way' WHERE lb_voie ~ '^D [0-9][0-9]* ';
+
 
 -- Fusion de commune : si le groupe ran ne pointe pas vers un insee du cog, mais vers un insee ancien impliquee dans une fusion de commune, on le redirige vers le nouvel insee
 UPDATE ran_group SET co_insee=f.insee_new FROM fusion_commune AS f, insee_cog WHERE ran_group.co_insee = f.insee_old AND co_insee NOT IN (SELECT insee from insee_cog);
@@ -147,7 +173,7 @@ CREATE INDEX idx_ran_group_co_voie ON ran_group(co_voie);
 -- création d'un champ nom en majuscule, desaccentue
 ALTER TABLE dgfip_noms_cadastre DROP COLUMN IF EXISTS nom_maj;
 ALTER TABLE dgfip_noms_cadastre ADD COLUMN nom_maj varchar;
-UPDATE dgfip_noms_cadastre SET nom_maj=upper(unaccent(voie_cadastre));
+UPDATE dgfip_noms_cadastre SET nom_maj=upper(unaccent(libelle_voie));
 UPDATE dgfip_noms_cadastre SET nom_maj=regexp_replace(nom_maj,E'([\'-]|  *)',' ','g') WHERE nom_maj ~ E'([\'-]|  )';
 UPDATE dgfip_noms_cadastre SET nom_maj=regexp_replace(nom_maj,E'([\'-]|  *)',' ','g') WHERE nom_maj ~ E'([\'-]|  )';
 CREATE INDEX idx_dgfip_noms_cadastre_nom_maj on dgfip_noms_cadastre(nom_maj);

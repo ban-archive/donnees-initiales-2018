@@ -98,8 +98,102 @@ echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('97502','SAINT-PIERRE','Sa
 echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('97701','SAINT-BARTHELEMY','Saint-Barthélemy');" >> commandeTemp.sql
 echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('97801','SAINT-MARTIN','Saint-Martin');" >> commandeTemp.sql
 
-#Ajout de Monaco
-echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('99138','MONACO','Monaco');" >> commandeTemp.sql
+# Ajout de Wallis et Futuna
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98611','ALO','Alo');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98612','SIGAVE','Sigave');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98613','UVEA','Uvea');" >> commandeTemp.sql
+
+# Polynésie Française
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98711','ANAA','Anaa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98712','ARUE','Arue');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98713','ARUTUA','Arutua');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98714','BORA-BORA','Bora-Bora');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98715','FAAA','Faaa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98716','FAKARAVA','Fakarava');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98717','FANGATAU','Fangatau');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98718','FATU-HIVA','Fatu-Hiva');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98719','GAMBIER','Gambier');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98720','HAO','Hao');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98721','HIKUERU','Hikueru');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98722','HITIAA O TE RA','Hitiaa O Te Ra');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98723','HIVA-OA','Hiva-Oa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98724','HUAHINE','Huahine');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98725','MAHINA','Mahina');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98726','MAKEMO','Makemo');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98727','NANIHI','Nanihi');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98728','MAUPITI','Maupiti');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98729','MOOREA-MAIAO','Moorea-Maiao');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98730','NAPUKA','Napuka');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98731','NUKU-HIVA','Nuku-Hiva');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98732','NUKUTAVAKE','Nukutavake');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98733','PAEA','Paea');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98734','PAPARA','Papara');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98735','PAPEETE','Papeete');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98736','PIRAE','Pirae');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98737','PUKAPUKA','Pukapuka');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98738','PUNAAUIA','Punaauia');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98739','RAIVAVAE','Raivavae');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98740','RANGIROA','Rangiroa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98741','RAPA','Rapa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98742','REAO','Reao');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98743','RIMATARA','Rimatara');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98744','RURUTU','Rurutu');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98745','TAHAA','Tahaa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98746','TAHUATA','Tahuata');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98747','TAIARAPU-EST','Taiarapu-Est');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98748','TAIARAPU-OUEST','Taiarapu-Ouest');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98749','TAKAROA','Takaroa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98750','TAPUTAPUATEA','Taputapuatea');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98751','TATAKOTO','Tatakoto');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98752','TEVA I UTA','Teva I Uta');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98753','TUBUAI','Tubuai');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98754','TUMARAA','Tumaraa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98755','TUREIA','Tureia');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98756','UA-HUKA','Ua-Huka');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98757','UA-POU','Ua-Pou');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98758','UTUROA','Uturoa');" >> commandeTemp.sql
+
+# Nouvelles Calédonie
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98801','BELEP','Belep');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98802','BOULOUPARI','Bouloupari');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98803','BOURAIL','Bourail');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98804','CANALA','Canala');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98805','DUMBEA','Dumbéa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98806','FARINO','Farino');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98807','HIENGHENE','Hienghène');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98808','HOUAILOU','Houaïlou');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98809','L''ILE-DES-PINS','L''Île-des-Pins');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98810','KAALA-GOMEN','Kaala-Gomen');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98811','KONE','Koné');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98812','KOUMAC','Koumac');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98813','LA FOA','La Foa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98814','LIFOU','Lifou');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98815','MARE','Maré');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98816','MOINDOU','Moindou');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98817','LE MONT-DORE','Le Mont-Dore');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98818','NOUMEA','Nouméa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98819','OUEGOA','Ouégoa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98820','OUVEA','Ouvéa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98821','PAITA','Païta');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98822','POINDIMIE','Poindimié');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98823','PONERIHOUEN','Ponérihouen');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98824','POUEBO','Pouébo');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98825','POUEMBOUT','Pouembout');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98826','POUM','Poum');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98827','POYA','Poya');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98828','SARRAMEA','Sarraméa');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98829','THIO','Thio');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98830','TOUHO','Touho');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98831','VOH','Voh');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98832','YATE','Yaté');" >> commandeTemp.sql
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98833','KOUAOUA','Kouaoua');" >> commandeTemp.sql
+
+
+# Clipperton
+echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('98901','ILE DE CLIPPERTON','Île de Clipperton');" >> commandeTemp.sql
+
+# Moncao
+#echo "INSERT INTO insee_cog(insee,ncc,nccenr) VALUES ('99138','MONACO','Monaco');" >> commandeTemp.sql
 
 
 psql -f commandeTemp.sql

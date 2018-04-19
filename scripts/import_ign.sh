@@ -102,7 +102,6 @@ ALTER TABLE ign_housenumber ADD geom geometry;
 CREATE INDEX idx_ign_housenumber_id ON ign_housenumber(id);
 CREATE INDEX idx_ign_housenumber_code_insee ON ign_housenumber(code_insee);
 CREATE INDEX idx_ign_housenumber_pseudo_fpb ON ign_housenumber(id_pseudo_fpb);
-CREATE INDEX idx_ign_housenumber_geom ON ign_housenumber USING gist (geom);
 
 -- index pour ign_group
 CREATE INDEX idx_ign_group_code_insee ON ign_group(code_insee);

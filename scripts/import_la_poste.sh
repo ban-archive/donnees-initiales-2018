@@ -32,17 +32,19 @@ echo "DROP TABLE IF EXISTS ran_group;" >> commandeTemp.sql
 echo "CREATE TABLE ran_group (co_insee varchar, co_voie varchar, co_postal varchar, lb_type_voie varchar, lb_voie varchar, cea varchar,lb_l5 varchar, co_insee_l5 varchar);" >> commandeTemp.sql
 echo "\COPY ran_group FROM '${data_path}/ran_group.csv' WITH CSV HEADER DELIMITER ';'" >> commandeTemp.sql
 
-# on ne conserve qu'un groupe par identifiant la poste (il y a quelques voies avec le même identifiant la poste mais pas le même CEA et code poste) -> voies multi CP. Exemple :
+# on ne conserve qu'un groupe par identifiant la poste (il y a quelques voies avec le même identifiant la poste et même CEA mais code poste différent) -> voies multi CP. La Poste ne livre pas les bons cea et co_voie pour ces cas la. 
+# cf https://github.com/BaseAdresseNationale/donnees-initiales/issues/6
+#Exemple :
 #  co_insee | co_voie  | co_postal | lb_type_voie |   lb_voie    |    cea     | lb_l5 | co_insee_l5 | insee_cog | laposte  | kind
 #----------+----------+-----------+--------------+--------------+------------+-------+-------------+-----------+----------+------
 # 66136    | 04377322 | 66000     |              | RUE DE BERGA | 6613624CCZ |       |             | 66136     | 04377322 | way
 # 66136    | 04377322 | 66100     |              | RUE DE BERGA | 6613624CCZ |       |             | 66136     | 04377322 | way
 echo "DROP TABLE IF EXISTS ran_group_unique;" >> commandeTemp.sql
-echo "CREATE TABLE ran_group_unique AS SELECT distinct on(laposte) * FROM ran_group order by laposte, co_postal ASC;" >> commandeTemp.sql
+echo "CREATE TABLE ran_group_unique AS SELECT distinct on(co_voie) * FROM ran_group order by co_voie, co_postal ASC;" >> commandeTemp.sql
 
 # on fait une table avec les voies multi-CP
 echo "DROP TABLE IF EXISTS ran_group_multi_cp;" >> commandeTemp.sql
-echo "CREATE TABLE ran_group_multi_cp AS SELECT p.* FROM ran_group p LEFT JOIN (SELECT laposte FROM ran_group GROUP BY laposte HAVING count(*) > 1) as ss ON (ss.laposte = p.laposte) WHERE ss.laposte is not null;" >> commandeTemp.sql
+echo "CREATE TABLE ran_group_multi_cp AS SELECT p.* FROM ran_group p LEFT JOIN (SELECT co_voie FROM ran_group GROUP BY co_voie HAVING count(*) > 1) as ss ON (ss.co_voie = p.co_voie) WHERE ss.co_voie is not null;" >> commandeTemp.sql
 echo "DROP TABLE ran_group;" >> commandeTemp.sql
 echo "ALTER TABLE ran_group_unique RENAME TO ran_group;" >> commandeTemp.sql
 echo "" >> commandeTemp.sql
