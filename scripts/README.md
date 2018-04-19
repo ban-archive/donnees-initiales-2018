@@ -126,6 +126,11 @@ Pour les positions IGN, le champ IGN type_de_localisation est utilisé pour remp
 
 ## Comment faire fonctionner les programmes d'initialisation
 
+### Environnement / Machine
+Pour la dernière phase (import json dans la ban)
+- la base PG ban et l'instance de l'API doivent être sur la même machine pour des raisons de perfomances
+- prendre une machine avec au moins 20 Go de Ram et 8 coeurs
+
 ### Généralité sur le processus d'initialisation 
 Le processus d'initialisation comprend les étapes suivantes:
 - récupération des données utiles (COG, FANTOIR, Codes postaux, DGFIP/ETALAB, IGN, RAN)
@@ -194,10 +199,14 @@ Lancer export_anomalies.sh OutPath.
 Ceci génère les fichiers d'anomalies suivants dans OutPath:
 - anomalies_cp_insee.csv: incohérences insee/cp/l5. Le hn BAN n'a pas pu être raccroché à un cp (en général souci d'insee ou de ligne 5)
 
-
 ### Export en json 
 Lancer le shell export_json_rafale.sh qui exporte par département les données préalablement préparées en json (compter environ 5-6 h de traitement).  
 Vous pouvez utiliser export_json.sh pour exporter un seul département.
+
+### Préparation de la base ban
+Créer la base ban tel que décrit dans https://github.com/BaseAdresseNationale/api-gestion
+Supprimer les indexes inutiles psql -d ban -f drop_index.sql
+Créer les clients d'init avec la commande ban::createclient : init_cog init_laposte init_dgfip init_ign init
 
 ### Intégration des jsons dans la ban
 Activer le banenv (pour avoir accès aux commandes de l'API).
