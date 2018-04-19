@@ -70,15 +70,18 @@ select count(*) from housenumber where attributes->'source_init' like '%DGFIP%';
 select count(*) from dgfip_housenumbers33;
 -- Recherche des hn perdus
 drop table if exists dgfip_housenumbers33_comp;
-create table dgfip_housenumbers33_comp as select h1.*,h2.cia as cia_ban, h2.number as number_ban,h2.ordinal as ordinal_ban, g.fantoir as fantoir_ban from dgfip_housenumbers33 h1 
+create table dgfip_housenumbers33_comp as select h1.*,h2.cia as cia_ban, h2.number as number_ban,h2.ordinal as ordinal_ban, h2.ign, h2.laposte,g.fantoir as fantoir_ban,c.code,m.insee,c.complement,h2.attributes from dgfip_housenumbers33 h1 
 left join housenumber h2 on (h1.cia = h2.cia)
-left join "group" g on (h2.parent_id = g.pk);
+left join "group" g on (h2.parent_id = g.pk)
+left join postcode c on (h2.postcode_id =c.pk)
+left join municipality m on (c.municipality_id = m.pk);
 -- cia non retrouvées
 select count(*) from dgfip_housenumbers33_comp where cia_ban is null;
 select count(*) from dgfip_housenumbers33_comp where fantoir is null;
 drop table if exists dgfip_housenumbers33_comp_group;
 create table dgfip_housenumbers33_comp_group as select h1.*,g.fantoir as fantoir_fantoir from dgfip_housenumbers33 h1
 left join "group" g on (substr(h1.fantoir,1,9) = g.fantoir);
+select count(*) from dgfip_housenumbers33_comp_group where fantoir_fantoir is null;
 -- cia en double dans les données d'origine
 select count(*),cia from dgfip_housenumbers33_comp group by cia having count(*) > 1;
 -- comparaison numero et ordinal
@@ -86,9 +89,14 @@ select count(*) from dgfip_housenumbers33_comp where cia_ban is not null and (nu
 select count(*) from dgfip_housenumbers33_comp where cia_ban is not null and number = number_ban and (ordinal <> ordinal_ban or (ordinal is null and (ordinal_ban is not null and ordinal_ban <> '')));
 --lien vers les groupes (fantoir)
 select count(*) from dgfip_housenumbers33_comp where cia_ban is not null and (substr(fantoir,1,9) <> fantoir_ban or fantoir_ban is null);
+-- code postaux
+select count(*),attributes->'source_init' from dgfip_housenumbers33_comp where code_postal <> code group by attributes->'source_init';
+select count(*) from dgfip_housenumbers33_comp where code_postal is not null and code is null and ign is null and laposte is null and cia_ban is not null;
+
 
 -- comparaison ign
 select count(*) from housenumber where attributes->'source_init' like '%IGN%';
+select count(*) from housenumber where ign is not null;
 delete from ign_housenumber33 where detruit is true;
 create table ign_housenumber33_unique as select max(id) as id,id_pseudo_fpb,numero,rep,code_insee,code_post,array_agg(id) from ign_housenumber33 group by(id_pseudo_fpb,numero,rep,code_insee,code_post,geom);
 select count(*) from ign_housenumber33_unique;
@@ -138,15 +146,18 @@ select count(*) from housenumber where attributes->'source_init' like '%IGN%' an
 -- position
 select count(*) from position;
 select count(*),source from position group by source;
+select count(*),source_kind from position group by source_kind;
 
 -- dgfip
 drop table if exists dgfip_position33_comp;
-create table dgfip_position33_comp as select d.*, center,h.cia as cia_ban from dgfip_housenumbers33 d
+create table dgfip_position33_comp as select d.*, center,h.cia as cia_ban,p.pk from dgfip_housenumbers33 d
 left join housenumber h on (d.cia = h.cia)
-left join (select * from position where source = 'DGFIP') p on (p.housenumber_id = h.pk);
+left join (select * from position where source_kind = 'dgfip') p on (p.housenumber_id = h.pk);
 -- position perdue
 select count(*) from dgfip_position33_comp where cia_ban is null;
 select count(*) from dgfip_position33_comp where fantoir is null;
+select count(*) from dgfip_position33_comp where pk is null;
+select count(*) from dgfip_position33_comp where cia_ban is not null and pk is null;
 -- distance
 select cia,st_distance(center::geography,st_geomfromtext('POINT('||lon||' '||lat||')',4326)::geography),st_astext(center),lon,lat from dgfip_position33_comp where st_distance(center::geography,st_geomfromtext('POINT('||lon||' '||lat||')',4326)::geography) > 0.1;
 
@@ -166,6 +177,7 @@ drop table if exists ign_position33_perdu_retrouve;
 create table ign_position33_perdu_retrouve as select p.*,c.id_pseudo_fpb as id_pseudo_fpb2, c.numero as numero2, c.rep as rep2 from ign_position33_perdu p 
 left join ign_position33_comp c on (p.id_pseudo_fpb = c.id_pseudo_fpb and p.numero = c.numero and p.rep = c.rep and p.designation_de_l_entree = c.designation_de_l_entree and c.type_de_localisation = p.type_de_localisation and p.lon =c.lon and p.lat = c.lat and p.code_insee = c.code_insee and p.code_post = c.code_post);
 select count(*) from ign_position33_perdu_retrouve where id_pseudo_fpb2 is not null;
+select count(*) from ign_position33_perdu_retrouve where id_pseudo_fpb2 is null and indice_de_positionnement = '6';
 -- distance
 select id,st_distance(center::geography,st_geomfromtext('POINT('||lon||' '||lat||')',4326)::geography),st_astext(center),lon,lat from ign_position33_comp where st_distance(center::geography,st_geomfromtext('POINT('||lon||' '||lat||')',4326)::geography) > 0.1;
 -- kind
@@ -174,7 +186,9 @@ select count(*) from ign_position33_comp where type_de_localisation = 'Interpol�
 select count(*) from ign_position33_comp where type_de_localisation = 'A la zone d''adressage' and (kind <> 'area' or kind is null);
 select count(*) from ign_position33_comp where type_de_localisation = 'A la plaque' and (kind <> 'entrance' or kind is null);
 -- positioning 
-TODO
+select count(*),positioning from position group by positioning;
+select count(*) from ign_position33_comp where type_de_localisation = 'Projetée du centre parcelle' and (positioning <> 'projection' or positioning is null);
+select count(*) from ign_position33_comp where type_de_localisation = 'Interpolée' and (positioning <> 'interpolation' or positioning is null);
 -- name
 select count(*) from ign_position33_comp where name <> designation_de_l_entree;
 
