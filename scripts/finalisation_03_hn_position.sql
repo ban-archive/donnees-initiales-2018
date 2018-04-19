@@ -119,8 +119,8 @@ CREATE TABLE position AS SELECT cia,round(lon::numeric,6) as lon,round(lat::nume
 
 -- Insertion dans la table position des positions dgfip
 INSERT INTO position(cia,lon,lat,kind,positioning,source_init) SELECT d.cia, round(d.lon::numeric,6), round(d.lat::numeric,6), CASE WHEN position_type = 'parcel' THEN 'parcel' ELSE 'entrance' END,'other', 'DGFIP/ETALAB (2018)' FROM dgfip_housenumbers d where position_type is not null
---;
-AND insee_com like '94%';
+;
+--AND insee_com like '94%';
 
 CREATE INDEX idx_position_cia ON position(cia);
 CREATE INDEX idx_position_ign ON position(ign);
