@@ -1,15 +1,17 @@
 # récupération et décompression du fichier FANTOIR sur data.gouv.fr via son API
-#echo "Telechargement"
-#URL=`http 'https://www.data.gouv.fr/api/1/datasets/53699580a3a729239d204738/' | jq '.resources|sort_by(.published)|.[].url' -r | tail -n 1`
-#FANTOIR=`echo $URL | sed 's".*/"";s".zip""'`
+echo "Telechargement"
+URL=`http 'https://www.data.gouv.fr/api/1/datasets/53699580a3a729239d204738/' | jq '.resources|sort_by(.published)|.[].url' -r | tail -n 1`
+FANTOIR=`echo $URL | sed 's".*/"";s".zip""'`
 
-#wget -nc $URL
-#unzip -u $FANTOIR.zip
+wget -nc $URL
+unzip -u $FANTOIR.zip
+
+exit
 
 # import dans SQL en format fixe (delimiter et quote spéciaux pour ignorer)
 echo "copy ..."
 psql -c "create table if not exists dgfip_fantoir_temp (raw text); truncate dgfip_fantoir_temp;"
-psql -c "\copy dgfip_fantoir_temp from 'FANTOIR0118' with csv delimiter '#' quote '>';"
+psql -c "\copy dgfip_fantoir_temp from 'FANTOIR0718' with csv delimiter '#' quote '>';"
 
 echo "Mise en forme"
 psql -c "

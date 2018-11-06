@@ -37,16 +37,16 @@ DROP TABLE dgfip_housenumbers_temp;
 -------------------------------------------------------------------------
 -- HOUSENUMBER ign
 
--- Ménage des doublons parfaits, suppression des detruits et passage en majuscules de l'indice de repetition
+-- Ménage des doublons parfaits, passage en majuscules de l'indice de repetition
 UPDATE ign_housenumber SET rep = '' WHERE rep is null;
 DROP TABLE IF EXISTS ign_housenumber_temp;
-CREATE TABLE ign_housenumber_temp AS SELECT distinct on(numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree) id, id_poste, numero,upper(rep) as rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree FROM ign_housenumber where detruit is null 
+CREATE TABLE ign_housenumber_temp AS SELECT distinct on(numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree) id, id_poste, numero,upper(rep) as rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree FROM ign_housenumber  
 --and code_insee like '94%'
-order by numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree,id DESC;
+order by numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree,id ASC;
 
 -- ajout du champ rank qui indiquera le rang des hn ign au sein d'une même pile sémantique (même groupe ign, numero et indice de répetition, mais géométrie ou indice_de_positionnement ou methode ou designation_de_l_entree différents)
 DROP TABLE IF EXISTS ign_housenumber_temp2;
-CREATE TABLE ign_housenumber_temp2 AS SELECT id,numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree, rank() OVER (PARTITION BY numero,rep,id_pseudo_fpb order by id,lon,lat,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree,code_post,code_insee) FROM ign_housenumber_temp order by id DESC;
+CREATE TABLE ign_housenumber_temp2 AS SELECT id,numero,rep,lon,lat,code_post,code_insee,id_pseudo_fpb,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree, rank() OVER (PARTITION BY numero,rep,id_pseudo_fpb order by id,lon,lat,type_de_localisation,indice_de_positionnement,methode,designation_de_l_entree,code_post,code_insee ASC) FROM ign_housenumber_temp order by id ASC;
 
 -- creation des hn unique ign (même groupe ign, numero et indice de répetition
 DROP TABLE IF EXISTS ign_housenumber_unique ;
@@ -93,7 +93,7 @@ CREATE TABLE ign_position_temp AS SELECT
         CASE WHEN type_de_localisation = 'Projetée du centre parcelle' THEN 'projection' WHEN type_de_localisation = 'Interpolée' THEN 'interpolation' ELSE 'other' END AS positioning,
         CASE WHEN g.id_fantoir is not null THEN format('%s_%s_%s_%s',left(g.id_fantoir,5), right(g.id_fantoir,4),numero, rep) ELSE '' END AS cia
 FROM ign_position p
-LEFT JOIN group_fnal g ON (g.id_pseudo_fpb = p.id_pseudo_fpb);
+LEFT JOIN ign_group g ON (g.id_pseudo_fpb = p.id_pseudo_fpb);
 DROP TABLE ign_position;
 ALTER TABLE ign_position_temp RENAME TO ign_position;
 

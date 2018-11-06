@@ -15,7 +15,7 @@ fi
 
 
 base1="ban_temp"
-base2="ban_20180417_recette"
+base2="ban_20181101"
 
 
 # extraction cog 

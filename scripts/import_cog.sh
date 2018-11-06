@@ -24,21 +24,21 @@ rm ${data_path}/comsimp2017.txt
 rm ${data_path}/comsimp2017.csv
 
 # COG 2017 de l'INSEE
-wget -nc  https://www.insee.fr/fr/statistiques/fichier/2666684/comsimp2017-txt.zip -O ${data_path}/comsimp2017-txt.zip
+wget -nc  https://www.insee.fr/fr/statistiques/fichier/3363419/comsimp2018-txt.zip -O ${data_path}/comsimp2018-txt.zip
 if [ $? -ne 0 ]
 then
    echo "Erreur lors du telechargement du fichier COG"
    exit 1
 fi
 
-unzip -o ${data_path}/comsimp2017-txt.zip -d ${data_path}
+unzip -o ${data_path}/comsimp2018-txt.zip -d ${data_path}
 # conversion en CSV UTF-8
-cat ${data_path}/comsimp2017.txt | iconv -f iso88591 -t utf8 | tr '\t' ',' > ${data_path}/comsimp2017.csv
+cat ${data_path}/comsimp2018.txt | iconv -f iso88591 -t utf8 | tr '\t' ',' > ${data_path}/comsimp2018.csv
 
 
 echo  "drop table if exists insee_cog;" > commandeTemp.sql
 echo  "create table insee_cog (CDC text,CHEFLIEU text,REG text,DEP text,COM text,AR text,CT text,TNCC text,ARTMAJ text,NCC text,ARTMIN text,NCCENR text);" >>commandeTemp.sql
-echo  "\COPY insee_cog from '${data_path}/comsimp2017.csv' WITH CSV HEADER DELIMITER ','" >> commandeTemp.sql
+echo  "\COPY insee_cog from '${data_path}/comsimp2018.csv' WITH CSV HEADER DELIMITER ','" >> commandeTemp.sql
 echo  "alter table insee_cog add column insee text;" >> commandeTemp.sql
 echo  "update insee_cog set insee=dep||com;" >> commandeTemp.sql
 echo  "create index idx_insee_cog_insee on insee_cog (insee);" >> commandeTemp.sql

@@ -71,6 +71,8 @@ UPDATE dgfip_fantoir SET code_insee = '97801' WHERE code_insee = '97127';
 -- ajout des champs suivants :
 --   - fantoir sur 9 caracteres
 --   - nom complet concaténation de la nature et du libelle
+ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS fantoir_9;
+ALTER TABLE dgfip_fantoir DROP COLUMN IF EXISTS nom_maj;
 CREATE TABLE dgfip_fantoir_tmp AS SELECT *, left(replace(fantoir,'_',''),9)::varchar as fantoir_9, trim(nature_voie||' '||libelle_voie) as nom_maj FROM dgfip_fantoir;
 DROP TABLE dgfip_fantoir;
 ALTER TABLE dgfip_fantoir_tmp RENAME TO dgfip_fantoir;
@@ -89,8 +91,6 @@ UPDATE dgfip_fantoir SET code_insee=f.insee_new FROM fusion_commune AS f, insee_
 
 ----------------------
 -- GROUP IGN
--- Suppression des detruits
-DELETE FROM ign_group WHERE detruit is not null;
 -- Suppression des noms vides
 DELETE FROM ign_group WHERE nom is null or nom = '';
 -- création d'un champ nom en majuscule, desaccentue
