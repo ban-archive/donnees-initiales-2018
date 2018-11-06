@@ -6,11 +6,11 @@ Les programmes contenus dans ce répertoire "scripts" permettent d'initialiser l
 
 Ces données sont:
 
-- COG (INSEE 2017): les données sont téléchargées par le programme sur le site de l'INSEE. 
-- FANTOIR (DGFIP janvier 2018): les données sont téléchargées par le programme sur www.data.gouv.fr
-- DGFiP/Etalab (mars 2018):  adresses-dgfip-etalab-full.csv 
-- La Poste (mars 2018): fichiers hexavia et hexacle. Ces fichiers doivent être transformés en ran_postcode.csv, ran_group.csv et ran_housenumber.csv. Pour cela, on utilisera le script hexa_to_csv.py
-- IGN (mars 2018): (découpage par départements)
+- COG (INSEE 2018): les données sont téléchargées par le programme sur le site de l'INSEE. 
+- FANTOIR (DGFIP juillet 2018): les données sont téléchargées par le programme sur www.data.gouv.fr
+- DGFiP/Etalab (septembre 2018):  1 fichier par département
+- La Poste (août 2018): fichiers hexavia et hexacle. Ces fichiers doivent être transformés en ran_postcode.csv, ran_group.csv et ran_housenumber.csv. Pour cela, on utilisera le script hexa_to_csv.py
+- IGN (15 septembre 2018): (découpage par départements)
   - fichier ban.group.csv des voies/lieux-dits
   - fichier ban.house_number.csv des points adresses (housenumber + position)
 - Divers :
